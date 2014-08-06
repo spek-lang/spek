@@ -7,14 +7,17 @@
 *.sln.docstates
 
 # Build results
+
 [Dd]ebug/
-[Dd]ebugPublic/
 [Rr]elease/
 x64/
 build/
-bld/
 [Bb]in/
 [Oo]bj/
+[Pp]ackages/
+
+# Enable "build/" folder in the NuGet Packages folder since NuGet packages use it for MSBuild targets
+!packages/*/build/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
@@ -167,8 +170,12 @@ UpgradeLog*.htm
 
 # Business Intelligence projects
 *.rdl.data
+Thumbs.db
+ehthumbs.db
 *.bim.layout
 *.bim_*.settings
 
 # Microsoft Fakes
+Desktop.ini
 FakesAssemblies/
+$RECYCLE.BIN/
