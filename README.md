@@ -1,5 +1,7 @@
 # spek
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/electricsky/spek?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 C# derived programming language inspired from Microsoft's experimental Axum language.
 
 ## overview
@@ -25,7 +27,7 @@ Starting with the ever popular example
             public MyMainAgent()
             {
                 var cmdArgs = receive(primary::Start);
-                Console.WriteLine(“Hello World!”);
+                Console.WriteLine(ï¿½Hello World!ï¿½);
                 primary::Done <-- 0;
             }
         }
@@ -44,7 +46,7 @@ One of the issues I've always had with the Axum implementation is the way channe
             public MyMainAgent()
             {
                 var cmdArgs = this.Receive(x --> x.Start);
-                Console.WriteLine(“Hello World!”);
+                Console.WriteLine(ï¿½Hello World!ï¿½);
                 this.Send(x <-- x.Done(0));
             }
         }
