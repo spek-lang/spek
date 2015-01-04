@@ -27,7 +27,7 @@ Starting with the ever popular example
             public MyMainAgent()
             {
                 var cmdArgs = receive(primary::Start);
-                Console.WriteLine(�Hello World!�);
+                Console.WriteLine("Hello World!");
                 primary::Done <-- 0;
             }
         }
@@ -46,7 +46,7 @@ One of the issues I've always had with the Axum implementation is the way channe
             public MyMainAgent()
             {
                 var cmdArgs = this.Receive(x --> x.Start);
-                Console.WriteLine(�Hello World!�);
+                Console.WriteLine("Hello World!");
                 this.Send(x <-- x.Done(0));
             }
         }
