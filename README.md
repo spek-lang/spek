@@ -1,6 +1,6 @@
 # spek
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/spek-lang/spek?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Slack](http://spekinator.heroku.com/badge.svg)](http://spekinator.heroku.com)
 
 C# derived programming language inspired from Microsoft's experimental Axum language.
 
