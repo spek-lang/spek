@@ -1,0 +1,121 @@
+<!--
+  Spek.targets : compile .spek sources inside `dotnet build`.
+
+  Import from a csproj (path relative to the project):
+
+      <Import Project="..\..\build\Spek.targets" />
+
+  Every *.spek file in the project directory is transpiled to a .g.cs under the
+  intermediate (obj) output — like a source generator, NOT beside the .spek
+  source — before the C# compiler runs, with MSBuild incrementality: a .spek
+  older than its generated .g.cs is skipped. Generated files are added to the
+  Compile item set automatically; nothing is written into your source tree, so
+  there is no .g.cs to check in or .gitignore.
+
+  The target invokes the built spekc.dll directly (never `dotnet run`,
+  which would nest a build inside the build). Build the CLI once first:
+
+      dotnet build src/Spek.Cli
+
+  Properties:
+    SpekcDll          : path to spekc.dll. Defaults to the in-repo CLI's
+                        output for the current $(Configuration); point it
+                        elsewhere for a packaged tool.
+    SpekcExtraArgs    : appended to the spekc invocation (extra flags such
+                        as the check or no-line-map options).
+    SpekGeneratedDir  : where the .g.cs are written. Defaults to
+                        $(IntermediateOutputPath)spek/ (obj/<cfg>/<tfm>/spek/),
+                        resolved at build time so the SDK has set
+                        IntermediateOutputPath by then.
+-->
+<Project>
+
+  <PropertyGroup>
+    <SpekcDll Condition="'$(SpekcDll)' == ''">$(MSBuildThisFileDirectory)..\src\Spek.Cli\bin\$(Configuration)\net10.0\spekc.dll</SpekcDll>
+    <SpekcExtraArgs Condition="'$(SpekcExtraArgs)' == ''"></SpekcExtraArgs>
+    <!-- In a test project (Microsoft.NET.Test.Sdk sets IsTestProject=true), a
+         module/class named `*Tests` compiles as native tests. Normal projects
+         leave the convention inactive, so a `*Tests` type stays an ordinary type. -->
+    <SpekcTestsFlag Condition="'$(IsTestProject)' == 'true'">--tests</SpekcTestsFlag>
+    <!-- Debug builds emit absolute #line paths so a .NET debugger's PDB resolves
+         the .spek sources (the .g.cs lives under obj/, so a relative path back to
+         the source tree wouldn't resolve reliably). Release builds keep the
+         default relative paths, which stay machine-neutral. Override
+         SpekcLineMapFlag to force either way. -->
+    <SpekcLineMapFlag Condition="'$(SpekcLineMapFlag)' == '' And '$(Configuration)' == 'Debug'">--abs-line-map</SpekcLineMapFlag>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Overridable: declare your own SpekCompile items before the import
+         to opt files in/out explicitly. -->
+    <SpekCompile Include="**\*.spek" Exclude="bin\**;obj\**" Condition="'@(SpekCompile)' == ''" />
+  </ItemGroup>
+
+  <!-- Resolve the generated-output dir at BUILD time, not import time: this file
+       is imported in the project body, but the SDK sets IntermediateOutputPath in
+       its targets (imported AFTER us), so an import-time property would freeze
+       with an empty IntermediateOutputPath. A user may still override
+       SpekGeneratedDir; the condition respects a pre-set value. -->
+  <Target Name="SpekResolveGeneratedDir">
+    <PropertyGroup>
+      <SpekGeneratedDir Condition="'$(SpekGeneratedDir)' == ''">$(IntermediateOutputPath)spek/</SpekGeneratedDir>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Incrementality is ALL-OR-NOTHING via a stamp file, deliberately: the
+       .spek files compile as one cross-file unit, so MSBuild's per-item
+       partial rebuilds (which would feed only the out-of-date files to the
+       Exec) would silently break cross-file type resolution. Any changed
+       .spek recompiles the whole set; an untouched set skips entirely. -->
+  <Target Name="SpekCompile"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          DependsOnTargets="ResolveReferences;SpekResolveGeneratedDir"
+          Inputs="@(SpekCompile)"
+          Outputs="$(SpekGeneratedDir)spek.stamp"
+          Condition="'@(SpekCompile)' != ''">
+
+    <Error Condition="!Exists('$(SpekcDll)')"
+           Text="spekc.dll not found at '$(SpekcDll)'. Build the CLI first (dotnet build src/Spek.Cli) or set the SpekcDll property." />
+
+    <!-- Pass the project's resolved references so invisible-async can see the
+         Task-returning APIs of referenced assemblies (Spek.Runtime, Spek.Testing,
+         and any async library) and auto-await them — without this the rewriter
+         only sees the BCL, so e.g. `sys.ExpectStop(actor)` would silently be
+         fire-and-forget. -->
+    <PropertyGroup>
+      <SpekcRefArgs>@(ReferencePathWithRefAssemblies->'--ref &quot;%(FullPath)&quot;', ' ')</SpekcRefArgs>
+    </PropertyGroup>
+
+    <!-- Mirror the source's relative path under the generated dir so two .spek
+         with the same name in different folders don't collide. -->
+    <MakeDir Directories="@(SpekCompile->'$(SpekGeneratedDir)%(RecursiveDir)')" />
+
+    <!-- ONE invocation over every .spek so they compile as a single unit: a type
+         declared in one file resolves when referenced from another (cross-file).
+         The base-dir option mirrors each file's project-relative path under the
+         generated dir (sub/Foo.spek becomes obj/.../spek/sub/Foo.g.cs), matching
+         the Outputs above. -->
+    <Exec Command="dotnet &quot;$(SpekcDll)&quot; compile @(SpekCompile->'&quot;%(FullPath)&quot;', ' ') --out &quot;$(SpekGeneratedDir)&quot; --base &quot;$(MSBuildProjectDirectory)&quot; $(SpekcExtraArgs) $(SpekcTestsFlag) $(SpekcLineMapFlag) $(SpekcRefArgs)"
+          StandardOutputImportance="low" />
+
+    <!-- Written only after the Exec succeeds, so a failed compile leaves the
+         target out of date and the NEXT build re-runs the whole set (partial
+         .g.cs output from the failed run can't masquerade as up-to-date). -->
+    <Touch Files="$(SpekGeneratedDir)spek.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <!-- Runs unconditionally (cheap) so the .g.cs files join the compilation even
+       on incremental builds where SpekCompile was skipped as up to date. The
+       generated dir is under obj/, which the default Compile glob excludes, so
+       these must be added explicitly; Exclude guards against double-listing. -->
+  <Target Name="SpekIncludeGenerated"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          AfterTargets="SpekCompile"
+          DependsOnTargets="SpekResolveGeneratedDir">
+    <ItemGroup>
+      <Compile Include="@(SpekCompile->'$(SpekGeneratedDir)%(RecursiveDir)%(Filename).g.cs')"
+               Exclude="@(Compile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

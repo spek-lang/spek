@@ -1,0 +1,90 @@
+<!--
+  Spek.Build.targets — auto-imported when a project references the Spek.Build
+  package. Compiles every *.spek file to a .g.cs under the intermediate (obj)
+  output — like a source generator, NOT beside the .spek source — before the C#
+  compiler runs (with MSBuild incrementality), by invoking the `spekc` tool.
+  Nothing is written into your source tree, so there's no .g.cs to check in.
+
+  `spekc` comes from the Spek.Cli.Tool package — install it globally
+  (`dotnet tool install -g Spek.Cli.Tool`) or, preferably, as a local tool via a
+  `.config/dotnet-tools.json` manifest (the `spek-test` / `spek-console` templates
+  scaffold one). This targets file restores local tools automatically if a
+  manifest is present.
+
+  In a test project (Microsoft.NET.Test.Sdk sets IsTestProject=true), `*Tests`
+  modules/classes compile as native tests (the targets pass spekc's tests flag);
+  elsewhere they are ordinary types.
+
+  Properties:
+    SpekcCommand     : how to invoke spekc. Default `dotnet spekc` (local/global tool).
+    SpekcExtraArgs   : extra flags appended to the spekc invocation.
+    SpekGeneratedDir : where the .g.cs are written. Defaults to
+                       $(IntermediateOutputPath)spek/ (obj/<cfg>/<tfm>/spek/).
+-->
+<Project>
+
+  <PropertyGroup>
+    <SpekcCommand Condition="'$(SpekcCommand)' == ''">dotnet spekc</SpekcCommand>
+    <SpekcExtraArgs Condition="'$(SpekcExtraArgs)' == ''"></SpekcExtraArgs>
+    <SpekcTestsFlag Condition="'$(IsTestProject)' == 'true'">--tests</SpekcTestsFlag>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Overridable: declare SpekCompile items before this import to opt in/out. -->
+    <SpekCompile Include="**\*.spek" Exclude="bin\**;obj\**" Condition="'@(SpekCompile)' == ''" />
+  </ItemGroup>
+
+  <!-- Restore the spekc local tool (if a manifest is present) before compiling. -->
+  <Target Name="SpekRestoreTool"
+          BeforeTargets="SpekCompile"
+          Condition="Exists('$(MSBuildProjectDirectory)\.config\dotnet-tools.json')">
+    <Exec Command="dotnet tool restore" StandardOutputImportance="low" />
+  </Target>
+
+  <!-- Resolve the generated-output dir at BUILD time, not import time: the SDK
+       sets IntermediateOutputPath in targets imported AFTER this file, so an
+       import-time property would freeze with an empty IntermediateOutputPath.
+       A user may still override SpekGeneratedDir; the condition respects it. -->
+  <Target Name="SpekResolveGeneratedDir">
+    <PropertyGroup>
+      <SpekGeneratedDir Condition="'$(SpekGeneratedDir)' == ''">$(IntermediateOutputPath)spek/</SpekGeneratedDir>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="SpekCompile"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          DependsOnTargets="ResolveReferences;SpekResolveGeneratedDir"
+          Inputs="@(SpekCompile)"
+          Outputs="@(SpekCompile->'$(SpekGeneratedDir)%(RecursiveDir)%(Filename).g.cs')"
+          Condition="'@(SpekCompile)' != ''">
+
+    <!-- Pass the project's resolved references so invisible-async can see the
+         Task-returning APIs of referenced assemblies (Spek.Runtime, Spek.Testing,
+         and any async library) and auto-await them — without this the rewriter
+         only sees the BCL, so e.g. `sys.ExpectStop(actor)` would silently be
+         fire-and-forget. -->
+    <PropertyGroup>
+      <SpekcRefArgs>@(ReferencePathWithRefAssemblies->'--ref &quot;%(FullPath)&quot;', ' ')</SpekcRefArgs>
+    </PropertyGroup>
+
+    <!-- Mirror the source's relative path under the generated dir so two .spek
+         with the same name in different folders don't collide. -->
+    <MakeDir Directories="@(SpekCompile->'$(SpekGeneratedDir)%(RecursiveDir)')" />
+
+    <Exec Command="$(SpekcCommand) compile &quot;%(SpekCompile.FullPath)&quot; --out &quot;$(SpekGeneratedDir)%(SpekCompile.RecursiveDir)&quot; $(SpekcExtraArgs) $(SpekcTestsFlag) $(SpekcRefArgs)"
+          StandardOutputImportance="low" />
+  </Target>
+
+  <!-- Join the generated .g.cs (under obj/, which the default Compile glob
+       excludes) into the compilation. Exclude guards against double-listing. -->
+  <Target Name="SpekIncludeGenerated"
+          BeforeTargets="BeforeCompile;CoreCompile"
+          AfterTargets="SpekCompile"
+          DependsOnTargets="SpekResolveGeneratedDir">
+    <ItemGroup>
+      <Compile Include="@(SpekCompile->'$(SpekGeneratedDir)%(RecursiveDir)%(Filename).g.cs')"
+               Exclude="@(Compile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

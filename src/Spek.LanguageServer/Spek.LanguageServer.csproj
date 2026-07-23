@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>spek-lsp</AssemblyName>
+    <RootNamespace>Spek.LanguageServer</RootNamespace>
+    <!--
+      Ships as a console tool in its own package so VS Code (and any other
+      LSP-aware editor) can install+launch it. Install with:
+          dotnet tool install -g Spek.LanguageServer.Tool
+    -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>spek-lsp</ToolCommandName>
+    <PackageId>Spek.LanguageServer.Tool</PackageId>
+    <Description>Language Server for the Spek actor language. Provides diagnostics, go-to-definition, and hover to any LSP-aware editor (VS Code, Neovim, Emacs, Helix, Zed, etc.).</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.9" />
+    <ProjectReference Include="..\Spek.Compiler\Spek.Compiler.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

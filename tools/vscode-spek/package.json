@@ -1,0 +1,97 @@
+{
+  "name": "vscode-spek",
+  "displayName": "Spek",
+  "description": "Syntax highlighting and language server support for the Spek programming language.",
+  "version": "0.1.2",
+  "publisher": "spek-lang",
+  "license": "Apache-2.0",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spek-lang/spek",
+    "directory": "tools/vscode-spek"
+  },
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "main": "./out/extension.js",
+  "categories": ["Programming Languages"],
+  "activationEvents": [
+    "onLanguage:spek"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "spek",
+        "aliases": ["Spek", "spek"],
+        "extensions": [".spek"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "spek",
+        "scopeName": "source.spek",
+        "path": "./syntaxes/spek.tmLanguage.json"
+      },
+      {
+        "scopeName": "markdown.spek.codeblock",
+        "path": "./syntaxes/spek.markdown.json",
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "embeddedLanguages": {
+          "meta.embedded.block.spek": "spek"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "command": "spek.showEmittedCSharp",
+        "title": "Spek: Show Emitted C# (experimental)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "spek.showEmittedCSharp",
+          "when": "editorLangId == spek && config.spek.experimental.showEmittedCSharp"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "Spek",
+      "properties": {
+        "spek.languageServer.path": {
+          "type": "string",
+          "default": "spek-lsp",
+          "description": "Path to the Spek language server executable. Default: `spek-lsp` (resolved from PATH). During the preview the server isn't published to NuGet yet — build it from the Spek repo and install it as a global dotnet tool, or set this to the built `spek-lsp` binary."
+        },
+        "spek.languageServer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Spek language server. Turn off to get syntax highlighting without diagnostics or hover."
+        },
+        "spek.experimental.showEmittedCSharp": {
+          "type": "boolean",
+          "default": false,
+          "description": "Experimental. Enables the 'Spek: Show Emitted C#' command, which opens the C# the compiler generates for the current file. Off by default on purpose — reading the generated C# is a diagnostic aid, not part of the intended workflow, so lean on it sparingly."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.3.0"
+  }
+}

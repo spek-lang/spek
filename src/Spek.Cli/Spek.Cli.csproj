@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>spekc</AssemblyName>
+    <RootNamespace>Spek.Cli</RootNamespace>
+    <!-- dotnet tool packaging: dotnet tool install -g Spek.Cli.Tool -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>spekc</ToolCommandName>
+    <PackageId>Spek.Cli.Tool</PackageId>
+    <Description>`spekc` — command-line compiler for the Spek actor language. Compiles `.spek` source files to `.g.cs` C# files that reference Spek.Runtime. Install with: dotnet tool install -g Spek.Cli.Tool</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Compiler\Spek.Compiler.csproj" />
+    <ProjectReference Include="..\Spek.Compiler.Proto\Spek.Compiler.Proto.csproj" />
+    <!-- The check flag compiles the emitted C# in memory; Spek.Runtime
+         supplies the metadata reference the generated code always needs. -->
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

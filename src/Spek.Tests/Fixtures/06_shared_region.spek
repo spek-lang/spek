@@ -1,0 +1,50 @@
+// Shared regions: per-ActorSystem state with a reader/writer
+// lock separate from per-actor locks. Demonstrates Phase 1 (the
+// `shared` declaration + `use` attachment + RW-lock-around-handler)
+// and Phase 2 (lazy `init { ... }` + the CE0087 extension).
+//
+// Two actors attach the same MarketCache: PriceWriter holds the
+// writer lock around its mutation; PriceReader holds the reader lock
+// around its read. Multiple PriceReader instances can run concurrently
+// against the same cache; PriceWriter serialises against all of them.
+//
+// Also exercises the implicit Default behavior — neither actor
+// declares a `behavior X { ... }` wrapper.
+
+namespace Samples;
+
+message Update(string symbol, long price);
+message GetLast(string symbol);
+message Reply(long price);
+
+shared MarketCache
+{
+    long lastPrice    = 0;
+    long lastUpdated  = 0;
+
+    init
+    {
+        lastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+}
+
+actor PriceWriter
+{
+    use MarketCache cache;
+
+    writer on Update u =>
+    {
+        cache.lastPrice   = u.price;
+        cache.lastUpdated = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+    }
+}
+
+actor PriceReader
+{
+    use MarketCache cache;
+
+    reader on GetLast g =>
+    {
+        return new Reply(cache.lastPrice);
+    }
+}

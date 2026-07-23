@@ -1,0 +1,153 @@
+// Full BankAccount example from docs/spek-v1-grammar.md §14.
+// This is the canonical integration test fixture — exercises every
+// Core language features: visibility, fields, init, multiple behaviors,
+// inline/block handlers, become, persist, passivate, lifecycle hooks,
+// spawn, Tell, ask, supervise, and program entry point.
+
+namespace MyBank.Actors;
+
+message Deposit(decimal amount, string fromUser);
+message Withdraw(decimal amount, string fromUser);
+message GetBalance();
+message BalanceResponse(decimal currentBalance);
+message FreezeAccount(string reason);
+message UnfreezeAccount();
+message AccountLocked();
+message InsufficientFunds(decimal requested, decimal available);
+message AuditEntry(string kind, decimal amount, string who);
+message GetOrCreateAccount(string accountId);
+message AccountRef(ActorRef account);
+
+actor AuditLogger
+{
+    string name;
+
+    init(string n) { name = n; become Recording; }
+
+    behavior Recording
+    {
+        on AuditEntry e => { }
+    }
+}
+
+public actor BankAccountManager
+{
+    ActorRef auditLog;
+
+    init(ActorRef audit)
+    {
+        auditLog = audit;
+        become Managing;
+    }
+
+    behavior Managing
+    {
+        on GetOrCreateAccount req =>
+        {
+            ActorRef account = spawn<BankAccount>(req.accountId, auditLog);
+            sender.Tell(new AccountRef(account));
+        }
+    }
+}
+
+actor BankAccount
+{
+    decimal balance = 1000.00m;
+    bool isFrozen = false;
+    string accountId;
+    ActorRef auditLog;
+
+    passivate after System.TimeSpan.FromMinutes(30);
+
+    init(string id, ActorRef audit)
+    {
+        accountId = id;
+        auditLog = audit;
+        become NormalOperation;
+    }
+
+    behavior NormalOperation
+    {
+        on Deposit d =>
+        {
+            balance += d.amount;
+            auditLog.Tell(new AuditEntry("Deposit", d.amount, d.fromUser));
+            persist;
+        }
+
+        on Withdraw w =>
+        {
+            if (w.amount > balance)
+            {
+                sender.Tell(new InsufficientFunds(w.amount, balance));
+                return;
+            }
+            balance -= w.amount;
+            auditLog.Tell(new AuditEntry("Withdrawal", w.amount, w.fromUser));
+            persist;
+        }
+
+        on GetBalance =>
+            sender.Tell(new BalanceResponse(balance));
+
+        on FreezeAccount f =>
+        {
+            isFrozen = true;
+            become Frozen;
+            persist;
+        }
+    }
+
+    behavior Frozen
+    {
+        on Deposit d =>
+        {
+            balance += d.amount;
+            auditLog.Tell(new AuditEntry("Deposit (frozen)", d.amount, d.fromUser));
+            persist;
+        }
+
+        on Withdraw w =>
+            sender.Tell(new AccountLocked());
+
+        on GetBalance =>
+            sender.Tell(new BalanceResponse(balance));
+
+        on UnfreezeAccount =>
+        {
+            isFrozen = false;
+            become NormalOperation;
+            persist;
+        }
+
+        on FreezeAccount f =>
+            auditLog.Tell(new AuditEntry("Already frozen", 0, ""));
+    }
+
+    on PreStart  => auditLog.Tell(new AuditEntry("Opened", balance, accountId));
+    on PostStop  => auditLog.Tell(new AuditEntry("Closed", balance, accountId));
+
+    on Restore(Snapshot s) =>
+    {
+        balance   = s.Get<decimal>("balance");
+        isFrozen  = s.Get<bool>("isFrozen");
+        accountId = s.Get<string>("accountId");
+
+        if (isFrozen)
+        {
+            become Frozen;
+        }
+        else
+        {
+            become NormalOperation;
+        }
+    }
+}
+
+program Main
+{
+    var system  = new ActorSystem("BankSystem");
+    ActorRef audit   = system.Spawn<AuditLogger>("audit");
+    ActorRef manager = system.Spawn<BankAccountManager>("manager", audit);
+    system.AwaitTermination();
+}

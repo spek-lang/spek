@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Resilience.RateLimiting</RootNamespace>
+    <AssemblyName>Spek.Resilience.RateLimiting</AssemblyName>
+    <PackageId>Spek.Resilience.RateLimiting</PackageId>
+    <Description>Rate-limit ingress policies for Spek actors. Wraps System.Threading.RateLimiting (token bucket, sliding window, fixed window, concurrency) and surfaces RetryAfter metadata as Defer decisions.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Threading.RateLimiting" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Resilience.Abstractions\Spek.Resilience.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

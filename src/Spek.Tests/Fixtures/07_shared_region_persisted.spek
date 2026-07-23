@@ -1,0 +1,68 @@
+// `: Persisted` shared regions.
+//
+// The region inherits from `Persisted` (a capability marker that
+// resolves to the runtime's `Spek.PersistedRegion` base class).
+// On first reader/writer access the runtime tries to load a
+// snapshot from the registered store; if one exists, the region's
+// fields are populated from it and the `init { ... }` body is
+// skipped. After every writer-handler exit the region's current
+// state is captured and saved back through the store.
+//
+// The `program` block configures the actual store. CE0098 fires
+// at compile time if a `: Persisted` region has no matching
+// `system.RegisterPersistenceProvider<T>(store)` call somewhere
+// in any program block.
+
+namespace Samples;
+
+message RecordRequest(int durationMs);
+message GetSnapshot();
+message Snapshot(int totalRequests, int slowestMs);
+
+shared RequestMetrics : Persisted
+{
+    int totalRequests = 0;
+    int slowestMs     = 0;
+    long startedAt    = 0;
+
+    init
+    {
+        startedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        // Override the default snapshot key (defaults to type name).
+        self.Name = "metrics-v1";
+    }
+}
+
+actor RequestRecorder
+{
+    use RequestMetrics m;
+
+    writer on RecordRequest r =>
+    {
+        m.totalRequests = m.totalRequests + 1;
+        if (r.durationMs > m.slowestMs) { m.slowestMs = r.durationMs; }
+    }
+}
+
+actor MetricsReporter
+{
+    use RequestMetrics m;
+
+    reader on GetSnapshot g =>
+    {
+        return new Snapshot(m.totalRequests, m.slowestMs);
+    }
+}
+
+program Main
+{
+    var system = new ActorSystem("metrics-app");
+
+    // Required for every `: Persisted` region (CE0098 if missing).
+    system.RegisterPersistenceProvider<RequestMetrics>(
+        new InMemorySnapshotStore());
+
+    var rec = system.Spawn<RequestRecorder>();
+    rec.Tell(new RecordRequest(42));
+    rec.Tell(new RecordRequest(100));
+}

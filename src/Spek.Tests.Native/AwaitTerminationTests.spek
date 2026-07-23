@@ -1,0 +1,52 @@
+// Termination/quiescence, in Spek. Converted from the C# AwaitTerminationTests.
+// `sys.WaitForIdle(timeout)` IS AwaitTermination (it delegates straight to it):
+// returns true once every actor is idle, false on timeout while work is in flight.
+// (The C# version also asserts the return is fast and checks IsMaterialized — a
+// perf detail and an internal property, both left in the C# suite.)
+
+message Tick();
+message Pause(int ms);
+
+actor Idle
+{
+    init() { become A; }
+    behavior A { on Tick => { } }                  // idle immediately after dispatch
+}
+
+actor Busy
+{
+    init() { become A; }
+    behavior A { on Pause p => { System.Threading.Tasks.Task.Delay(p.ms); } }  // busy for ms, stays alive
+}
+
+class AwaitTerminationTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void ReturnsTrueWhenActorIsAlreadyIdle()
+    {
+        var a = sys.Spawn<Idle>();
+        a.Tell(new Tick());
+
+        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
+    }
+
+    public void ReturnsFalseOnTimeoutWhileActorKeepsWorking()
+    {
+        var a = sys.Spawn<Busy>();
+        a.Tell(new Pause(1000));
+
+        Xunit.Assert.False(sys.WaitForIdle(System.TimeSpan.FromMilliseconds(100)));
+    }
+
+    public void ReturnsAfterSlowWorkFinishes()
+    {
+        var a = sys.Spawn<Busy>();
+        a.Tell(new Pause(150));
+
+        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
+        Xunit.Assert.False(a.IsStopped);
+    }
+}

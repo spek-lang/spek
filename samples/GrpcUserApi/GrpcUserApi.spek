@@ -1,0 +1,63 @@
+// GrpcUserApi.spek — Spek-side of the gRPC sample.
+//
+// The actor handlers use Spek-shape records. The bridge class
+// in UserServiceGrpcBridge.cs converts between the protoc-
+// generated request/response types (which the gRPC wire format
+// uses) and these Spek records.
+//
+// Once the compiler-side bridge codegen lands in a follow-up
+// minor, the bridge class will be auto-generated from the
+// channel + .proto pair, and you'll only need to write the
+// actor itself.
+
+namespace GrpcUserApi;
+
+using Spek.Hosting.AspNetCore.Grpc;
+using Spek.Hosting.AspNetCore.Rest;       // for AddSpekActorSystem
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+
+message GetUser(string id);
+message CreateUser(string name, string email);
+message User(string id, string name, string email);
+message NotFound(string reason);
+
+channel UserApi
+{
+    on GetUser; on CreateUser;
+    emits User; emits NotFound;
+}
+
+actor UserService : UserApi
+{
+    on GetUser g =>
+    {
+        if (g.id == "nope") { return new NotFound("user " + g.id + " not found"); }
+        return new User(g.id, "Alice", "alice@example.com");
+    }
+
+    on CreateUser c =>
+    {
+        return new User("u-" + c.name, c.name, c.email);
+    }
+}
+
+// ─── Host ────────────────────────────────────────────────────────────────────
+// Folded in from the old Program.cs as a `program Main` block, so the sample is
+// pure Spek — the same host shape RestUserApi uses. The only remaining C# is the
+// bridge (UserServiceGrpcBridge.cs), which the gRPC codegen will eventually emit.
+
+program Main
+{
+    var builder = WebApplication.CreateBuilder();
+    builder.Services.AddSpekActorSystem("user-api");
+    builder.Services.AddSpekGrpcStatusMap();
+    builder.Services.AddGrpc();
+
+    var app = builder.Build();
+    app.MapGrpcService<UserServiceGrpcBridge>();
+    // Blocking Run() (not RunAsync) — Spek has no `await`, and invisible async
+    // doesn't cover AspNetCore types, so RunAsync would be fire-and-forget. Same
+    // idiom as RestUserApi / HelloWeb.
+    app.Run();
+}

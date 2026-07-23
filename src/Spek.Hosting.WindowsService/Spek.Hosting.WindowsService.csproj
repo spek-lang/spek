@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Hosting.WindowsService</RootNamespace>
+    <AssemblyName>Spek.Hosting.WindowsService</AssemblyName>
+    <PackageId>Spek.Hosting.WindowsService</PackageId>
+    <Description>Windows Service (SCM) host adapter for Spek. Routes SCM control commands (Start, Stop, Pause, Continue, Shutdown, PowerEvent, SessionChange, CustomCommand) into a Spek actor's channel handlers and emits state machine events back via SetServiceStatus.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.Abstractions\Spek.Hosting.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

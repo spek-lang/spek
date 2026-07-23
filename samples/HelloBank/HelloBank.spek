@@ -1,0 +1,92 @@
+// HelloBank.spek — a self-contained, runnable Spek program.
+//
+// Run:       dotnet run
+
+namespace HelloBank;
+
+// ─── Messages ────────────────────────────────────────────────────────────────
+
+message Start();
+message Deposit(decimal amount);
+message Withdraw(decimal amount);
+message GetBalance();
+message BalanceResponse(decimal balance);
+message InsufficientFunds(decimal requested, decimal available);
+
+// ─── Account actor ───────────────────────────────────────────────────────────
+
+actor Account
+{
+    decimal balance = 0.00m;
+    string owner;
+
+    init(string ownerName)
+    {
+        owner = ownerName;
+        become Open;
+    }
+
+    behavior Open
+    {
+        on Deposit d =>
+        {
+            balance += d.amount;
+        }
+
+        on Withdraw w =>
+        {
+            if (w.amount > balance)
+            {
+                sender.Tell(new InsufficientFunds(w.amount, balance));
+                return;
+            }
+            balance -= w.amount;
+        }
+
+        on GetBalance =>
+            sender.Tell(new BalanceResponse(balance));
+    }
+}
+
+// ─── Root actor — spawns children and drives the demo ────────────────────────
+
+actor Root
+{
+    init()
+    {
+        become Idle;
+    }
+
+    behavior Idle
+    {
+        on Start =>
+        {
+            ActorRef acc = spawn<Account>("Alice");
+            acc.Tell(new Deposit(500.00m));
+            acc.Tell(new Deposit(250.00m));
+            acc.Tell(new Withdraw(100.00m));
+            acc.Tell(new GetBalance());
+        }
+
+        on BalanceResponse r =>
+        {
+            Console.WriteLine(r.balance);
+        }
+
+        on InsufficientFunds e =>
+        {
+            Console.WriteLine(e.requested);
+            Console.WriteLine(e.available);
+        }
+    }
+}
+
+// ─── Entry point ─────────────────────────────────────────────────────────────
+
+program Main
+{
+    var system = new ActorSystem("HelloBank");
+    ActorRef root = system.Spawn<Root>();
+    root.Tell(new Start());
+    system.AwaitTermination();
+}

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Testing</RootNamespace>
+    <AssemblyName>Spek.Testing.Xunit</AssemblyName>
+    <PackageId>Spek.Testing.Xunit</PackageId>
+    <!-- This is the adapter library (it references xunit for FactAttribute), not a
+         test project — it has no test SDK. Without this, `dotnet test src/Spek.slnx`
+         tries to run the adapter assembly as tests and the testhost errors. -->
+    <IsTestProject>false</IsTestProject>
+    <Description>xUnit adapter for Spek native tests. Binds the framework-neutral [Spek.Testing.SpekTest] attribute (emitted from `test "..." { }` blocks) to an xUnit fact, so Spek tests are discovered and run by `dotnet test`, IDE test explorers, and CI with no extra tooling.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Flows to consumers: a test project referencing Spek.Testing.Xunit gets
+         xunit + the Spek.Testing core. It still adds Microsoft.NET.Test.Sdk and
+         xunit.runner.visualstudio itself (the test host/runner). -->
+    <PackageReference Include="xunit" Version="2.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Testing\Spek.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

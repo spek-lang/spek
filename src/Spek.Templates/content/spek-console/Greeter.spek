@@ -1,0 +1,39 @@
+// A minimal Spek program: one message, one actor, one entry point.
+
+namespace SpekHelloWorld;
+
+// Imports follow the same rules as C# `using` statements.
+// `System` is where `Console` lives. The emitter auto-includes this for
+// safety, but declaring it explicitly documents the dependency.
+using System;
+
+message Greet(string name);
+message Farewell();
+
+actor Greeter
+{
+    behavior Listening
+    {
+        on Greet g =>
+        {
+            // `ask` and `Tell` are only valid inside `on` handlers.
+            // Here we just print — nothing fancy.
+            Console.WriteLine($"Hello, {g.name}!");
+        }
+
+        on Farewell =>
+            Console.WriteLine("Goodbye.");
+    }
+}
+
+program Main
+{
+    var system = new ActorSystem("hello");
+    ActorRef greeter = system.Spawn<Greeter>();
+
+    greeter.Tell(new Greet("world"));
+    greeter.Tell(new Farewell());
+
+    // Drain the mailbox before exit.
+    system.AwaitTermination();
+}

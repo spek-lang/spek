@@ -1,0 +1,32 @@
+// Supervision assertions in a native Spek test. `sys.ExpectStop(actor)` and
+// `sys.ExpectRestart(actor)` are plain method calls (auto-awaited under invisible
+// async), not a matcher DSL. Default supervision is Stop, so a crash with no
+// explicit strategy stops the actor.
+
+message Boom();
+
+actor Fragile
+{
+    init() { become Running; }
+
+    behavior Running
+    {
+        on Boom => { throw new System.Exception("boom"); }
+    }
+}
+
+class SupervisionTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void CrashStopsTheActorByDefault()
+    {
+        var fragile = sys.Spawn<Fragile>();
+        fragile.Tell(new Boom());
+
+        sys.ExpectStop(fragile);                 // default directive = Stop
+        Xunit.Assert.Equal(0, sys.RestartCountOf(fragile));
+    }
+}

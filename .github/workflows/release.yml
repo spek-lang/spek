@@ -1,0 +1,116 @@
+# Publishes the public preview package set to NuGet — on demand.
+#
+# Run it manually: Actions -> "release" -> Run workflow. CI computes the version
+# 0.<era>.<build> from github.run_number, packs the manifest below, pushes to
+# NuGet, and creates the matching git tag + GitHub Release. So the version, the
+# tag, and the build number are one value chosen by CI — nothing to pick by hand.
+# Tick "dry run" to pack only (no push, no tag) and smoke-test the build.
+#
+# Publishing uses NuGet Trusted Publishing (OIDC): no stored API key. The
+# nuget.org account needs a trusted publishing policy matching this repo
+# (spek-lang/spek) and this workflow file (release.yml); NuGet/login exchanges
+# the workflow's OIDC token for a one-hour API key at publish time.
+#
+# Version: 0.<era>.<build>. The whole 0.x line is the preview; bump the `0.1.`
+# prefix to `0.2.` when the next feature era ships.
+#
+# The pack list below IS the release manifest. As add-on packages (persistence
+# backends, web hosting, clustering) graduate to shippable, add them here. The
+# VS Code extension publishes via its own marketplace flow, not here.
+
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack only — skip the NuGet push, tag, and release'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write          # create the tag + GitHub Release
+  id-token: write          # OIDC token for NuGet trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      VERSION: 0.1.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore src/Spek.slnx
+
+      - name: Build (Release)
+        run: dotnet build src/Spek.slnx -c Release --no-restore -p:Version=$VERSION
+
+      # Releases are gated on a green suite — never publish a red build.
+      - name: Test
+        run: dotnet test src/Spek.slnx -c Release --no-build
+
+      - name: Pack (release manifest)
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          projects=(
+            Spek.Runtime
+            Spek.Cli
+            Spek.Build
+            Spek.LanguageServer
+            Spek.Testing
+            Spek.Testing.Xunit
+            Spek.Persistence.Abstractions
+            Spek.Persistence.File
+            Spek.Persistence.Sqlite
+            Spek.Persistence.Log
+            Spek.Resilience.Abstractions       # Runtime dep; impl ships as a later add-on
+            Spek.Observability.Abstractions     # Runtime dep; impl ships as a later add-on
+            Spek.Hosting.Abstractions
+            Spek.Hosting.Console
+            Spek.Hosting.WindowsService
+            Spek.Hosting.Systemd
+            Spek.Hosting.Launchd
+          )
+          for p in "${projects[@]}"; do
+            dotnet pack "src/$p/$p.csproj" -c Release --no-build -o artifacts -p:Version=$VERSION
+          done
+          ls -1 artifacts
+
+      - name: NuGet login (trusted publishing)
+        if: ${{ !inputs.dry_run }}
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: wholroyd
+
+      - name: Push to NuGet
+        if: ${{ !inputs.dry_run }}
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      # Same value for the tag, the release, and the packages — created by CI.
+      - name: Tag + GitHub Release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "v$VERSION"
+          artifacts/*.nupkg
+          --target "$GITHUB_SHA"
+          --title "v$VERSION"
+          --generate-notes
+
+      - name: Upload packed artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs
+          path: artifacts/*.nupkg

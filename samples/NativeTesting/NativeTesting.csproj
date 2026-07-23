@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A Spek test project: a `*Tests` module/class compiles to xUnit facts via
+    Spek.targets (the in-repo MSBuild integration), and `dotnet test` runs them.
+    Requires the CLI built first (dotnet build src/Spek.Cli) so Spek.targets can find
+    spekc.dll. Outside this repo, scaffold with `dotnet new spek-test` instead —
+    it uses the Spek.Build package + a pinned local spekc tool, no path imports.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>NativeTesting</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Spek.Testing.Xunit\Spek.Testing.Xunit.csproj" />
+    <!-- Build-order only: ensures spekc.dll is built before SpekCompile runs. -->
+    <ProjectReference Include="..\..\src\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

@@ -1,0 +1,21 @@
+// Minimal actor with one behavior and one handler.
+// Tests: actor, init, behavior, on, become, Tell.
+
+namespace Samples;
+
+message Ping();
+message Pong();
+
+actor Echo
+{
+    init()
+    {
+        become Waiting;
+    }
+
+    behavior Waiting
+    {
+        on Ping =>
+            sender.Tell(new Pong());
+    }
+}

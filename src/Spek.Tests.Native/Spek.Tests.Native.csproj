@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Native Spek tests — the behavioral test suite written IN Spek, dogfooding the
+    `*Tests` convention + Spek.Testing.Xunit. Tests of actor behavior observable
+    through the public messaging / supervision / probe API live here; compiler and
+    runtime-internal (white-box) tests stay in Spek.Tests (C#).
+
+    Imports build/Spek.targets, so spekc (Spek.Cli) must build first — the
+    ReferenceOutputAssembly=false ProjectReference forces that order without linking
+    the CLI assembly into this project.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Spek.Tests.Native</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Streams\Spek.Streams.csproj" />
+    <ProjectReference Include="..\Spek.Testing.Xunit\Spek.Testing.Xunit.csproj" />
+    <!-- Build-order only: ensure spekc.dll exists before Spek.targets runs it. -->
+    <ProjectReference Include="..\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

@@ -1,0 +1,84 @@
+// Probe + messaging mechanics, in Spek. Converted from the C# TestingSmokeTests —
+// dogfoods TestProbe end to end (Send / ExpectMsg / ExpectMsg-with-predicate /
+// ExpectNoMsg, plus the failure paths that must throw).
+
+message Ping();
+message Pong();
+
+actor Echo
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Ping => return new Pong();
+    }
+}
+
+class ProbeTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void ProbeCapturesReplyFromActor()
+    {
+        var echo  = sys.Spawn<Echo>();
+        var probe = sys.CreateProbe();
+
+        probe.Send(echo, new Ping());
+
+        probe.ExpectMsg<Pong>();
+    }
+
+    public void ExpectMsgReturnsTypedMessage()
+    {
+        var probe = sys.CreateProbe();
+        probe.Ref.Tell(new Pong());
+
+        Pong pong = probe.ExpectMsg<Pong>();
+        Xunit.Assert.NotNull(pong);
+    }
+
+    public void ExpectMsgWithPredicateMatchesContent()
+    {
+        var probe = sys.CreateProbe();
+        probe.Ref.Tell("hello");
+        probe.Ref.Tell("world");
+
+        Xunit.Assert.Equal("hello", probe.ExpectMsg<string>(s => s.Length == 5));
+        Xunit.Assert.Equal("world", probe.ExpectMsg<string>(s => s.StartsWith('w')));
+    }
+
+    public void ExpectMsgTimesOutWhenNothingArrives()
+    {
+        var probe = sys.CreateProbe();
+
+        Xunit.Assert.Throws<Xunit.Sdk.XunitException>(
+            () => probe.ExpectMsg<Pong>(System.TimeSpan.FromMilliseconds(50)));
+    }
+
+    public void ExpectMsgFailsOnWrongType()
+    {
+        var probe = sys.CreateProbe();
+        probe.Ref.Tell(new Ping());
+
+        Xunit.Assert.Throws<Xunit.Sdk.XunitException>(() => probe.ExpectMsg<Pong>());
+    }
+
+    public void ExpectNoMsgPassesWhenSilent()
+    {
+        var probe = sys.CreateProbe();
+
+        probe.ExpectNoMsg(System.TimeSpan.FromMilliseconds(50));
+    }
+
+    public void ExpectNoMsgFailsWhenMessageArrives()
+    {
+        var probe = sys.CreateProbe();
+        probe.Ref.Tell(new Ping());
+
+        Xunit.Assert.Throws<Xunit.Sdk.XunitException>(
+            () => probe.ExpectNoMsg(System.TimeSpan.FromMilliseconds(100)));
+    }
+}

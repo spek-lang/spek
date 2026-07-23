@@ -1,0 +1,157 @@
+// Watchdog.spek — supervision strategies, failure budgets, and passivation.
+//
+// Run: dotnet run
+//
+// A Foreman supervises two kinds of workers. Flaky workers crash on bad
+// input; the Foreman's `supervise` declaration decides their fate — typed
+// exception arms match top-to-bottom, a restart budget degrades to Stop when
+// exhausted, and a per-child override gives one worker a stricter policy.
+// A Cache actor passivates after going idle and wakes fresh on next use.
+
+namespace Watchdog;
+
+message Work(int value);
+message Poison(string reason);
+message GetCount();
+message Count(int handled);
+message CacheGet(string key);
+message CacheValue(string key, int hits);
+message Report();
+
+// ─── A flaky worker: crashes on poison, counts everything else ──────────────
+
+actor Worker
+{
+    int handled = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Work w =>
+        {
+            handled = handled + 1;
+            Console.WriteLine($"worker: handled {w.value} (total {handled})");
+        }
+
+        // Uncaught throw -> supervision. InvalidOperationException restarts
+        // (state resets to init); anything else stops the actor.
+        on Poison p =>
+        {
+            if (p.reason == "transient") { throw new InvalidOperationException(p.reason); }
+            throw new ApplicationException(p.reason);
+        }
+
+        on GetCount => return new Count(handled);
+    }
+}
+
+// ─── A session cache that passivates when idle ──────────────────────────────
+
+actor Cache
+{
+    int hits = 0;
+
+    // Idle for 2 seconds -> unload. Session-scoped, so the next message
+    // rematerializes it fresh from init (hits resets) — transparent to
+    // senders, visible in the printed hit counts.
+    passivate after TimeSpan.FromSeconds(2);
+
+    init() { become Serving; }
+
+    behavior Serving
+    {
+        on CacheGet g =>
+        {
+            hits = hits + 1;
+            return new CacheValue(g.key, hits);
+        }
+    }
+}
+
+// ─── The supervisor ──────────────────────────────────────────────────────────
+
+actor Foreman
+{
+    ActorRef steady;
+    ActorRef fragile;
+    ActorRef cache;
+
+    // Default policy for children: restart on the transient exception type,
+    // stop on anything else, and give up (degrade to Stop) after 2 restarts
+    // inside 30 seconds.
+    supervise OneForOne(
+        on Failure(InvalidOperationException): Restart,
+        on Failure: Stop,
+        maxRetries: 2,
+        withinTime: TimeSpan.FromSeconds(30));
+
+    // Per-child override: the fragile worker gets no second chances.
+    supervise(fragile, strategy: OneForOne(on Failure: Stop));
+
+    init()
+    {
+        steady  = spawn<Worker>();
+        fragile = spawn<Worker>();
+        cache   = spawn<Cache>();
+        become Running;
+    }
+
+    behavior Running
+    {
+        on Work w =>
+        {
+            steady.Tell(new Work(w.value));
+            fragile.Tell(new Work(w.value * 10));
+        }
+
+        on Poison p =>
+        {
+            Console.WriteLine($"foreman: poisoning both workers ({p.reason})");
+            steady.Tell(new Poison(p.reason));    // default policy: Restart (transient)
+            fragile.Tell(new Poison(p.reason));   // override policy: Stop, always
+        }
+
+        on CacheGet g => { cache.Tell(new CacheGet(g.key)); }
+
+        on CacheValue v =>
+        {
+            Console.WriteLine($"cache: {v.key} -> {v.hits} hit(s) this incarnation");
+        }
+
+        on Report =>
+        {
+            // The steady worker was restarted: its count reset with its state.
+            Count c = steady.Ask(new GetCount());
+            Console.WriteLine($"foreman: steady worker has handled {c.handled} since its last restart");
+        }
+    }
+}
+
+// ─── Drive it ────────────────────────────────────────────────────────────────
+
+program Main
+{
+    using var system = new ActorSystem("watchdog");
+    var foreman = system.Spawn<Foreman>();
+
+    foreman.Tell(new Work(1));
+    foreman.Tell(new Work(2));
+
+    // Transient poison: default policy restarts the steady worker (state
+    // resets); the per-child override stops the fragile one for good.
+    foreman.Tell(new Poison("transient"));
+
+    foreman.Tell(new Work(3));       // steady handles this post-restart; fragile dead-letters
+    foreman.Tell(new Report());
+
+    // Passivation: two quick hits share an incarnation...
+    foreman.Tell(new CacheGet("alpha"));
+    foreman.Tell(new CacheGet("alpha"));
+    Task.Delay(TimeSpan.FromSeconds(3));
+    // ...after the idle window the cache passivated; this hit starts at 1.
+    foreman.Tell(new CacheGet("alpha"));
+
+    Task.Delay(TimeSpan.FromMilliseconds(500));
+    system.AwaitTermination();
+}

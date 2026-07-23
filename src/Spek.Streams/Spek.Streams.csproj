@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Streams</RootNamespace>
+    <AssemblyName>Spek.Streams</AssemblyName>
+    <PackageId>Spek.Streams</PackageId>
+    <Description>Stream-shaped event policies for Spek actors — debounce, throttle, distinct, compose. Operators attach to handlers via `=>` chain syntax; the runtime contract is a single abstract base class that user code can extend in C#.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+namespace AlertHub;
+
+/// Class inheritance is reuse + abstract methods: only an `abstract class` can
+/// be a base, and the subclass implements its abstract methods with plain
+/// methods (the emitter infers `override` — the keyword never appears).
+abstract class EscalationPolicy
+{
+    protected string label;
+
+    init(string l) { label = l; }
+
+    public abstract int Threshold();
+
+    // Template method — shared logic calling the subclass's hook.
+    public string Describe() { return $"{label} pages after {Threshold()} critical alerts"; }
+}

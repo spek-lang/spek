@@ -1,0 +1,56 @@
+// First-class lambdas inside actor handlers, used as
+// arguments to LINQ method chains. Lambdas lower verbatim to C#;
+// type inference and capture are handled by Roslyn at the C#
+// layer.
+//
+// Demonstrates:
+//   - single bare-parameter lambdas (`x => x.IsActive`)
+//   - typed parameter lists ((int x, int y) => ...)
+//   - parenthesised parameter lists ((x, y) => ...)
+//   - block-bodied lambdas
+//   - capture of actor fields from inside a lambda
+//   - LINQ method chains (Where / Select / OrderBy / ToList)
+
+namespace Samples;
+
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+message ProcessBatch(int threshold);
+message Result(int count);
+
+actor BatchProcessor
+{
+    int defaultThreshold = 5;
+    List<int> items = new List<int>();
+
+    on ProcessBatch req =>
+    {
+        // Single bare param + capture of actor field (defaultThreshold).
+        // The captured field's current value is read each time the
+        // lambda runs.
+        var effectiveThreshold = req.threshold > 0
+            ? req.threshold
+            : defaultThreshold;
+
+        // LINQ chain: Where + Select + OrderBy + ToList.
+        var processed = items
+            .Where(x => x > effectiveThreshold)
+            .Select(x => x * 2)
+            .OrderBy(x => x)
+            .ToList();
+
+        // Block-bodied lambda assigned to a typed local; demonstrates
+        // multi-statement lambda bodies.
+        Func<int, int> compress = x =>
+        {
+            var halved = x / 2;
+            return halved + 1;
+        };
+
+        var compressed = processed.Select(compress).ToList();
+
+        return new Result(compressed.Count);
+    }
+}

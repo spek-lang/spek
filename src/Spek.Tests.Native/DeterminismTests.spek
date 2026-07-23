@@ -1,0 +1,57 @@
+// Determinism helpers on TestActorSystem, in Spek. Converted from the C#
+// TestKitDeterminismTests: WaitForIdle drains, WaitUntilAsync polls a condition.
+// The C# version watched a `static volatile bool` for completion; Spek has no
+// mutable statics and a test can't reach an actor instance, so the worker stops
+// itself and we observe `worker.IsStopped` — a cleaner Spek-native signal.
+
+message Work(int msDelay);
+
+actor SlowWorker
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Work w => { System.Threading.Tasks.Task.Delay(w.msDelay); StopSelf(); }
+    }
+}
+
+class DeterminismTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void WaitForIdleReturnsTrueOnceWorkDrains()
+    {
+        var worker = sys.Spawn<SlowWorker>();
+        worker.Tell(new Work(120));
+
+        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
+    }
+
+    public void WaitForIdleReturnsFalseWhenWorkOutlastsTimeout()
+    {
+        var worker = sys.Spawn<SlowWorker>();
+        worker.Tell(new Work(1500));
+
+        Xunit.Assert.False(sys.WaitForIdle(System.TimeSpan.FromMilliseconds(100)));
+    }
+
+    public void WaitUntilAsyncReturnsOnceConditionHolds()
+    {
+        var worker = sys.Spawn<SlowWorker>();
+        worker.Tell(new Work(80));
+
+        TestActorSystem.WaitUntilAsync(() => worker.IsStopped, System.TimeSpan.FromSeconds(3), "worker stopped");
+        Xunit.Assert.True(worker.IsStopped);
+    }
+
+    public void WaitUntilAsyncThrowsDescriptiveTimeout()
+    {
+        System.TimeoutException ex = Xunit.Assert.ThrowsAsync<System.TimeoutException>(
+            () => TestActorSystem.WaitUntilAsync(() => false, System.TimeSpan.FromMilliseconds(50), "never happens"));
+
+        Xunit.Assert.Contains("never happens", ex.Message);
+    }
+}

@@ -1,0 +1,55 @@
+// Concurrency.spek — invisible async, concurrency by default.
+//
+// There is no `async` or `await` anywhere in this file. Yet `Both()` runs
+// its two "fetches" concurrently and `Sequential()` runs them one after
+// another — the ONLY difference is `var` (defer, overlap) vs the explicit
+// value type (await here, sequential).
+//
+// Run:       dotnet run      (concurrent ≈ half the time of sequential)
+
+namespace ConcurrencySample;
+
+module Fetch
+{
+    // Stands in for a slow I/O call (an HTTP request, a DB query, ...).
+    // `Task.Delay` is auto-awaited — no `await` keyword needed.
+    public int Slow(int ms, int value)
+    {
+        System.Threading.Tasks.Task.Delay(ms);
+        return value;
+    }
+
+    public int Combine(int x, int y) { return x + y; }
+
+    // CONCURRENT: bound with `var`, so each call's Task is deferred and
+    // both are already in flight by the time they're awaited at Combine.
+    public int Both()
+    {
+        var a = Slow(200, 20);
+        var b = Slow(200, 22);
+        return Combine(a, b);
+    }
+
+    // SEQUENTIAL: bound with the value type `int`, so each is awaited right
+    // there — b doesn't start until a has finished.
+    public int Sequential()
+    {
+        int a = Slow(200, 20);
+        int b = Slow(200, 22);
+        return Combine(a, b);
+    }
+}
+
+program Main
+{
+    var sw1 = System.Diagnostics.Stopwatch.StartNew();
+    int concurrent = Fetch.Both();
+    long concurrentMs = sw1.ElapsedMilliseconds;
+
+    var sw2 = System.Diagnostics.Stopwatch.StartNew();
+    int sequential = Fetch.Sequential();
+    long sequentialMs = sw2.ElapsedMilliseconds;
+
+    Console.WriteLine($"concurrent: result={concurrent} in ~{concurrentMs}ms");
+    Console.WriteLine($"sequential: result={sequential} in ~{sequentialMs}ms");
+}

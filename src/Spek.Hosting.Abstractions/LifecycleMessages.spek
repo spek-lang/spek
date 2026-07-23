@@ -1,0 +1,61 @@
+namespace Spek.Hosting;
+
+// The standard lifecycle vocabulary shared across every Spek hosting adapter
+// (Spek.Hosting.Console, .WindowsService, .AspNetCore, .Systemd, .Launchd):
+// the lifecycle `message`s. Adapter packages route host-environment events
+// into these messages so user .spek source can write `on Shutdown => ...`
+// once and have it work across every host. The `HostState` enum these carry
+// lives in `HostState.spek`; it resolves through whole-project compilation.
+
+/// <summary>The host is requesting a graceful shutdown.</summary>
+message Shutdown();
+
+/// <summary>The host is requesting the actor pause processing
+/// (Windows SCM <c>SERVICE_PAUSE</c>). Not all hosts send this.</summary>
+message Pause();
+
+/// <summary>The host is resuming after a <see cref="Pause"/>.</summary>
+message Continue();
+
+/// <summary>The host is requesting a configuration reload
+/// (systemd <c>SIGHUP</c> + <c>RELOADING=1</c>). Not all hosts
+/// send this.</summary>
+message Reload();
+
+/// <summary>Emitted by the actor when startup has completed and
+/// it's ready to accept work. Adapters route this to host-readiness
+/// signals (systemd <c>READY=1</c>, ASP.NET Core
+/// <c>ApplicationStarted</c>).</summary>
+message Started();
+
+/// <summary>System power-management event from the host
+/// (Windows SCM <c>SERVICE_CONTROL_POWEREVENT</c>: suspend, resume,
+/// battery-low, etc.).</summary>
+/// <param name="EventName">Implementation-defined identifier for
+/// the event the host received. Adapter packages document the
+/// values they emit.</param>
+message PowerEvent(string EventName);
+
+/// <summary>System session-change event from the host (Windows
+/// SCM <c>SERVICE_CONTROL_SESSIONCHANGE</c>: logon, logoff,
+/// lock, unlock, etc.).</summary>
+message SessionChange(string EventName);
+
+/// <summary>Custom command from the host (Windows SCM
+/// <c>SERVICE_CONTROL_DEVICEEVENT</c>, user-defined codes).</summary>
+message CustomCommand(int Code);
+
+/// <summary>Emitted by the actor to announce an intentional
+/// state transition. Adapters map the <see cref="State"/> value
+/// to whatever the underlying init system expects
+/// (`SetServiceStatus`, `sd_notify STATUS=`, etc.).</summary>
+message StateChanged(HostState State);
+
+/// <summary>Emitted by the actor for periodic health reporting.
+/// Adapters route this to host health-check endpoints (systemd
+/// <c>WATCHDOG=1</c>, ASP.NET Core <c>IHealthCheck</c>).</summary>
+/// <param name="IsHealthy">True if the actor is operating
+/// normally; false if it's degraded.</param>
+/// <param name="Message">Optional diagnostic message. May be
+/// surfaced in operator dashboards.</param>
+message HealthReport(bool IsHealthy, string? Message = null);

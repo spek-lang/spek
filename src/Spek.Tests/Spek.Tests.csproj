@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Spek.Tests</RootNamespace>
+    <AssemblyName>Spek.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.4">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+  </ItemGroup>
+
+  <!-- pull in ASP.NET Core for the REST hosting end-to-end tests
+       (booting a WebApplication, firing real HTTP, asserting responses). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\*.spek" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Compiler\Spek.Compiler.csproj" />
+    <ProjectReference Include="..\Spek.Compiler.Proto\Spek.Compiler.Proto.csproj" />
+    <!-- The CLI is an Exe, but its public CliRunner is exercised in-process by
+         the spekc CLI tests (no `dotnet run` subprocess). -->
+    <ProjectReference Include="..\Spek.Cli\Spek.Cli.csproj" />
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Testing\Spek.Testing.csproj" />
+    <ProjectReference Include="..\Spek.Testing.Xunit\Spek.Testing.Xunit.csproj" />
+    <ProjectReference Include="..\Spek.LanguageServer\Spek.LanguageServer.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.Console\Spek.Hosting.Console.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.AspNetCore\Spek.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.AspNetCore.Rest\Spek.Hosting.AspNetCore.Rest.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.AspNetCore.Grpc\Spek.Hosting.AspNetCore.Grpc.csproj" />
+    <ProjectReference Include="..\Spek.Observability.Abstractions\Spek.Observability.Abstractions.csproj" />
+    <ProjectReference Include="..\Spek.Observability.OpenTelemetry\Spek.Observability.OpenTelemetry.csproj" />
+    <ProjectReference Include="..\Spek.Cluster\Spek.Cluster.csproj" />
+    <ProjectReference Include="..\Spek.Cluster.Memory\Spek.Cluster.Memory.csproj" />
+    <ProjectReference Include="..\Spek.Cluster.Tcp\Spek.Cluster.Tcp.csproj" />
+    <ProjectReference Include="..\Spek.Resilience.Abstractions\Spek.Resilience.Abstractions.csproj" />
+    <ProjectReference Include="..\Spek.Resilience.RateLimiting\Spek.Resilience.RateLimiting.csproj" />
+    <ProjectReference Include="..\Spek.Streams\Spek.Streams.csproj" />
+    <ProjectReference Include="..\Spek.Persistence.File\Spek.Persistence.File.csproj" />
+    <ProjectReference Include="..\Spek.Persistence.Sqlite\Spek.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="..\Spek.Persistence.Log\Spek.Persistence.Log.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+  </ItemGroup>
+
+</Project>

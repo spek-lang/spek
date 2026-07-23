@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "The Spek contributors",
+  "classifications": ["Test", "Spek", "Actor", "xUnit"],
+  "identity": "Spek.Templates.Test",
+  "name": "Spek test project",
+  "shortName": "spek-test",
+  "description": "A Spek test project: native Spek tests (a `*Tests` class) run under `dotnet test` via xUnit. The Spek toolchain is wired through MSBuild (Spek.Build) and a pinned local `spekc` tool — `dotnet tool restore` then `dotnet test`.",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "SpekTests",
+  "preferNameDirectory": true,
+  "symbols": {
+    "Framework": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "net10.0",
+      "description": "Target framework.",
+      "choices": [
+        { "choice": "net10.0", "description": ".NET 10" },
+        { "choice": "net9.0",  "description": ".NET 9" },
+        { "choice": "net8.0",  "description": ".NET 8" }
+      ],
+      "replaces": "net10.0"
+    }
+  }
+}

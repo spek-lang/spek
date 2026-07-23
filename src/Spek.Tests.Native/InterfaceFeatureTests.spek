@@ -1,0 +1,70 @@
+// The class-side `interface` contract, behaviorally, in Spek. The C#
+// InterfaceTests are white-box (they assert on emitted shape and let Roslyn
+// type-check conformance). This one round-trips through an actor that holds an
+// interface-typed field and calls it polymorphically — the design doc's own
+// "swap EmailValidator for another implementation without touching the caller"
+// example from the contracts-per-type design, proven at runtime.
+
+interface Validator
+{
+    bool IsValid(string input);
+}
+
+class EmailValidator : Validator
+{
+    public bool IsValid(string input) { return input.Contains("@"); }
+}
+
+class NonEmptyValidator : Validator
+{
+    public bool IsValid(string input) { return input.Length > 0; }
+}
+
+message UseValidator(int which);   // 0 = email, 1 = non-empty
+message Check(string input);
+message Verdict(bool ok);
+
+actor Gatekeeper
+{
+    Validator validator = new EmailValidator();
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on UseValidator u =>
+        {
+            if (u.which == 0) { validator = new EmailValidator(); }
+            else              { validator = new NonEmptyValidator(); }
+        }
+
+        // A single call site, dispatched to whichever implementation the
+        // field currently holds — the interface property.
+        on Check c => return new Verdict(validator.IsValid(c.input));
+    }
+}
+
+class InterfaceFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void InterfaceFieldDispatchesPolymorphically()
+    {
+        var probe = sys.CreateProbe();
+        var gate  = sys.Spawn<Gatekeeper>();
+
+        // Default is EmailValidator: "hello" has no '@' -> invalid.
+        probe.Send(gate, new Check("hello"));
+        Verdict v1 = probe.ExpectMsg<Verdict>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.False(v1.ok);
+
+        // Swap the implementation behind the same field; the call site is
+        // unchanged. NonEmptyValidator: "hello" is non-empty -> valid.
+        probe.Send(gate, new UseValidator(1));
+        probe.Send(gate, new Check("hello"));
+        Verdict v2 = probe.ExpectMsg<Verdict>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.True(v2.ok);
+    }
+}

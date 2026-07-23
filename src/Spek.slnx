@@ -1,0 +1,40 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Spek.Benchmarks/Spek.Benchmarks.csproj" />
+  <Project Path="Spek.Build/Spek.Build.csproj" />
+  <Project Path="Spek.Cli/Spek.Cli.csproj" />
+  <Project Path="Spek.Cluster.Abstractions/Spek.Cluster.Abstractions.csproj" />
+  <Project Path="Spek.Cluster.Memory/Spek.Cluster.Memory.csproj" />
+  <Project Path="Spek.Cluster.Tcp/Spek.Cluster.Tcp.csproj" />
+  <Project Path="Spek.Cluster/Spek.Cluster.csproj" />
+  <Project Path="Spek.Compiler.Proto/Spek.Compiler.Proto.csproj" />
+  <Project Path="Spek.Compiler/Spek.Compiler.csproj" />
+  <Project Path="Spek.Hosting.Abstractions/Spek.Hosting.Abstractions.csproj" />
+  <Project Path="Spek.Hosting.AspNetCore.Grpc/Spek.Hosting.AspNetCore.Grpc.csproj" />
+  <Project Path="Spek.Hosting.AspNetCore.Rest/Spek.Hosting.AspNetCore.Rest.csproj" />
+  <Project Path="Spek.Hosting.AspNetCore/Spek.Hosting.AspNetCore.csproj" />
+  <Project Path="Spek.Hosting.Console/Spek.Hosting.Console.csproj" />
+  <Project Path="Spek.Hosting.Launchd/Spek.Hosting.Launchd.csproj" />
+  <Project Path="Spek.Hosting.Systemd/Spek.Hosting.Systemd.csproj" />
+  <Project Path="Spek.Hosting.WindowsService/Spek.Hosting.WindowsService.csproj" />
+  <Project Path="Spek.LanguageServer/Spek.LanguageServer.csproj" />
+  <Project Path="Spek.Observability.Abstractions/Spek.Observability.Abstractions.csproj" />
+  <Project Path="Spek.Observability.OpenTelemetry/Spek.Observability.OpenTelemetry.csproj" />
+  <Project Path="Spek.Persistence.Abstractions/Spek.Persistence.Abstractions.csproj" />
+  <Project Path="Spek.Persistence.File/Spek.Persistence.File.csproj" />
+  <Project Path="Spek.Persistence.Log/Spek.Persistence.Log.csproj" />
+  <Project Path="Spek.Persistence.Sqlite/Spek.Persistence.Sqlite.csproj" />
+  <Project Path="Spek.Resilience.Abstractions/Spek.Resilience.Abstractions.csproj" />
+  <Project Path="Spek.Resilience.RateLimiting/Spek.Resilience.RateLimiting.csproj" />
+  <Project Path="Spek.Runtime/Spek.Runtime.csproj" />
+  <Project Path="Spek.Streams/Spek.Streams.csproj" />
+  <Project Path="Spek.Templates/Spek.Templates.csproj" />
+  <Project Path="Spek.Testing.Xunit/Spek.Testing.Xunit.csproj" />
+  <Project Path="Spek.Testing/Spek.Testing.csproj" />
+  <Project Path="Spek.Tests.Native/Spek.Tests.Native.csproj" />
+  <Project Path="Spek.Tests/Spek.Tests.csproj" />
+</Solution>

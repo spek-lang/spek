@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Persistence.File</RootNamespace>
+    <AssemblyName>Spek.Persistence.File</AssemblyName>
+    <PackageId>Spek.Persistence.File</PackageId>
+    <Description>Local-disk snapshot store for Spek actors. JSON-per-actor with atomic write-then-rename — no database server required. Targets desktop apps, CLI tools, single-node services, and edge deployments.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Persistence.Abstractions\Spek.Persistence.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

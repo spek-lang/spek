@@ -1,0 +1,221 @@
+// Colorization showcase — exercises every construct the TextMate grammar
+// colors. Compile-verified (spekc) so it can't drift from the language.
+/* Block comments render too. */
+
+namespace Showcase;
+
+using System.Collections.Immutable;
+
+/// Doc comments (///) get documentation coloring and flow to the C#.
+enum Severity
+{
+    Low,
+    High,   // trailing comma is legal
+}
+
+// ── messages: plain, generic-with-default, abstract family ──────────────
+message Ping();
+message Pong(int n);
+message Tagged<T>(T value, string label = "none");
+message Score(int value);
+message Numbers(ImmutableList<int> values);
+
+abstract message Event();
+message Up(string node)   : Event;
+message Down(string node) : Event;
+
+message Audit(string entry);
+
+// ── channels: inputs, emits, inheritance ────────────────────────────────
+channel Base { on Ping; }
+channel Api : Base
+{
+    on Numbers;
+    emits Audit;
+}
+
+// ── interface + classes: contract, abstract base, ctor chaining ─────────
+interface Validator
+{
+    bool IsValid(string input);
+    int MinLength { get; }
+}
+
+abstract class Shape
+{
+    protected string name;
+    init(string n) { name = n; }
+    public abstract double Area();
+    public string Describe() { return name; }
+}
+
+class Circle : Shape, Validator
+{
+    double r;
+    init(double radius) : base("circle") { r = radius; }
+    public double Area() { return 3.14159 * r * r; }
+    public bool IsValid(string input) { return input.Length >= MinLength; }
+    public int MinLength { get => 1; }
+}
+
+// ── module: static methods, ref/out params, generics with where ─────────
+module MathUtil
+{
+    public int Doubled(int x) { return x * 2; }
+    public bool TryHalve(int x, out int half) { half = x / 2; return x % 2 == 0; }
+    public T First<T>(T a, T b) where T : IComparable<T>
+    {
+        return a.CompareTo(b) <= 0 ? a : b;
+    }
+}
+
+// ── shared region (transient) ───────────────────────────────────────────
+shared Stats
+{
+    int totalSeen = 0;
+}
+
+// ── abstract actor: abstract behavior + abstract method + protected ─────
+abstract actor WorkerBase
+{
+    protected int handled = 0;
+    abstract behavior Running { }
+    public abstract int Transform(int x);
+    protected void Bump() { handled = handled + 1; }
+}
+
+actor Doubler : WorkerBase
+{
+    init() { become Running; }
+
+    override behavior Running
+    {
+        on Ping => { Bump(); return new Pong(Transform(handled)); }
+    }
+
+    public int Transform(int x) { return MathUtil.Doubled(x); }
+}
+
+// ── the kitchen-sink actor ───────────────────────────────────────────────
+actor Kitchen : Api
+{
+    use Stats stats;
+
+    // field markers + literals: hex, binary, suffixes, separators, char
+    transient int cache = 0x1F;
+    deprecated int oldField = 0b1010;
+    long big = 1_000_000L;
+    decimal price = 19.99m;
+    double ratio = 1.5e3;
+    char letter = 'k';
+
+    // string forms: plain, interpolated, verbatim, verbatim-interp, raw
+    string plain = "hello\n";
+    string raw = """no "escapes" here""";
+
+    ActorRef child;
+
+    init()
+    {
+        child = spawn<Doubler>();
+        become Active;
+    }
+
+    passivate after TimeSpan.FromMinutes(5);
+
+    supervise OneForOne(
+        on Failure(InvalidOperationException): Restart,
+        on Failure: Stop,
+        maxRetries: 3,
+        withinTime: TimeSpan.FromSeconds(30));
+
+    behavior Active
+    {
+        on Ping =>
+        {
+            var greeting = $"cache={cache}, price={price:F2}";
+            var path = @"C:\temp\file.txt";
+            var both = $@"verbatim {greeting} interp";
+            child.Tell(new Ping());
+            sender.Tell(new Audit(both + path), self);
+            return new Pong(cache);
+        }
+
+        // pattern binding + switch EXPRESSION with relational/or/not + when
+        on Score t =>
+        {
+            var kind = t.value switch
+            {
+                < 0            => "negative",
+                0 or 1         => "small",
+                not 42 when t.value > 100 => "big",
+                _              => "other",
+            };
+            return new Audit(kind);
+        }
+
+        // control flow: foreach, do/while, break, continue, try/catch/when
+        writer on Numbers msg =>
+        {
+            int sum = 0;
+            foreach (var v in msg.values)
+            {
+                if (v < 0) { continue; }
+                if (v > 1_000) { break; }
+                sum += v;
+            }
+
+            int i = 0;
+            do { i = i + 1; } while (i < 3);
+
+            try
+            {
+                if (sum == 0) { throw new InvalidOperationException("empty"); }
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Length > 0)
+            {
+                sum = -1;
+            }
+            finally
+            {
+                stats.totalSeen = stats.totalSeen + 1;
+            }
+
+            // operators: null-coalescing/conditional, compound, bitwise, shift, is/as
+            string? maybe = null;
+            var text = maybe ?? "fallback";
+            maybe ??= text;
+            var masked = (cache & 0xFF) | (1 << 2) ^ ~0;
+            object boxed = masked;
+            if (boxed is int n) { cache = n; }
+            var asString = boxed as string;
+            var len = asString?.Length ?? 0;
+            cache %= 7;
+            cache = len > 0 ? len : masked;
+        }
+
+        reader on Event e => { }        // abstract-family base handler
+        on any other => { }             // catch-all
+    }
+
+    on PreStart => { }
+    on PostStop => { }
+}
+
+// ── program: vars, arrays, tuples, initializers, lambdas, Ask ───────────
+program Main
+{
+    using var system = new ActorSystem("showcase");
+    var kitchen = system.Spawn<Kitchen>();
+
+    var implicitArr = new[] { 1, 2, 3 };
+    var sized = new int[4];
+    int[] typed = new int[] { 4, 5, 6 };
+    var pair = (1, "two");
+    var list = new List<int> { 7, 8, 9 };
+    Func<int, int> square = x => x * x;
+    var evens = implicitArr.Where(v => v % 2 == 0);
+
+    kitchen.Tell(new Ping());
+    system.AwaitTermination();
+}

@@ -1,0 +1,74 @@
+// Generics + modules, behaviorally, in Spek. The C# GenericEmitTests / ModuleEmitTests
+// are white-box by design (generics lower verbatim to C#; modules emit as static classes —
+// both assert on emitted shape, and Roslyn does the type-checking). These instead round-trip
+// a value through a generic class field and a module method to prove they work at runtime.
+
+class Box<T>
+{
+    T item;
+    init(T initial) { item = initial; }
+    public T    Get()    { return item; }
+    public void Set(T v) { item = v; }
+}
+
+module MathUtil
+{
+    public int Doubled(int x) { return x * 2; }
+}
+
+message SetVal(int v);
+message GetVal();
+message ValReply(int v);
+message Compute(int n);
+message Computed(int result);
+
+actor BoxHolder
+{
+    Box<int> box = new Box<int>(0);
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on SetVal s => { box.Set(s.v); }
+        on GetVal   => return new ValReply(box.Get());
+    }
+}
+
+actor Calculator
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Compute c => return new Computed(MathUtil.Doubled(c.n));
+    }
+}
+
+class TypeFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void GenericClassFieldRoundTripsAValue()
+    {
+        var probe  = sys.CreateProbe();
+        var holder = sys.Spawn<BoxHolder>();
+
+        probe.Send(holder, new SetVal(42));
+        probe.Send(holder, new GetVal());
+        ValReply r = probe.ExpectMsg<ValReply>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal(42, r.v);
+    }
+
+    public void ModuleFunctionIsCallableFromAHandler()
+    {
+        var probe = sys.CreateProbe();
+        var calc  = sys.Spawn<Calculator>();
+
+        probe.Send(calc, new Compute(21));
+        Computed c = probe.ExpectMsg<Computed>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal(42, c.result);
+    }
+}

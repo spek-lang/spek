@@ -1,0 +1,204 @@
+// Supervise strategy / scope / arm coverage, in Spek. Closes the native-suite gaps
+// recorded in COVERAGE.md by converting the *behavior* of three C# emitter tests:
+//   - AllForOneSupervisionTests   → a crash restarts every sibling, not just the failer
+//   - PerChildSuperviseTests      → supervise(child, strategy: ...) overrides the default
+//   - ExceptionTypeSuperviseTests → on Failure(ExType) arms match top-to-bottom by type
+// The C# versions assert on emitted C# via reflection; these assert behavior directly
+// through sys.ExpectRestart / ExpectStop and an observed state reset.
+//
+// NB on AllForOne: a sibling restart resets the sibling's state but is NOT recorded in
+// its restart log, so sys.ExpectRestart can't see it (only the failing child's own
+// restart is counted). We therefore observe the sibling restart via a tally reset, the
+// same way the C# AllForOneSupervisionTests does.
+
+message Blast();
+
+message TallyTick();
+message ReadTally();
+message TallyValue(int n);
+
+message SpawnSiblings();
+message GetSiblings();
+message SiblingRefs(ActorRef tally, ActorRef bad);
+
+message SpawnHotCold();
+message GetHotCold();
+message HotColdRefs(ActorRef hot, ActorRef cold);
+message BlastHot();
+message BlastCold();
+
+message FailIo();
+message FailInvalid();
+message SpawnArmChild();
+message GetArmChild();
+message ArmChildRef(ActorRef child);
+
+actor BlastChild
+{
+    init() { become Live; }
+
+    behavior Live { on Blast => { throw new System.InvalidOperationException("boom"); } }
+}
+
+actor TallyChild
+{
+    int tally = 0;
+
+    init() { become Live; }
+
+    behavior Live
+    {
+        on TallyTick      => { tally = tally + 1; }
+        on ReadTally => return new TallyValue(tally);
+    }
+}
+
+// AllForOne: crashing one child restarts the whole sibling set. Under OneForOne the
+// untouched tally sibling would keep its count — the reset is the distinguishing signal.
+actor AllForOneParent
+{
+    ActorRef tally;
+    ActorRef bad;
+
+    init() { become Live; }
+
+    behavior Live
+    {
+        on SpawnSiblings => { tally = spawn<TallyChild>(); bad = spawn<BlastChild>(); }
+        on Blast b       => { bad.Tell(b); }            // crash the BlastChild sibling
+        on GetSiblings   => return new SiblingRefs(tally, bad);
+    }
+
+    supervise AllForOne(on Failure: Restart);
+}
+
+// Per-child override: the default strategy restarts, but `hot` is supervised with Stop.
+actor PerChildParent
+{
+    ActorRef hot;
+    ActorRef cold;
+
+    init() { become Live; }
+
+    behavior Live
+    {
+        on SpawnHotCold => { hot = spawn<BlastChild>(); cold = spawn<BlastChild>(); }
+        on BlastHot     => { hot.Tell(new Blast()); }
+        on BlastCold    => { cold.Tell(new Blast()); }
+        on GetHotCold   => return new HotColdRefs(hot, cold);
+    }
+
+    supervise OneForOne(on Failure: Restart);                  // default — restart
+    supervise(hot, strategy: OneForOne(on Failure: Stop));     // hot — stop
+}
+
+actor ArmChild
+{
+    init() { become Live; }
+
+    behavior Live
+    {
+        on FailIo      => { throw new System.IO.IOException("io"); }
+        on FailInvalid => { throw new System.InvalidOperationException("invalid"); }
+    }
+}
+
+// Typed arms matched top-to-bottom: IOException restarts, InvalidOperationException
+// stops, anything else escalates.
+actor TypedArmParent
+{
+    ActorRef child;
+
+    init() { become Live; }
+
+    behavior Live
+    {
+        on SpawnArmChild => { child = spawn<ArmChild>(); }
+        on FailIo f      => { child.Tell(f); }
+        on FailInvalid f => { child.Tell(f); }
+        on GetArmChild   => return new ArmChildRef(child);
+    }
+
+    supervise OneForOne(
+        on Failure(System.IO.IOException): Restart,
+        on Failure(System.InvalidOperationException): Stop,
+        on Failure: Escalate);
+}
+
+class SuperviseStrategyTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void AllForOneRestartsEverySibling()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<AllForOneParent>();
+        parent.Tell(new SpawnSiblings());
+
+        probe.Send(parent, new GetSiblings());
+        SiblingRefs refs = probe.ExpectMsg<SiblingRefs>(System.TimeSpan.FromSeconds(10));
+
+        probe.Send(refs.tally, new TallyTick());
+        probe.Send(refs.tally, new TallyTick());
+        probe.Send(refs.tally, new TallyTick());
+        probe.Send(refs.tally, new ReadTally());
+        TallyValue before = probe.ExpectMsg<TallyValue>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal(3, before.n);
+
+        parent.Tell(new Blast());                            // crash 'bad' → AllForOne restarts the tally sibling too
+        sys.WhenIdleAsync(System.TimeSpan.FromSeconds(10));  // drain the broadcast restart
+
+        probe.Send(refs.tally, new ReadTally());
+        TallyValue after = probe.ExpectMsg<TallyValue>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal(0, after.n);                      // the restart reset the sibling's state
+        Xunit.Assert.False(refs.tally.IsStopped);
+    }
+
+    public void PerChildOverrideStopsHotButRestartsCold()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<PerChildParent>();
+        parent.Tell(new SpawnHotCold());
+
+        probe.Send(parent, new GetHotCold());
+        HotColdRefs refs = probe.ExpectMsg<HotColdRefs>(System.TimeSpan.FromSeconds(10));
+
+        parent.Tell(new BlastHot());         // hot → per-child Stop override
+        sys.ExpectStop(refs.hot);
+        Xunit.Assert.True(refs.hot.IsStopped);
+
+        parent.Tell(new BlastCold());        // cold → default Restart
+        sys.ExpectRestart(refs.cold);
+        Xunit.Assert.False(refs.cold.IsStopped);
+    }
+
+    public void TypedArmRestartsOnFirstMatchingException()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<TypedArmParent>();
+        parent.Tell(new SpawnArmChild());
+
+        probe.Send(parent, new GetArmChild());
+        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(System.TimeSpan.FromSeconds(10));
+
+        parent.Tell(new FailIo());           // IOException → first arm → Restart
+        sys.ExpectRestart(r.child);
+        Xunit.Assert.False(r.child.IsStopped);
+    }
+
+    public void TypedArmStopsOnSecondMatchingException()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<TypedArmParent>();
+        parent.Tell(new SpawnArmChild());
+
+        probe.Send(parent, new GetArmChild());
+        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(System.TimeSpan.FromSeconds(10));
+
+        parent.Tell(new FailInvalid());      // InvalidOperationException → second arm → Stop
+        sys.ExpectStop(r.child);
+        Xunit.Assert.True(r.child.IsStopped);
+    }
+}

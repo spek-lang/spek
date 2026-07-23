@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>HelloWeb</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Spek.Runtime supplies the always-emitted `using Spek;` / `Spek.Runtime`
+         / `Spek.Persistence` namespaces (transitively). The web server itself
+         is pure ASP.NET Core interop from the program block. -->
+    <ProjectReference Include="..\..\src\Spek.Runtime\Spek.Runtime.csproj" />
+    <!-- Build-order only: ensures spekc.dll is built before SpekCompile runs. -->
+    <ProjectReference Include="..\..\src\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Compiles HelloWeb.spek -> obj/<cfg>/<tfm>/spek/HelloWeb.g.cs at
+       build time (no checked-in .g.cs beside the source). -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

@@ -1,0 +1,24 @@
+// user_api.proto — canonical contract for the GrpcUserApi sample.
+//
+// In a Google-style workflow this file is checked into the proto
+// registry and lives independently of the consuming code.
+// `Grpc.Tools` runs protoc on it (the `<Protobuf>` item in the
+// csproj) to generate the C# stubs (UserApi.UserApiBase,
+// User, GetUserRequest, etc.); the hand-written bridge in
+// UserServiceGrpcBridge.cs wires those stubs to the Spek actor.
+
+syntax = "proto3";
+
+package userapi.v1;
+
+option csharp_namespace = "GrpcUserApi.Generated";
+
+service UserApi
+{
+    rpc GetUser    (GetUserRequest)    returns (User);
+    rpc CreateUser (CreateUserRequest) returns (User);
+}
+
+message GetUserRequest    { string id = 1; }
+message CreateUserRequest { string name = 1; string email = 2; }
+message User              { string id = 1; string name = 2; string email = 3; }

@@ -1,0 +1,46 @@
+// Native tests by CONVENTION (module form): a `module` named `*Tests` is a test
+// container in a test project; each PUBLIC method is a test. Stateless — no
+// shared setup. (See AccountTests.spek for the class form with per-test `init`.)
+
+message Deposit(decimal amount);
+message GetBalance();
+message Balance(decimal amount);
+
+actor Wallet
+{
+    decimal balance = 0m;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Deposit d  => { balance += d.amount; }
+        on GetBalance => return new Balance(balance);
+    }
+}
+
+module WalletTests
+{
+    public void DepositIncreasesBalance()
+    {
+        var sys    = new TestActorSystem();
+        var probe  = sys.CreateProbe();
+        var wallet = sys.Spawn<Wallet>();
+
+        probe.Send(wallet, new Deposit(100m));
+        probe.Send(wallet, new GetBalance());
+
+        probe.ExpectMsg<Balance>(b => b.amount == 100m);
+    }
+
+    public void FreshWalletStartsAtZero()
+    {
+        var sys    = new TestActorSystem();
+        var probe  = sys.CreateProbe();
+        var wallet = sys.Spawn<Wallet>();
+
+        probe.Send(wallet, new GetBalance());
+
+        probe.ExpectMsg<Balance>(b => b.amount == 0m);
+    }
+}

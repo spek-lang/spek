@@ -1,0 +1,18 @@
+namespace Spek.Hosting.AspNetCore.Rest;
+
+/// <summary>
+/// Typed HTTP verb used by route overrides on
+/// <c>MapChannel</c>. ASP.NET Core's own <c>HttpMethods</c> class
+/// uses string constants ("GET", "POST", ...); the enum eliminates
+/// a class of typos in the Spek configurator API.
+/// </summary>
+enum HttpVerb
+{
+    Get,
+    Post,
+    Put,
+    Patch,
+    Delete,
+    Head,
+    Options,
+}

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Persistence.Sqlite</RootNamespace>
+    <AssemblyName>Spek.Persistence.Sqlite</AssemblyName>
+    <PackageId>Spek.Persistence.Sqlite</PackageId>
+    <Description>Embedded SQLite snapshot store for Spek actors. Single-file durable persistence — boring, reliable, cross-platform. Targets single-node services and CLI tools that want crash-safe storage without running a separate database process.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <!-- Direct override: every SQLitePCLRaw 2.1.x carries GHSA-2m69-gcr7-jv3q
+         (high). Microsoft.Data.Sqlite still pins 2.1.11 transitively; the
+         patched line is 3.x. -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Persistence.Abstractions\Spek.Persistence.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

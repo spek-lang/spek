@@ -1,0 +1,8 @@
+namespace AlertHub;
+
+class PagerPolicy : EscalationPolicy
+{
+    init() : base("pager") { }
+
+    public int Threshold() { return 2; }
+}

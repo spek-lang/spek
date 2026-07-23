@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AlertHub</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Spek.Runtime\Spek.Runtime.csproj" />
+    <!-- Build-order only: ensures spekc.dll is built before SpekCompile runs. -->
+    <ProjectReference Include="..\..\src\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- All .spek files in this project compile as ONE unit, so a type declared
+       in one file resolves from any other (cross-file compilation). -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

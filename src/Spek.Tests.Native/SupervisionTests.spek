@@ -1,0 +1,181 @@
+// Supervision assertions, in Spek. Converted from the C# SupervisionAssertionTests —
+// dogfoods sys.ExpectStop / ExpectRestart / RestartCountOf against Spek-defined
+// actors (a crashing child + a parent that restarts it).
+
+message Crash();
+message SpawnChild();
+message GetChildRef();
+message ChildRefReply(ActorRef child);
+message GetCount();
+message CountReply(int n);
+
+actor CrashChild
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Crash => { throw new System.InvalidOperationException("boom"); }
+    }
+}
+
+actor RestartingParent
+{
+    ActorRef child;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on SpawnChild  => { child = spawn<CrashChild>(); }
+        on Crash c     => { child.Tell(c); }
+        on GetChildRef => return new ChildRefReply(child);
+    }
+
+    supervise OneForOne(on Failure: Restart);
+}
+
+// Per-child restart budget (maxRetries 2): the first two crashes restart, the third
+// exhausts the budget and degrades to Stop. Converted from the budget scenario of the
+// C# SupervisionDirectiveTests.
+actor BudgetedRestartParent
+{
+    ActorRef child;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on SpawnChild  => { child = spawn<CrashChild>(); }
+        on GetChildRef => return new ChildRefReply(child);
+    }
+
+    supervise OneForOne(on Failure: Restart, maxRetries: 2, withinTime: System.TimeSpan.FromSeconds(30));
+}
+
+// Parent-driven Resume: the child mutates state then throws; Resume keeps the SAME
+// instance (and its counter) and the child stays alive. Converted from the Resume
+// scenario of the C# SupervisionDirectiveTests.
+actor CountingCrashChild
+{
+    int counter = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Crash    => { counter = counter + 1; throw new System.InvalidOperationException("boom after mutate"); }
+        on GetCount => return new CountReply(counter);
+    }
+}
+
+actor ResumingParent
+{
+    ActorRef child;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on SpawnChild  => { child = spawn<CountingCrashChild>(); }
+        on GetChildRef => return new ChildRefReply(child);
+    }
+
+    // Resume is now expressible declaratively. The OnChildFailure override
+    // stays available as the imperative escape hatch for conditional logic.
+    supervise OneForOne(on Failure: Resume);
+}
+
+class SupervisionTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void CrashStopsTheActorUnderDefaultSupervision()
+    {
+        var child = sys.Spawn<CrashChild>();   // spawned at root → default directive = Stop
+        child.Tell(new Crash());
+
+        sys.ExpectStop(child);
+        Xunit.Assert.Equal(0, sys.RestartCountOf(child));
+    }
+
+    // Regression guard for the fire-and-forget bug: sys.ExpectStop returns a Task
+    // that invisible-async MUST auto-await — which only works if the build forwards
+    // the Spek.Testing reference to spekc (see Spek.targets). If it ever regresses to
+    // fire-and-forget, this assertion runs before the crash is processed and the
+    // actor is not yet stopped, so the test fails loudly.
+    public void ExpectStopActuallyWaitsForTheStop()
+    {
+        var child = sys.Spawn<CrashChild>();
+        child.Tell(new Crash());
+
+        sys.ExpectStop(child);                 // must block until the actor has stopped
+        Xunit.Assert.True(child.IsStopped);
+    }
+
+    public void RestartStrategyRestartsTheChild()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<RestartingParent>();
+        parent.Tell(new SpawnChild());
+
+        probe.Send(parent, new GetChildRef());
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+
+        parent.Tell(new Crash());              // → forwarded to the child → it throws → parent Restarts it
+        sys.ExpectRestart(r.child);
+
+        Xunit.Assert.True(sys.RestartCountOf(r.child) >= 1);
+        Xunit.Assert.False(r.child.IsStopped);
+    }
+
+    public void PerChildRestartBudgetStopsAfterTwoRestarts()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<BudgetedRestartParent>();
+        parent.Tell(new SpawnChild());
+
+        probe.Send(parent, new GetChildRef());
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+        var leaf = r.child;
+
+        leaf.Tell(new Crash());                   // 1st failure → restart
+        sys.ExpectRestart(leaf, 1);
+        Xunit.Assert.False(leaf.IsStopped);
+
+        leaf.Tell(new Crash());                   // 2nd failure → restart (budget now full)
+        sys.ExpectRestart(leaf, 2);
+        Xunit.Assert.False(leaf.IsStopped);
+
+        leaf.Tell(new Crash());                   // 3rd failure → budget exhausted → stop
+        sys.ExpectStop(leaf);
+
+        Xunit.Assert.True(leaf.IsStopped);
+        Xunit.Assert.Equal(2, sys.RestartCountOf(leaf));
+    }
+
+    public void ResumePreservesChildInstanceAndState()
+    {
+        var probe  = sys.CreateProbe();
+        var parent = sys.Spawn<ResumingParent>();
+        parent.Tell(new SpawnChild());
+
+        probe.Send(parent, new GetChildRef());
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+        var leaf = r.child;
+
+        // Each crash increments the counter THEN throws; Resume keeps the same
+        // instance, so both increments survive. Mailbox order guarantees GetCount
+        // runs after both crashes.
+        leaf.Tell(new Crash());
+        leaf.Tell(new Crash());
+
+        probe.Send(leaf, new GetCount());
+        CountReply reply = probe.ExpectMsg<CountReply>(System.TimeSpan.FromSeconds(10));
+
+        Xunit.Assert.Equal(2, reply.n);
+        Xunit.Assert.False(leaf.IsStopped);
+    }
+}

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Cluster.Tcp</RootNamespace>
+    <AssemblyName>Spek.Cluster.Tcp</AssemblyName>
+    <PackageId>Spek.Cluster.Tcp</PackageId>
+    <Description>Default Spek cluster transport. Spek-native binary protocol over TCP, modeled after Akka Artery and Orleans 3.0's Bedrock-based silo wire. Pluggable behind the `ISpekTransport` abstraction. Note: wire encryption / mTLS are not yet implemented — trusted-network use only for now.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MemoryPack" Version="1.21.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- TCP transport only needs the abstractions, not the bootstrap layer. -->
+    <ProjectReference Include="..\Spek.Cluster.Abstractions\Spek.Cluster.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

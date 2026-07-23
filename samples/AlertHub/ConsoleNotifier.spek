@@ -1,0 +1,51 @@
+namespace AlertHub;
+
+actor ConsoleNotifier : NotifierBase
+{
+    // Interface-typed field: the implementation is swappable at runtime while
+    // the call site (`fmt.Render`) never changes — and the instance stays
+    // confined to this actor.
+    Formatter fmt = new PlainFormatter();
+    EscalationPolicy policy = new PagerPolicy();
+    int critical = 0;
+
+    init() : base("console") { become Running; }
+
+    override behavior Running
+    {
+        // The specific arm wins for its type; everything else in the family
+        // falls through to the `on AlertEvent` base handler below.
+        on ServiceDown d =>
+        {
+            Note();
+            critical = critical + 1;
+            Console.WriteLine($"[{Prefix()}] CRITICAL {fmt.Render(d.host, $"service {d.name} is down")}");
+            if (critical >= policy.Threshold())
+            {
+                Console.WriteLine($"[{Prefix()}] {policy.Describe()} — paging on-call!");
+            }
+        }
+
+        on AlertEvent e =>
+        {
+            Note();
+            var line = e switch
+            {
+                CpuHigh c  => fmt.Render(c.host, $"cpu at {c.percent}%"),
+                DiskFull f => fmt.Render(f.host, $"disk full on {f.mount}"),
+                _          => fmt.Render("unknown", "unrecognized alert"),
+            };
+            Console.WriteLine($"[{Prefix()}] {line}");
+        }
+
+        on SwapFormat =>
+        {
+            fmt = new JsonFormatter();
+            Console.WriteLine($"[{Prefix()}] switched to JSON output");
+        }
+
+        on GetSummary => return new Summary(seen, critical);
+    }
+
+    public string Prefix() { return channelName; }
+}

@@ -1,0 +1,14 @@
+namespace AlertHub;
+
+// The polymorphic dispatch contract: an `abstract message` is a family base a
+// handler can key on. `on AlertEvent` receives every variant below.
+abstract message AlertEvent();
+
+message CpuHigh(string host, int percent)      : AlertEvent;
+message DiskFull(string host, string mount)    : AlertEvent;
+message ServiceDown(string host, string name)  : AlertEvent;
+
+// Ordinary request/reply pair for the summary, plus the formatter swap signal.
+message SwapFormat();
+message GetSummary();
+message Summary(int total, int critical);

@@ -1,0 +1,28 @@
+# EditorConfig — https://editorconfig.org
+# Light, cross-editor baseline. Roslyn analyzer/style rules live in
+# Directory.Build.props and the .csproj files, not here.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{json,yml,yaml,csproj,props,targets,nuspec}]
+indent_size = 2
+
+[*.g4]
+indent_size = 4
+
+# Trailing spaces are significant in Markdown (hard line breaks).
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

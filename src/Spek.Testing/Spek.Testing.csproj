@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Testing</RootNamespace>
+    <AssemblyName>Spek.Testing</AssemblyName>
+    <PackageId>Spek.Testing</PackageId>
+    <Description>Testing helpers for Spek actors — TestActorSystem, TestProbe. Rides on xUnit; throws XunitException on assertion failure.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.assert" Version="2.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+  </ItemGroup>
+
+</Project>

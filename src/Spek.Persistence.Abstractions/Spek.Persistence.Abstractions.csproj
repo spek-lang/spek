@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Persistence</RootNamespace>
+    <AssemblyName>Spek.Persistence.Abstractions</AssemblyName>
+    <PackageId>Spek.Persistence.Abstractions</PackageId>
+    <Description>Abstractions for Spek's actor persistence layer. Defines `Snapshot` (the per-actor state-bag passed to `on Restore` handlers) and `ISnapshotStore` (the contract concrete persistence providers implement). Concrete providers like `Spek.Persistence.File` and `Spek.Persistence.Sqlite` reference this; the default `InMemorySnapshotStore` implementation lives in `Spek.Runtime`.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,60 @@
+// Reader/writer handler dispatch, in Spek. The C# ReaderConcurrencyTests is
+// mostly white-box (it measures peak concurrency / reflects on Readers.Max/Strategy via
+// the emitted type). The behaviorally-observable part converts cleanly: every reader
+// handler replies (the fire-and-forget reader path drops nothing) and a writer handler
+// runs and replies. Concurrency *overlap* measurement stays C# (needs timing internals).
+
+message StartReader();
+message StartWriter();
+message ReaderReply();
+message WriterReply();
+
+actor Coordinator
+{
+    int writes = 0;
+
+    init() { become Idle; }
+
+    behavior Idle
+    {
+        public reader on StartReader => { sender.Tell(new ReaderReply()); }
+        public writer on StartWriter => { writes = writes + 1; sender.Tell(new WriterReply()); }
+    }
+}
+
+class ReaderWriterTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void EveryReaderHandlerReplies_NoneLost()
+    {
+        var probe = sys.CreateProbe();
+        var coord = sys.Spawn<Coordinator>();
+
+        var n = 25;
+        for (var i = 0; i < n; i = i + 1)
+        {
+            probe.Send(coord, new StartReader());
+        }
+
+        var received = 0;
+        for (var i = 0; i < n; i = i + 1)
+        {
+            probe.ExpectMsg<ReaderReply>(System.TimeSpan.FromSeconds(10));
+            received = received + 1;
+        }
+
+        Xunit.Assert.Equal(25, received);   // all reader handlers ran and replied
+    }
+
+    public void WriterHandlerRunsAndReplies()
+    {
+        var probe = sys.CreateProbe();
+        var coord = sys.Spawn<Coordinator>();
+
+        probe.Send(coord, new StartWriter());
+        probe.ExpectMsg<WriterReply>(System.TimeSpan.FromSeconds(10));   // writer dispatched + replied
+    }
+}

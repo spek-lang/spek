@@ -1,0 +1,89 @@
+// Modules.spek — demonstrates these language features:
+//   * `module` declarations holding stateless `method`s
+//   * nested modules (sub-namespacing)
+//   * `in` / `ref` / `out` parameter modifiers
+//   * invisible async/await (no `async`/`await` keywords in source)
+//
+// Run:       dotnet run
+
+namespace ModulesSample;
+
+// ─── A stateless module of pure methods ─────────────────────────────────────
+
+module MathUtil
+{
+    public int Double(int n) { return n + n; }
+
+    // `out` parameter — the callee assigns it; the call site restates `out`.
+    public void SumInto(int a, int b, out int result)
+    {
+        result = a + b;
+    }
+
+    // `ref` parameter — aliased, must be assigned before the call.
+    public void Accumulate(in int addend, ref int total)
+    {
+        total = total + addend;
+    }
+
+    // Nested module — pure sub-namespacing, emits as a nested static class.
+    module Stats
+    {
+        public int Max(int a, int b) { return a > b ? a : b; }
+    }
+}
+
+// ─── Invisible async ───────────────────────────────────────────────────────────
+//
+// No `async` or `await` keywords. The compiler sees that `Task.Delay`
+// returns a Task, inserts the await, and makes `DelayedDouble` async.
+// Callers of `DelayedDouble` are then auto-awaited in turn.
+
+module AsyncUtil
+{
+    public int DelayedDouble(int n)
+    {
+        System.Threading.Tasks.Task.Delay(1);   // auto-awaited
+        return n + n;
+    }
+}
+
+// ─── A driver actor that exercises the modules ────────────────────────────────
+
+message Go();
+
+actor Demo
+{
+    init() { become Running; }
+
+    behavior Running
+    {
+        on Go =>
+        {
+            Console.WriteLine(MathUtil.Double(21));        // 42
+
+            int sum = 0;
+            MathUtil.SumInto(3, 4, out sum);
+            Console.WriteLine(sum);                        // 7
+
+            int total = 10;
+            MathUtil.Accumulate(in sum, ref total);
+            Console.WriteLine(total);                      // 17
+
+            Console.WriteLine(MathUtil.Stats.Max(10, 20)); // 20
+
+            // Calling an (implicitly) async method — auto-awaited.
+            Console.WriteLine(AsyncUtil.DelayedDouble(5));  // 10
+        }
+    }
+}
+
+// ─── Entry point ─────────────────────────────────────────────────────────────
+
+program Main
+{
+    var system = new ActorSystem("ModulesSample");
+    ActorRef demo = system.Spawn<Demo>();
+    demo.Tell(new Go());
+    system.AwaitTermination();
+}

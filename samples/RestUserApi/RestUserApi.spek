@@ -1,0 +1,86 @@
+// RestUserApi.spek — a self-contained, runnable Spek REST API.
+//
+// Run:       dotnet run
+// Try:       curl http://localhost:5000/users/u-1
+//            curl http://localhost:5000/users -d '{"name":"Bob","email":"bob@x.com"}' -H 'Content-Type: application/json'
+//            curl -X PATCH http://localhost:5000/users/u-1/email -d '{"email":"new@x.com"}' -H 'Content-Type: application/json'
+//
+// What it shows:
+//   * `channel UserApi { ... }` — service contract.
+//   * `actor UserService : UserApi { ... }` — handler implementation.
+//   * Convention-derived routes (Get*/Create*/Update*/Delete* prefix
+//     → HTTP verb; `id` field → path placeholder).
+//   * One off-convention route (`PATCH /users/{id}/email`) using the
+//     `RouteConfigurator.Override` escape hatch.
+//   * Emit-type → status-code mapping (User → 200, NotFound → 404).
+//   * `program Main` standing up an ASP.NET Core WebApplication.
+
+namespace RestUserApi;
+
+using Spek.Hosting.AspNetCore.Rest;
+using Microsoft.AspNetCore.Builder;
+
+// ─── Domain messages ─────────────────────────────────────────────────────────
+
+message GetUser(string id);
+message CreateUser(string name, string email);
+message UpdateUser(string id, string name, string email);
+message DeleteUser(string id);
+message ListUsers(int page = 1, int pageSize = 20);
+message ChangeEmail(string id, string email);
+
+message User(string id, string name, string email);
+message NotFound(string reason);
+
+// ─── Service contract ────────────────────────────────────────────────────────
+
+channel UserApi
+{
+    on GetUser;
+    on CreateUser;
+    on UpdateUser;
+    on DeleteUser;
+    on ListUsers;
+    on ChangeEmail;
+
+    emits User;
+    emits NotFound;
+}
+
+// ─── Handler ─────────────────────────────────────────────────────────────────
+
+actor UserService : UserApi
+{
+    on GetUser g =>
+    {
+        if (g.id == "nope") { return new NotFound("user " + g.id + " not found"); }
+        return new User(g.id, "Alice", "alice@example.com");
+    }
+
+    on CreateUser c  => return new User("u-" + c.name, c.name, c.email);
+    on UpdateUser u  => return new User(u.id, u.name, u.email);
+    on DeleteUser d  => return new User(d.id, "(deleted)", "");
+    on ListUsers l   => return new User("u-1", "Alice", "alice@example.com");
+    on ChangeEmail c => return new User(c.id, "Alice", c.email);
+}
+
+// ─── Host ────────────────────────────────────────────────────────────────────
+
+program Main
+{
+    var builder = WebApplication.CreateBuilder();
+    builder.Services.AddSpekActorSystem("user-api");
+
+    var app = builder.Build();
+    app.MapChannel<UserApi, UserService>("/users", routes =>
+    {
+        // The only off-convention route — every other handler maps via
+        // the convention engine (verb from prefix, /{id} from id field).
+        routes.Override<ChangeEmail>(HttpVerb.Patch, "/{id}/email");
+    });
+    // NOTE: blocking `Run()`, not `RunAsync()` — Spek has no `await` keyword,
+    // and invisible async doesn't cover AspNetCore types, so `app.RunAsync()`
+    // would be fire-and-forgotten and the process would exit immediately.
+    // (Same idiom as samples/HelloWeb.)
+    app.Run();
+}

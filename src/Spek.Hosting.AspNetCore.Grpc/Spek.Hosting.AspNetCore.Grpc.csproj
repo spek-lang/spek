@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Hosting.AspNetCore.Grpc</RootNamespace>
+    <AssemblyName>Spek.Hosting.AspNetCore.Grpc</AssemblyName>
+    <PackageId>Spek.Hosting.AspNetCore.Grpc</PackageId>
+    <Description>Expose Spek channels as gRPC services. Mirrors `Spek.Hosting.AspNetCore.Rest`'s convention surface for the gRPC transport: a Spek channel becomes a gRPC service, channel inputs become RPC methods, channel emits become response types. The compiler emits a bridge class that derives from the protoc-generated service base and routes each RPC to the actor system via `ask`. See the package README for the proto-first / code-first wiring.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Grpc.AspNetCore.Server" Version="2.66.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.28.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.Abstractions\Spek.Hosting.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

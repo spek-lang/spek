@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SpekHelloWorld</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Spek.Runtime provides the actor system, mailbox, supervision, persistence, etc. -->
+    <PackageReference Include="Spek.Runtime" Version="0.1.0-alpha.*" />
+    <!-- Spek.Build compiles every *.spek into obj/ during `dotnet build`,
+         like a source generator; nothing is written beside your source. -->
+    <PackageReference Include="Spek.Build" Version="0.1.0-alpha.*" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

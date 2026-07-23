@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Runtime</RootNamespace>
+    <AssemblyName>Spek.Runtime</AssemblyName>
+    <PackageId>Spek.Runtime</PackageId>
+    <Description>Runtime for the Spek actor language — scheduler, mailbox, supervision, persistence, and passivation. Required by any assembly compiled from `.spek` source.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Persistence.Abstractions\Spek.Persistence.Abstractions.csproj" />
+    <ProjectReference Include="..\Spek.Resilience.Abstractions\Spek.Resilience.Abstractions.csproj" />
+    <ProjectReference Include="..\Spek.Observability.Abstractions\Spek.Observability.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Testing" />
+    <InternalsVisibleTo Include="Spek.Cluster" />
+  </ItemGroup>
+
+</Project>

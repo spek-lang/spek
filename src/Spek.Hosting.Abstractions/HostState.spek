@@ -1,0 +1,38 @@
+namespace Spek.Hosting;
+
+/// <summary>
+/// State of a Spek-hosted process from the operating system's
+/// point of view. Carried by the <c>StateChanged</c> message
+/// (see <c>LifecycleMessages.spek</c>) so an actor can announce
+/// intentional transitions (e.g. <c>Degraded</c> when graceful
+/// failover kicks in).
+///
+/// <para>SCM (Windows Services), systemd (Linux), and launchd
+/// (macOS) consume these via their adapter packages — each maps
+/// the enum value to whatever the underlying init system expects
+/// (`SetServiceStatus`, `sd_notify STATUS=`, etc.).</para>
+/// </summary>
+enum HostState
+{
+    /// <summary>Process is starting. Default before any explicit
+    /// transition.</summary>
+    Starting,
+
+    /// <summary>Process is up and accepting work normally.</summary>
+    Running,
+
+    /// <summary>Process has been paused (Windows SCM
+    /// <c>SERVICE_PAUSED</c>). Not delivered by every host.</summary>
+    Paused,
+
+    /// <summary>Process is in the middle of a graceful shutdown.</summary>
+    Stopping,
+
+    /// <summary>Process has shut down. Final state.</summary>
+    Stopped,
+
+    /// <summary>Process is up but operating in a degraded mode
+    /// (graceful failover, partial outage). Useful for triggering
+    /// alerts without taking the process out of rotation.</summary>
+    Degraded,
+}

@@ -1,0 +1,74 @@
+// Persistence end-to-end, in Spek. Converted from the C# EndToEndPersistenceTests:
+// a persistent actor's state survives a full system restart. Two TestActorSystems
+// share one InMemorySnapshotStore (no temp dir / cleanup, unlike the File/SQLite
+// C# variants). `persist` snapshots; Spek auto-captures the actor's fields and
+// restores them when the second system rehydrates the same key.
+
+message Increment();
+message Get();
+message Reply(int n);
+
+actor Counter
+{
+    int count = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Increment => { count = count + 1; persist; }
+        on Get       => return new Reply(count);
+    }
+
+    // No explicit `on Restore` — the emitter auto-generates a symmetric restore that
+    // rehydrates `count` from the snapshot. State survives a restart with
+    // no hand-written restore code; the StateSurvivesSystemRestart test below proves it.
+}
+
+class PersistenceTests
+{
+    public void StateSurvivesSystemRestart()
+    {
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+
+        // First lifetime: increment three times, drain so the snapshots flush, dispose.
+        var sys1 = new TestActorSystem("svc-1", store);
+        var c1   = sys1.SpawnPersistent<Counter>("counter-A");
+        c1.Tell(new Increment());
+        c1.Tell(new Increment());
+        c1.Tell(new Increment());
+        sys1.WhenIdleAsync();
+        sys1.Dispose();
+
+        // Second lifetime: fresh system, same store — the count restores to 3.
+        var sys2 = new TestActorSystem("svc-2", store);
+        var c2   = sys2.SpawnPersistent<Counter>("counter-A");
+
+        Reply r = c2.Ask(new Get());
+        Xunit.Assert.Equal(3, r.n);
+
+        sys2.Dispose();
+    }
+
+    public void RestoresTheExactPersistedCount()
+    {
+        // A second data point with a different count — guards against a restore that
+        // hard-codes or over-counts, which the single count==3 case would not catch.
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+
+        var sysA = new TestActorSystem("svc-a", store);
+        var a1   = sysA.SpawnPersistent<Counter>("counter-B");
+        a1.Tell(new Increment());
+        a1.Tell(new Increment());
+        sysA.WhenIdleAsync();
+        sysA.Dispose();
+
+        var sysB = new TestActorSystem("svc-b", store);
+        var a2   = sysB.SpawnPersistent<Counter>("counter-B");
+
+        Reply r2 = a2.Ask(new Get());
+        Xunit.Assert.Equal(2, r2.n);
+
+        sysB.Dispose();
+    }
+}

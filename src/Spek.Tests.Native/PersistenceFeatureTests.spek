@@ -1,0 +1,141 @@
+// Persistence feature coverage, in Spek — every field-persistence modifier plus the
+// passivate lifecycle, exercised through the test API. Companion to PersistenceTests.spek
+// (basic survive-restart). The field tests use the deterministic two-system / shared-store
+// re-spawn pattern; one test inspects the snapshot store directly to prove which fields
+// CaptureFields emits; the passivate test uses a short idle timeout + IsMaterialized.
+
+message Post(decimal amount, string memo);
+message ReadLedger();
+message LedgerState(decimal balance, int calls, string note, int legacy);
+
+message PassBump();
+message PassRead();
+message PassCount(int n);
+
+actor Ledger
+{
+    decimal balance = 0.00m;              // persisted (default)
+    transient  int    callsThisLife = 0;   // transient — never snapshotted, resets each lifetime
+    deprecated string note = "";            // deprecated — still snapshotted (survives the phase-out)
+    retired    int    legacy = 0;           // retired — dropped from the snapshot on the next save
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Post p =>
+        {
+            balance += p.amount;
+            callsThisLife += 1;
+            note = p.memo;
+            legacy = 99;
+            persist;
+        }
+        on ReadLedger => return new LedgerState(balance, callsThisLife, note, legacy);
+    }
+
+    on Restore(Snapshot s) =>
+    {
+        balance = s.Get<decimal>("balance");
+        note    = s.Get<string>("note");     // deprecated field is present in the snapshot
+        // callsThisLife (transient) and legacy (retired) are not in the snapshot.
+        become Active;
+    }
+}
+
+actor PassCounter
+{
+    int n = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        on PassBump => { n = n + 1; persist; }
+        on PassRead => return new PassCount(n);
+    }
+
+    passivate after System.TimeSpan.FromMilliseconds(150);
+
+    on Restore(Snapshot s) =>
+    {
+        n = s.Get<int>("n");
+        become Active;
+    }
+}
+
+class PersistenceFeatureTests
+{
+    public void PersistedAndDeprecatedFieldsSurviveRestart()
+    {
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+
+        var sys1 = new TestActorSystem("ledger-1", store);
+        var L1   = sys1.SpawnPersistent<Ledger>("ledger-A");
+        L1.Tell(new Post(100.00m, "opening"));
+        sys1.WhenIdleAsync();
+        sys1.Dispose();
+
+        var sys2 = new TestActorSystem("ledger-2", store);
+        var L2   = sys2.SpawnPersistent<Ledger>("ledger-A");
+        LedgerState st = L2.Ask(new ReadLedger());
+        Xunit.Assert.Equal(100.00m, st.balance);   // persisted (default)
+        Xunit.Assert.Equal("opening", st.note);     // deprecated — round-trips
+        sys2.Dispose();
+    }
+
+    public void TransientAndRetiredFieldsResetOnRestart()
+    {
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+
+        var sys1 = new TestActorSystem("ledger-3", store);
+        var L1   = sys1.SpawnPersistent<Ledger>("ledger-B");
+        L1.Tell(new Post(50.00m, "x"));   // callsThisLife=1, legacy=99 in this lifetime
+        sys1.WhenIdleAsync();
+        sys1.Dispose();
+
+        var sys2 = new TestActorSystem("ledger-4", store);
+        var L2   = sys2.SpawnPersistent<Ledger>("ledger-B");
+        LedgerState st = L2.Ask(new ReadLedger());
+        Xunit.Assert.Equal(0, st.calls);    // transient — reset
+        Xunit.Assert.Equal(0, st.legacy);   // retired — reset (was never persisted)
+        sys2.Dispose();
+    }
+
+    public void SnapshotContainsOnlyPersistedFields()
+    {
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+        var sys   = new TestActorSystem("ledger-5", store);
+        var L     = sys.SpawnPersistent<Ledger>("ledger-C");
+        L.Tell(new Post(10.00m, "memo"));
+        sys.WhenIdleAsync();
+
+        Snapshot snap = store.LoadAsync("ledger-C");
+        Xunit.Assert.True(snap.Fields.ContainsKey("balance"));         // persisted
+        Xunit.Assert.True(snap.Fields.ContainsKey("note"));            // deprecated — kept
+        Xunit.Assert.False(snap.Fields.ContainsKey("callsThisLife"));  // transient — absent
+        Xunit.Assert.False(snap.Fields.ContainsKey("legacy"));         // retired — absent
+        sys.Dispose();
+    }
+
+    public void PassivatesAfterIdleThenRestoresOnWake()
+    {
+        var store = new Spek.Runtime.InMemorySnapshotStore();
+        var sys   = new TestActorSystem("passivate-1", store);
+        var w     = sys.SpawnPersistent<PassCounter>("pc-1");
+
+        w.Tell(new PassBump());
+        w.Tell(new PassBump());   // n=2, persisted
+
+        // The 150ms idle timeout unloads it from memory (passivation is not termination).
+        TestActorSystem.WaitUntilAsync(() => !w.IsMaterialized, System.TimeSpan.FromSeconds(60), "passivated");
+        Xunit.Assert.False(w.IsMaterialized);
+        Xunit.Assert.False(w.IsStopped);
+
+        // A new message wakes it → on Restore rehydrates n to 2.
+        PassCount c = w.Ask(new PassRead());
+        Xunit.Assert.Equal(2, c.n);
+        Xunit.Assert.True(w.IsMaterialized);
+        sys.Dispose();
+    }
+}

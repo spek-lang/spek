@@ -1,0 +1,32 @@
+// A tiny actor and its native Spek tests. In a test project, every public method
+// of a `*Tests` class runs as an xUnit test under `dotnet test`. `init` runs
+// before each test (fresh instance), and the TestActorSystem field is disposed
+// after each one. `using Spek.Testing;` is added for you in a test project.
+
+message Add(int a, int b);
+message Sum(int value);
+
+actor Calculator
+{
+    init() { become Ready; }
+
+    behavior Ready
+    {
+        on Add a => return new Sum(a.a + a.b);
+    }
+}
+
+class CalculatorTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void AddsTwoNumbers()
+    {
+        var calc = sys.Spawn<Calculator>();
+
+        Sum s = calc.Ask<Sum>(new Add(2, 3));
+        Xunit.Assert.Equal(5, s.value);
+    }
+}

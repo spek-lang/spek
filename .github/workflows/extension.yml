@@ -1,0 +1,62 @@
+# Publishes the VS Code extension to the Visual Studio Marketplace — on demand.
+#
+# Run it manually: Actions -> "extension" -> Run workflow. Tick "dry run" to
+# package only (the .vsix is uploaded as a workflow artifact to install and
+# smoke-test locally). The published version is whatever package.json says —
+# bump it there, in a normal commit, before running this live.
+#
+# Prerequisite (unlike NuGet, the Marketplace has no OIDC trusted publishing):
+# a VSCE_PAT repository secret — an Azure DevOps personal access token for the
+# spek-lang publisher with the "Marketplace: Manage" scope.
+#
+# Publish order note: run the NuGet release first. The extension's README tells
+# users to `dotnet tool install --global Spek.LanguageServer.Tool`, so that
+# package must exist by the time the Marketplace listing goes live.
+
+name: extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Package only — skip the Marketplace publish'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/vscode-spek
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tools/vscode-spek/package-lock.json
+
+      - name: Install + compile
+        run: |
+          npm ci
+          npm run compile
+
+      - name: Package
+        run: npx --yes @vscode/vsce package
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-spek-vsix
+          path: tools/vscode-spek/*.vsix
+
+      - name: Publish to Marketplace
+        if: ${{ !inputs.dry_run }}
+        run: npx --yes @vscode/vsce publish -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}

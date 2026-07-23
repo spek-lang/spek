@@ -1,0 +1,128 @@
+// Runtime coverage for three documented features the audit found untested:
+//   1. `abstract behavior` / `override behavior` (actors.md "Abstract actors")
+//      — messages dispatch through the derived actor's override at runtime.
+//   2. `on any` catch-all (actors.md) — unmatched messages land in the
+//      catch-all arm; a specific arm still wins for its type.
+//   3. `distinct(by:)` stream operator (streams.md) — deterministic (no
+//      timers): emits only when the key differs from the previous message.
+//
+// (Names carry a `Df` prefix: the native suite compiles as one unit, so type
+// names must be unique across every *.spek file.)
+
+using Spek.Streams;
+
+// ── 1. abstract/override behavior ────────────────────────────────────────
+
+message DfRun();
+message DfCount(int n);
+
+abstract actor DfWorkerBase
+{
+    abstract behavior Running { }
+}
+
+actor DfPrintWorker : DfWorkerBase
+{
+    int jobsDone = 0;
+
+    init() { become Running; }
+
+    override behavior Running
+    {
+        on DfRun => { jobsDone = jobsDone + 1; return new DfCount(jobsDone); }
+    }
+}
+
+// ── 2. on any catch-all ──────────────────────────────────────────────────
+
+message DfKnown();
+message DfStray(string tag);
+message DfSeen(string kind);
+
+actor DfSorter
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on DfKnown   => return new DfSeen("known");
+        on any msg   => return new DfSeen("other");
+    }
+}
+
+// ── 3. distinct stream operator ──────────────────────────────────────────
+
+message DfSearch(string query);
+message DfTally();
+message DfTallied(int n);
+
+actor DfSearcher
+{
+    int ran = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        // Only a query different from the previous one reaches the body.
+        on DfSearch s => StreamOperators.distinct<DfSearch, string>(by: x => x.query) => { ran = ran + 1; }
+        on DfTally    => return new DfTallied(ran);
+    }
+}
+
+class DocumentedFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void OverrideBehaviorDispatchesAtRuntime()
+    {
+        var probe  = sys.CreateProbe();
+        var worker = sys.Spawn<DfPrintWorker>();
+
+        probe.Send(worker, new DfRun());
+        probe.Send(worker, new DfRun());
+        DfCount second = probe.ExpectMsg<DfCount>(System.TimeSpan.FromSeconds(10));
+        second = probe.ExpectMsg<DfCount>(System.TimeSpan.FromSeconds(10));
+
+        // Both messages ran through the derived actor's override of the base's
+        // abstract behavior, mutating derived state.
+        Xunit.Assert.Equal(2, second.n);
+    }
+
+    public void CatchAllReceivesUnmatched_SpecificArmStillWins()
+    {
+        var probe  = sys.CreateProbe();
+        var sorter = sys.Spawn<DfSorter>();
+
+        probe.Send(sorter, new DfKnown());
+        DfSeen known = probe.ExpectMsg<DfSeen>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal("known", known.kind);
+
+        // DfStray has no dedicated arm — the catch-all takes it (instead of
+        // the dead-letter sink).
+        probe.Send(sorter, new DfStray("x"));
+        DfSeen other = probe.ExpectMsg<DfSeen>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal("other", other.kind);
+    }
+
+    public void DistinctEmitsOnlyWhenKeyChanges()
+    {
+        var probe    = sys.CreateProbe();
+        var searcher = sys.Spawn<DfSearcher>();
+
+        // a, a, a, b, b, a -> distinct passes a, b, a = 3 bodies.
+        probe.Send(searcher, new DfSearch("a"));
+        probe.Send(searcher, new DfSearch("a"));
+        probe.Send(searcher, new DfSearch("a"));
+        probe.Send(searcher, new DfSearch("b"));
+        probe.Send(searcher, new DfSearch("b"));
+        probe.Send(searcher, new DfSearch("a"));
+        sys.WaitForIdle(System.TimeSpan.FromSeconds(10));
+
+        probe.Send(searcher, new DfTally());
+        DfTallied t = probe.ExpectMsg<DfTallied>(System.TimeSpan.FromSeconds(10));
+        Xunit.Assert.Equal(3, t.n);
+    }
+}

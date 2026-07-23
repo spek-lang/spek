@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Hosting.AspNetCore.Rest</RootNamespace>
+    <AssemblyName>Spek.Hosting.AspNetCore.Rest</AssemblyName>
+    <PackageId>Spek.Hosting.AspNetCore.Rest</PackageId>
+    <Description>Expose Spek channels as REST endpoints. Maps `channel UserApi { on GetUser; ... }` to `GET /users/{id}`, etc., with convention-based verb selection (Get*/Create*/Update*/Patch*/Delete* prefix), parameter binding (id field → path; other fields → query for GET, body for POST/PUT/PATCH), and emit-type → status-code mapping. Built on top of ASP.NET Core's standard endpoint routing, so anything ASP.NET Core does (auth, OpenAPI, content negotiation, middleware) composes naturally.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Web SDK adds an implicit `app.Run()` entry-point assembly attribute that
+         we don't want for a library — disable it. -->
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.Abstractions\Spek.Hosting.Abstractions.csproj" />
+    <ProjectReference Include="..\Spek.Hosting.AspNetCore\Spek.Hosting.AspNetCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+    <!-- Build-order only: build spekc before the .spek compile runs. -->
+    <ProjectReference Include="..\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- HttpVerb (enum) is authored in Spek (HttpVerb.spek); compiled to obj/.
+       HttpVerbExtensions stays C# — Spek has no `this`-parameter extension
+       methods. -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

@@ -1,0 +1,40 @@
+<Project>
+
+  <!--
+    Property groups that depend on values each csproj sets (IsPackable) must
+    live here, NOT in Directory.Build.props: props import BEFORE the project
+    body, so an IsPackable condition there always sees empty. targets import
+    AFTER, when the value is real.
+  -->
+
+  <!--
+    Public-API documentation bar: packable (shipping) projects must document
+    every public member — a missing XML doc is a CS1591 warning there.
+    Non-packable projects (tests, the internal compiler, benchmarks, deferred
+    add-ons) skip doc generation entirely.
+  -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'false'">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    Tool packages (spekc, spek-lsp) ship an executable, not a consumable
+    library API — their public members exist for the tool's own wiring, so
+    the XML-doc bar doesn't apply to them.
+  -->
+  <PropertyGroup Condition="'$(PackAsTool)' == 'true'">
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    Test projects routinely call sync Spawn / SpawnPersistent inside async
+    tests — that's the intentional contract of the sync API. Suppress the
+    VSTHRD103 recommendation to use the async variant; real sync-blocking
+    bugs in production code are still flagged.
+  -->
+  <PropertyGroup Condition="'$(IsPackable)' == 'false'">
+    <NoWarn>$(NoWarn);VSTHRD103</NoWarn>
+  </PropertyGroup>
+
+</Project>

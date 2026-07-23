@@ -1,0 +1,58 @@
+// Polymorphic message dispatch, behaviorally, in Spek. An `abstract message`
+// base is the dispatch contract: `on MihEvent` receives every variant. The C#
+// MessageInheritanceTests are white-box (record emit shape + CE checks); this
+// proves the runtime payoff — a handler keyed on the base fires for the
+// concrete variants, and a more-specific handler still wins when both are
+// present (C# switch order: most-specific arm first).
+//
+// (Names carry an `Mih` prefix: the native suite compiles as one unit, so
+// message names must be unique across every *.spek file.)
+
+abstract message MihEvent();
+message MihTick(int n) : MihEvent;
+message MihTock(int n) : MihEvent;
+
+message MihTotalReq();
+message MihTotalReply(int events, int ticks);
+
+actor MihAccumulator
+{
+    int events = 0;
+    int ticks  = 0;
+
+    init() { become Active; }
+
+    behavior Active
+    {
+        // Most-specific first (C# requires it): MihTick is counted separately.
+        on MihTick t  => { ticks = ticks + 1; events = events + 1; }
+        // The base handler catches every other variant (MihTock here).
+        on MihEvent e => { events = events + 1; }
+
+        on MihTotalReq => return new MihTotalReply(events, ticks);
+    }
+}
+
+class MessageInheritanceFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void BaseHandlerReceivesEveryVariant_AndSpecificWins()
+    {
+        var probe = sys.CreateProbe();
+        var acc   = sys.Spawn<MihAccumulator>();
+
+        probe.Send(acc, new MihTick(1));   // matches `on MihTick`
+        probe.Send(acc, new MihTock(2));   // matches `on MihEvent` (the base)
+        probe.Send(acc, new MihTick(3));   // matches `on MihTick`
+
+        probe.Send(acc, new MihTotalReq());
+        MihTotalReply r = probe.ExpectMsg<MihTotalReply>(System.TimeSpan.FromSeconds(10));
+
+        // All three counted by the family; two of them were ticks.
+        Xunit.Assert.Equal(3, r.events);
+        Xunit.Assert.Equal(2, r.ticks);
+    }
+}

@@ -1,0 +1,87 @@
+// Telemetry.spek — stream operators, reader/writer handlers, shared regions.
+//
+// Run: dotnet run
+//
+// A Monitor rate-shapes a noisy sensor feed BEFORE its handlers run:
+// `distinct` drops consecutive duplicate readings, `throttle` caps a spammy
+// heartbeat to one per window. Tallies live in a shared region — writer
+// handlers take the writer lock, the query handler reads under the
+// concurrent reader lock — and the region's `transient` field opts out of
+// any future persistence capture.
+
+namespace Telemetry;
+
+using Spek.Streams;
+
+message Reading(string sensor, int value);
+message Heartbeat(int n);
+message QueryTotals();
+message Totals(int readings, int heartbeats);
+
+// ─── Shared tallies (per-ActorSystem, reader/writer locked) ─────────────────
+
+shared Board
+{
+    int readings = 0;
+    int heartbeats = 0;
+    transient int sinceBoot = 0;   // never captured by persistence
+}
+
+// ─── The monitor ─────────────────────────────────────────────────────────────
+
+actor Monitor
+{
+    use Board board;
+
+    init() { become Watching; }
+
+    behavior Watching
+    {
+        // Only a value different from the previous one reaches the body.
+        on Reading r => StreamOperators.distinct<Reading, int>(by: x => x.value) =>
+        {
+            board.readings = board.readings + 1;
+            board.sinceBoot = board.sinceBoot + 1;
+            Console.WriteLine($"reading: {r.sensor} = {r.value}");
+        }
+
+        // At most one heartbeat per 200ms window (leading edge).
+        on Heartbeat h => throttle(200) =>
+        {
+            board.heartbeats = board.heartbeats + 1;
+            Console.WriteLine($"heartbeat #{h.n} made it through");
+        }
+
+        // Readers run concurrently and may not mutate (CE0087 enforces it).
+        reader on QueryTotals => return new Totals(board.readings, board.heartbeats);
+    }
+}
+
+// ─── Drive it ────────────────────────────────────────────────────────────────
+
+program Main
+{
+    using var system = new ActorSystem("telemetry");
+    var monitor = system.Spawn<Monitor>();
+
+    // Six readings, but only three distinct-from-previous values pass.
+    monitor.Tell(new Reading("temp", 21));
+    monitor.Tell(new Reading("temp", 21));
+    monitor.Tell(new Reading("temp", 21));
+    monitor.Tell(new Reading("temp", 22));
+    monitor.Tell(new Reading("temp", 22));
+    monitor.Tell(new Reading("temp", 23));
+
+    // A burst of ten heartbeats lands inside one throttle window: one passes.
+    for (var i = 1; i <= 10; i = i + 1)
+    {
+        monitor.Tell(new Heartbeat(i));
+    }
+
+    Task.Delay(400);   // let the throttle window close and the feed drain
+
+    Totals t = monitor.AskAsync<Totals>(new QueryTotals(), TimeSpan.FromSeconds(5));
+    Console.WriteLine($"totals: {t.readings} distinct readings, {t.heartbeats} heartbeat(s)");
+
+    system.AwaitTermination();
+}

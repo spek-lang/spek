@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "spek.cli.tool": {
+      "version": "0.1.0-alpha.1",
+      "commands": ["spekc"]
+    }
+  }
+}

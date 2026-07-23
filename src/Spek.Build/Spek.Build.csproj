@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A build-logic NuGet package: referencing it auto-imports Spek.Build.targets,
+    which compiles .spek files to C# during `dotnet build` by invoking the
+    `spekc` tool (Spek.Cli.Tool). No compiled output of its own.
+  -->
+  <PropertyGroup>
+    <PackageId>Spek.Build</PackageId>
+    <Title>Spek MSBuild integration</Title>
+    <Description>Compiles Spek (.spek) files to C# during `dotnet build`. Reference this package (alongside a local Spek.Cli.Tool) and your actors/tests build with `dotnet build` / `dotnet test` — no manual spekc step.</Description>
+    <PackageTags>spek;msbuild;build;actor</PackageTags>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <DevelopmentDependency>true</DevelopmentDependency>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Build-logic package carries no lib/ assembly — expected, suppress the warning. -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+    <IncludeSymbols>false</IncludeSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="**\*" />
+    <!-- NuGet auto-imports build/<PackageId>.targets for direct references and
+         buildTransitive/ for transitive ones. -->
+    <None Include="build\Spek.Build.targets" Pack="true" PackagePath="build\Spek.Build.targets" />
+    <None Include="build\Spek.Build.targets" Pack="true" PackagePath="buildTransitive\Spek.Build.targets" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,53 @@
+name: benchmarks
+
+# Performance gate: runs the Spek.Benchmarks suite (CPU throughput/latency,
+# memory allocations, and the blocking-handler thread-contention ratio) and
+# uploads the BenchmarkDotNet results as an artifact. Intended to run per
+# release candidate — on a release tag, or on demand — not on every push
+# (BenchmarkDotNet runs are minutes-long). Compare the numbers against the
+# previous release's artifact; investigate regressions before tagging.
+#
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: "BenchmarkDotNet --filter glob (default: all)"
+        required: false
+        default: "*"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build (Release)
+        run: dotnet build src/Spek.Benchmarks/Spek.Benchmarks.csproj -c Release --nologo
+
+      - name: Run benchmarks
+        # --job short keeps CI time bounded; drop it for full-fidelity release
+        # numbers by dispatching manually and editing here, or run locally.
+        run: >
+          dotnet run -c Release --project src/Spek.Benchmarks --no-build --
+          --filter '${{ github.event.inputs.filter || ''*'' }}'
+          --job short
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: BenchmarkDotNet.Artifacts/**
+          if-no-files-found: warn

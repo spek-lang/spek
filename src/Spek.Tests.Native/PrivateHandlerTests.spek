@@ -1,0 +1,79 @@
+// Private-handler visibility, in Spek. Converted from PrivateHandlerRuntimeTests:
+// a `public on` handler is reachable from outside; a `private on` handler dead-letters
+// when targeted by anyone other than self (with a reason naming the handler and the
+// self.Tell remedy); and the private arm IS reachable via self.Tell from a public
+// handler. Dead-letters observed via a RecordingDeadLetterSink.
+
+message PublicTick();
+message PrivateTick();
+message Poke();
+message Acknowledged();
+message HowManyCalls();
+message Calls(int value);
+
+actor Visible
+{
+    int privateCalls = 0;
+
+    init() { become Idle; }
+
+    behavior Idle
+    {
+        public on PublicTick  => sender.Tell(new Acknowledged());
+        private on PrivateTick => { privateCalls = privateCalls + 1; }   // only reachable from self
+        public on Poke        => self.Tell(new PrivateTick());           // the one legal path to the private arm
+        public on HowManyCalls => return new Calls(privateCalls);
+    }
+}
+
+class PrivateHandlerTests
+{
+    Spek.Runtime.RecordingDeadLetterSink sink;
+    TestActorSystem sys;
+
+    init()
+    {
+        sink = new Spek.Runtime.RecordingDeadLetterSink();
+        sys  = new TestActorSystem("private-handler", null, sink);
+    }
+
+    public void PublicHandlerIsReachableFromOutside()
+    {
+        var probe   = sys.CreateProbe();
+        var visible = sys.Spawn<Visible>();
+
+        probe.Send(visible, new PublicTick());
+        probe.ExpectMsg<Acknowledged>();
+
+        Xunit.Assert.Empty(sink.Records);
+    }
+
+    public void PrivateHandlerDeadLettersWhenSenderIsNotSelf()
+    {
+        var probe   = sys.CreateProbe();
+        var visible = sys.Spawn<Visible>();
+
+        probe.Send(visible, new PrivateTick());
+
+        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, System.TimeSpan.FromSeconds(2), "dead-letter");
+
+        Xunit.Assert.Single(sink.Records);
+        Xunit.Assert.Contains("private handler 'PrivateTick'", sink.Records[0].Reason);
+        Xunit.Assert.Contains("self.Tell", sink.Records[0].Reason);
+    }
+
+    public void PrivateHandlerIsReachableViaSelfTell()
+    {
+        var probe   = sys.CreateProbe();
+        var visible = sys.Spawn<Visible>();
+
+        probe.Send(visible, new Poke());
+        sys.WhenIdleAsync();                 // drain: Poke → self.Tell(PrivateTick) → PrivateTick → count=1
+
+        probe.Send(visible, new HowManyCalls());
+        Calls c = probe.ExpectMsg<Calls>();
+
+        Xunit.Assert.Equal(1, c.value);
+        Xunit.Assert.Empty(sink.Records);
+    }
+}

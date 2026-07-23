@@ -1,0 +1,322 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Spek",
+  "scopeName": "source.spek",
+  "fileTypes": ["spek"],
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#characters" },
+    { "include": "#numbers" },
+    { "include": "#declaration-keywords" },
+    { "include": "#handler-keywords" },
+    { "include": "#actor-flow-keywords" },
+    { "include": "#control-keywords" },
+    { "include": "#expression-keywords" },
+    { "include": "#lifecycle-names" },
+    { "include": "#supervision-constants" },
+    { "include": "#modifier-keywords" },
+    { "include": "#language-variables" },
+    { "include": "#language-constants" },
+    { "include": "#operators" },
+    { "include": "#types" },
+    { "include": "#identifiers" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "comment": "Doc comments (///) — carried through to the emitted C#.",
+          "name": "comment.block.documentation.spek",
+          "match": "///.*$"
+        },
+        {
+          "name": "comment.line.double-slash.spek",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.spek",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "comment": "Order matters: raw (\"\"\") before verbatim-interp ($@/@$) before verbatim (@\") before interpolated ($\") before plain (\").",
+      "patterns": [
+        {
+          "comment": "Raw string literal (C# 11): no escape processing, may span lines.",
+          "name": "string.quoted.triple.raw.spek",
+          "begin": "\"\"\"",
+          "end": "\"\"\""
+        },
+        {
+          "comment": "Verbatim-interpolated: $@\"...\" or @$\"...\". \"\" escapes a quote; {expr} is a hole.",
+          "name": "string.quoted.double.verbatim.interpolated.spek",
+          "begin": "(\\$@|@\\$)\"",
+          "end": "\"(?!\")",
+          "patterns": [
+            { "name": "constant.character.escape.spek", "match": "\"\"" },
+            { "include": "#interpolation-hole" }
+          ]
+        },
+        {
+          "comment": "Verbatim string: @\"...\". \"\" escapes a quote; backslashes are literal.",
+          "name": "string.quoted.double.verbatim.spek",
+          "begin": "@\"",
+          "end": "\"(?!\")",
+          "patterns": [
+            { "name": "constant.character.escape.spek", "match": "\"\"" }
+          ]
+        },
+        {
+          "comment": "Interpolated string: $\"...{expr:format}...\".",
+          "name": "string.quoted.double.interpolated.spek",
+          "begin": "\\$\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.spek", "match": "\\\\." },
+            { "include": "#interpolation-hole" }
+          ]
+        },
+        {
+          "name": "string.quoted.double.spek",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.spek", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "interpolation-hole": {
+      "comment": "An interpolation hole. The hole body is ordinary Spek expression territory; a `,align` / `:format` tail is punctuation.",
+      "name": "meta.interpolation.spek",
+      "begin": "\\{",
+      "end": "\\}",
+      "beginCaptures": { "0": { "name": "punctuation.definition.interpolation.begin.spek" } },
+      "endCaptures": { "0": { "name": "punctuation.definition.interpolation.end.spek" } },
+      "patterns": [
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#expression-keywords" },
+        { "include": "#language-variables" },
+        { "include": "#language-constants" },
+        { "include": "#operators" },
+        { "include": "#types" },
+        { "include": "#identifiers" }
+      ]
+    },
+    "characters": {
+      "patterns": [
+        {
+          "name": "string.quoted.single.spek",
+          "match": "'(\\\\.|[^'\\\\\\r\\n])'"
+        }
+      ]
+    },
+    "numbers": {
+      "comment": "C#-shaped literals: hex/binary integers, digit separators, u/l integer suffixes, f/d/m real suffixes, exponents.",
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.spek",
+          "match": "\\b0[xX][0-9a-fA-F][0-9a-fA-F_]*[uUlL]{0,2}\\b"
+        },
+        {
+          "name": "constant.numeric.binary.spek",
+          "match": "\\b0[bB][01][01_]*[uUlL]{0,2}\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.spek",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?[fFdDmM]?\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.spek",
+          "match": "\\b[0-9][0-9_]*([eE][+-]?[0-9]+)[fFdDmM]?\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.spek",
+          "match": "\\b[0-9][0-9_]*[fFdDmM]\\b"
+        },
+        {
+          "name": "constant.numeric.integer.spek",
+          "match": "\\b[0-9][0-9_]*[uUlL]{0,2}\\b"
+        }
+      ]
+    },
+    "declaration-keywords": {
+      "patterns": [
+        {
+          "comment": "Top-level and member declaration forms.",
+          "name": "keyword.other.declaration.spek",
+          "match": "\\b(actor|behavior|channel|class|enum|interface|message|module|namespace|program|shared|init|term|use|using|interop)\\b"
+        },
+        {
+          "comment": "Generic constraint clause.",
+          "name": "keyword.other.where.spek",
+          "match": "\\bwhere\\b"
+        }
+      ]
+    },
+    "handler-keywords": {
+      "patterns": [
+        {
+          "comment": "Handler surface: `on Msg =>`, `on event Name(...)`, `on any m`, channel `emits`, `reader on` / `writer on`.",
+          "name": "keyword.other.handler.spek",
+          "match": "\\b(on|emits|event|any|reader|writer)\\b"
+        }
+      ]
+    },
+    "actor-flow-keywords": {
+      "patterns": [
+        {
+          "comment": "Actor lifecycle / state-machine verbs.",
+          "name": "keyword.control.actor.spek",
+          "match": "\\b(become|spawn|persist|passivate|supervise|strategy|after)\\b"
+        }
+      ]
+    },
+    "control-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.spek",
+          "match": "\\b(if|else|for|foreach|in|while|do|switch|case|default|break|continue|return|try|catch|finally|throw|when)\\b"
+        }
+      ]
+    },
+    "expression-keywords": {
+      "patterns": [
+        {
+          "comment": "Word-shaped operators and expression keywords.",
+          "name": "keyword.operator.expression.spek",
+          "match": "\\b(new|is|as|not|and|or)\\b"
+        },
+        {
+          "comment": "Parameter passing modifiers (declaration and call site).",
+          "name": "storage.modifier.parameter.spek",
+          "match": "\\b(ref|out)\\b"
+        }
+      ]
+    },
+    "lifecycle-names": {
+      "patterns": [
+        {
+          "comment": "Lifecycle hooks — appear after `on`.",
+          "name": "entity.name.function.lifecycle.spek",
+          "match": "\\b(PreStart|PostStop|Restore)\\b"
+        }
+      ]
+    },
+    "supervision-constants": {
+      "patterns": [
+        {
+          "name": "constant.language.supervision.spek",
+          "match": "\\b(OneForOne|AllForOne|Failure|Restart|Stop|Escalate|Resume)\\b"
+        }
+      ]
+    },
+    "modifier-keywords": {
+      "patterns": [
+        {
+          "name": "storage.modifier.spek",
+          "match": "\\b(public|private|protected|internal|abstract|override|transient|deprecated|retired)\\b"
+        },
+        {
+          "name": "storage.type.var.spek",
+          "match": "\\bvar\\b"
+        }
+      ]
+    },
+    "language-variables": {
+      "patterns": [
+        {
+          "comment": "Ambient references — colored like C#'s `this`.",
+          "name": "variable.language.spek",
+          "match": "\\b(self|sender|base)\\b"
+        }
+      ]
+    },
+    "language-constants": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.spek",
+          "match": "\\b(true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.spek",
+          "match": "\\bnull\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.arrow.spek",
+          "match": "=>"
+        },
+        {
+          "name": "keyword.operator.null-conditional.spek",
+          "match": "\\?\\.|\\?\\["
+        },
+        {
+          "name": "keyword.operator.assignment.compound.spek",
+          "match": "\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|\\?\\?="
+        },
+        {
+          "name": "keyword.operator.null-coalescing.spek",
+          "match": "\\?\\?"
+        },
+        {
+          "name": "keyword.operator.comparison.spek",
+          "match": "==|!=|<=|>="
+        },
+        {
+          "name": "keyword.operator.logical.spek",
+          "match": "&&|\\|\\||!"
+        },
+        {
+          "name": "keyword.operator.shift.spek",
+          "match": "<<|>>"
+        },
+        {
+          "name": "keyword.operator.bitwise.spek",
+          "match": "&|\\||\\^|~"
+        },
+        {
+          "name": "keyword.operator.assignment.spek",
+          "match": "="
+        },
+        {
+          "name": "keyword.operator.arithmetic.spek",
+          "match": "\\+|-|\\*|/|%"
+        },
+        {
+          "name": "keyword.operator.relational.spek",
+          "match": "<|>"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "comment": "Built-in C# / Spek runtime types used inside Spek.",
+          "name": "storage.type.builtin.spek",
+          "match": "\\b(void|bool|byte|sbyte|short|ushort|int|uint|long|ulong|float|double|decimal|char|string|object|ActorRef|ActorSystem|Snapshot|Outcome|Reason|LamportClock|VectorClock|TestActorSystem|TestProbe|Task|ValueTask|DateTime|DateTimeOffset|Guid|TimeSpan|Uri|Version)\\b"
+        },
+        {
+          "comment": "User-defined types — PascalCase identifiers (messages, actors, channels, classes, enums, interfaces).",
+          "name": "entity.name.type.spek",
+          "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+        }
+      ]
+    },
+    "identifiers": {
+      "patterns": [
+        {
+          "name": "variable.other.spek",
+          "match": "\\b[a-z_][A-Za-z0-9_]*\\b"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,40 @@
+// Native tests by CONVENTION: a class named `*Tests` is a test container in a
+// test project. Each PUBLIC method is a test (the method name is the test name);
+// `init()` runs per test, so `sys` is fresh each time. No `test` keyword.
+
+message Query();
+message AccountBalance(decimal amount);
+
+actor Account
+{
+    decimal balance = 0m;
+
+    init(decimal initial) { balance = initial; become Active; }
+
+    behavior Active
+    {
+        on Query => return new AccountBalance(balance);
+    }
+}
+
+class AccountTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }   // fresh per test
+
+    public void OpensWithInitialBalance_viaAsk()
+    {
+        var acct = sys.Spawn<Account>(50m);
+        AccountBalance b = acct.Ask(new Query());
+        Xunit.Assert.Equal(50m, b.amount);
+    }
+
+    public void OpensWithInitialBalance_viaProbe()
+    {
+        var probe = sys.CreateProbe();
+        var acct  = sys.Spawn<Account>(50m);
+        probe.Send(acct, new Query());
+        probe.ExpectMsg<AccountBalance>(b => b.amount == 50m);
+    }
+}

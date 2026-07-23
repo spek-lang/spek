@@ -1,0 +1,9 @@
+namespace AlertHub;
+
+class PlainFormatter : Formatter
+{
+    public string Render(string host, string detail)
+    {
+        return $"{host}: {detail}";
+    }
+}

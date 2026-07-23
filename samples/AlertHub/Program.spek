@@ -1,0 +1,26 @@
+namespace AlertHub;
+
+// Run: dotnet run
+program Main
+{
+    using var system = new ActorSystem("alerthub");
+    var notifier = system.Spawn<ConsoleNotifier>();
+
+    // Variants dispatch through the family: ServiceDown takes its specific
+    // arm, the rest land on `on AlertEvent`.
+    notifier.Tell(new CpuHigh("web-1", 93));
+    notifier.Tell(new DiskFull("db-1", "/var/data"));
+    notifier.Tell(new ServiceDown("web-2", "checkout"));
+
+    // Swap the formatter mid-stream — same call sites, new rendering.
+    notifier.Tell(new SwapFormat());
+    notifier.Tell(new CpuHigh("web-3", 88));
+    notifier.Tell(new ServiceDown("db-2", "replication"));
+
+    // At the program boundary the reply type is explicit (handler-scoped
+    // inference doesn't reach out here).
+    Summary s = notifier.AskAsync<Summary>(new GetSummary(), TimeSpan.FromSeconds(5));
+    Console.WriteLine($"handled {s.total} alerts, {s.critical} critical");
+
+    system.AwaitTermination();
+}

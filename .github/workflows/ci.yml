@@ -1,0 +1,46 @@
+name: ci
+
+# Correctness gate: build the solution, run the full test suite, and build every
+# sample project on every push and pull request. (Perf lives in benchmarks.yml.)
+#
+# The local mirror of these steps is scripts/ci.sh — run that before pushing to
+# get the same result without waiting on Actions.
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore src/Spek.slnx
+
+      - name: Build
+        run: dotnet build src/Spek.slnx --no-restore --nologo
+
+      - name: Test
+        run: dotnet test src/Spek.slnx --no-build --nologo --verbosity normal
+
+      # The samples aren't in the solution; build each so their project wiring
+      # (ProjectReference paths + the build/Spek.targets import) stays honest.
+      - name: Build samples
+        run: |
+          set -euo pipefail
+          for p in samples/*/*.csproj; do
+            dotnet build "$p" --nologo -v q
+          done

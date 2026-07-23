@@ -1,0 +1,31 @@
+// Tests behavior switching with become, multiple behaviors,
+// inline and block handler bodies.
+
+namespace Samples;
+
+message TurnOn();
+message TurnOff();
+message GetStatus();
+message StatusResponse(bool isOn);
+
+actor Switch
+{
+    init()
+    {
+        become Off;
+    }
+
+    behavior Off
+    {
+        on TurnOn  => { become On; }
+        on TurnOff => { /* already off */ }
+        on GetStatus => sender.Tell(new StatusResponse(false));
+    }
+
+    behavior On
+    {
+        on TurnOff => { become Off; }
+        on TurnOn  => { /* already on */ }
+        on GetStatus => sender.Tell(new StatusResponse(true));
+    }
+}

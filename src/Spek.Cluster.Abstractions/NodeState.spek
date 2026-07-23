@@ -1,0 +1,66 @@
+namespace Spek.Cluster;
+
+/// <summary>
+/// State of a peer node in the cluster, as observed by the local node.
+/// Borrowed wholesale from Akka.Cluster (which itself adapted SWIM):
+/// nodes transition through these states as gossip / handshakes /
+/// failure-detector signals arrive.
+///
+/// <para>The state machine + transitions ship today; the full SWIM
+/// gossip protocol that drives transitions across a real cluster is a
+/// later follow-up (the <c>StaticSeedClusterMembership</c> impl uses
+/// upfront-configured peers and shutdown-time leave gossip, which is
+/// enough for the state machine + cluster-view API to be exercised
+/// end-to-end without a full SWIM impl).</para>
+/// </summary>
+enum NodeState
+{
+    /// <summary>
+    /// Initial state for a node we've heard about (via seed-config or
+    /// gossip) but haven't successfully connected to yet. The local
+    /// transport is attempting handshake; on success the state advances
+    /// to <see cref="Up"/>. On failure it advances to
+    /// <see cref="Unreachable"/>.
+    /// </summary>
+    Joining,
+
+    /// <summary>
+    /// Steady-state. The peer has completed its handshake, is exchanging
+    /// heartbeats, and accepts inbound traffic. The vast majority of the
+    /// time a healthy cluster member sits here.
+    /// </summary>
+    Up,
+
+    /// <summary>
+    /// The peer announced its intent to leave (via a graceful shutdown
+    /// gossip). Pending sends to actors on this node continue to
+    /// dead-letter cleanly with a "node leaving" reason rather than
+    /// timing out as unreachable; once in-flight traffic drains, the
+    /// state advances to <see cref="Exiting"/>.
+    /// </summary>
+    Leaving,
+
+    /// <summary>
+    /// The peer is in the process of shutting down. No new sends
+    /// accepted; any in-flight responses still flow back. After all
+    /// outstanding work drains the state advances to <see cref="Down"/>.
+    /// </summary>
+    Exiting,
+
+    /// <summary>
+    /// The peer's heartbeats stopped without a graceful leave gossip.
+    /// May come back (the failure detector hasn't promoted it to
+    /// <see cref="Down"/> yet). Pending sends fail with a
+    /// <c>RemoteNodeUnreachable</c>-style error.
+    /// </summary>
+    Unreachable,
+
+    /// <summary>
+    /// The peer is permanently offline — either it gracefully exited
+    /// or the failure detector promoted it from Unreachable after
+    /// missed-heartbeat threshold. Local actor refs targeting this
+    /// node fail their <c>Tell</c>s deterministically; user code can
+    /// observe via <see cref="Spek.ActorRef.IsStopped"/>.
+    /// </summary>
+    Down,
+}

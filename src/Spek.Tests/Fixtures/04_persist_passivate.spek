@@ -1,0 +1,43 @@
+// Tests: fields, persist, passivate, on Restore, lifecycle hooks.
+
+namespace Samples;
+
+message Deposit(decimal amount);
+message GetBalance();
+message BalanceResponse(decimal balance);
+
+actor Wallet
+{
+    decimal balance = 0.00m;
+    string ownerId;
+
+    passivate after System.TimeSpan.FromMinutes(10);
+
+    init(string owner)
+    {
+        ownerId = owner;
+        become Active;
+    }
+
+    behavior Active
+    {
+        on Deposit d =>
+        {
+            balance += d.amount;
+            persist;
+        }
+
+        on GetBalance =>
+            sender.Tell(new BalanceResponse(balance));
+    }
+
+    on PreStart  => { /* nothing */ }
+    on PostStop  => { /* nothing */ }
+
+    on Restore(Snapshot s) =>
+    {
+        balance = s.Get<decimal>("balance");
+        ownerId = s.Get<string>("ownerId");
+        become Active;
+    }
+}

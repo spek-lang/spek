@@ -1,0 +1,69 @@
+// HelloWeb.spek — a Hello World web server with a few middleware components,
+// using ONLY what Spek ships today: a `program` block standing up an ASP.NET
+// Core WebApplication via interop, plus inline `app.Use(...)` middleware.
+//
+// No new language features. The point is to see how far the existing surface
+// (program + interop + lambdas + invisible async) gets us on the middleware
+// story — which is exactly the mutable-transport-types question.
+//
+// Run:      dotnet run
+// Try:      curl -i http://localhost:5000/
+//           curl -i http://localhost:5000/health
+
+namespace HelloWeb;
+
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+
+program Main
+{
+    var builder = WebApplication.CreateBuilder();
+    var app = builder.Build();
+
+    // ── Middleware 0: timing — does work *after* next completes ──
+    // This is the "after-next" shape: it must run, await the rest of the
+    // pipeline, then act on the result. Spek has no `await` keyword, so the
+    // compiler's invisible-async pass makes the lambda `async` and awaits
+    // `next(context)` for us — because the lambda's delegate type returns Task
+    // and the call sits in statement position. (Compile with the AspNetCore
+    // references so the rewriter can see those types — see the README.)
+    app.Use((context, next) =>
+    {
+        var started = System.DateTime.UtcNow;
+        next(context);
+        var ms = (System.DateTime.UtcNow - started).TotalMilliseconds;
+        System.Console.WriteLine("[time] " + context.Request.Path + " " + ms + "ms");
+    });
+
+    // ── Middleware 1: request logging (does work *before* next) ──
+    app.Use((context, next) =>
+    {
+        System.Console.WriteLine("[req] " + context.Request.Method + " " + context.Request.Path);
+        return next(context);
+    });
+
+    // ── Middleware 2: stamp a response header ──
+    app.Use((context, next) =>
+    {
+        context.Response.Headers["X-Powered-By"] = "Spek";
+        return next(context);
+    });
+
+    // ── Middleware 3: short-circuit a health check ──
+    app.Use((context, next) =>
+    {
+        if (context.Request.Path == "/health")
+        {
+            return context.Response.WriteAsync("OK");
+        }
+        return next(context);
+    });
+
+    app.MapGet("/", () => "Hello, World! (served by Spek)");
+
+    // NOTE: `app.RunAsync()` would NOT be auto-awaited — invisible async can't
+    // see AspNetCore types (they aren't in the rewriter's BCL reference set),
+    // so the Task would be fire-and-forgot and the process would exit. The
+    // blocking `app.Run()` keeps the host alive without needing an await.
+    app.Run();
+}

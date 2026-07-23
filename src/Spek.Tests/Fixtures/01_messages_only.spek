@@ -1,0 +1,15 @@
+// Simplest possible fixture: message declarations only.
+// Used to test the message emitter in isolation.
+
+namespace MyBank.Messages;
+
+message Deposit(decimal amount, string fromUser);
+message Withdraw(decimal amount, string fromUser);
+message GetBalance();
+message BalanceResponse(decimal currentBalance);
+message FreezeAccount(string reason);
+message UnfreezeAccount();
+message AccountLocked();
+message InsufficientFunds(decimal requested, decimal available);
+message Shutdown(string reason = "normal");
+message Response<T>(T value);

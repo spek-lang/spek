@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Watchdog</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Spek.Runtime\Spek.Runtime.csproj" />
+    <!-- Build-order only: ensures spekc.dll is built before SpekCompile runs. -->
+    <ProjectReference Include="..\..\src\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Compiles Watchdog.spek -> obj/<cfg>/<tfm>/spek/Watchdog.g.cs at
+       build time (no checked-in .g.cs beside the source). -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

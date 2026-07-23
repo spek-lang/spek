@@ -1,0 +1,60 @@
+// Actor inheritance, behaviorally, in Spek — the same reuse + abstract-only
+// model as classes. An `abstract actor` base carries a shared field and helper
+// method (reuse) plus an `abstract` hook the concrete actor supplies. The C#
+// ActorInheritanceTests are white-box (emit shape + CE checks); this proves the
+// runtime payoff — a derived actor processes a real message using the inherited
+// field/method and dispatches the abstract hook to its own override.
+//
+// (Names carry a `Wrk` prefix: the native suite compiles as one unit, so type
+// names must be unique across every *.spek file.)
+
+message WrkJob(int value);
+message WrkDone(int result, int handled);
+
+abstract actor WrkBase
+{
+    // `protected` shared state — reused by the derived actor's handler.
+    protected int handled = 0;
+
+    // The concrete actor supplies this; the emitter infers `override` (no
+    // `virtual`/`override` keyword in Spek).
+    public abstract int Transform(int x);
+
+    // Shared reuse — an inherited helper that mutates the inherited field.
+    protected void Bump() { handled = handled + 1; }
+}
+
+actor WrkDoubler : WrkBase
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        // Reuses the inherited method (Bump) AND reads the inherited protected
+        // field (handled) directly, and dispatches the abstract hook (Transform).
+        on WrkJob j => { Bump(); return new WrkDone(Transform(j.value), handled); }
+    }
+
+    public int Transform(int x) { return x * 2; }
+}
+
+class ActorInheritanceFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void DerivedActorReusesBaseAndDispatchesAbstractHook()
+    {
+        var probe = sys.CreateProbe();
+        var d     = sys.Spawn<WrkDoubler>();
+
+        probe.Send(d, new WrkJob(21));
+        WrkDone r = probe.ExpectMsg<WrkDone>(System.TimeSpan.FromSeconds(10));
+
+        // Transform (the subclass override) doubled 21; Bump (inherited) ran
+        // once against the inherited `handled` field.
+        Xunit.Assert.Equal(42, r.result);
+        Xunit.Assert.Equal(1, r.handled);
+    }
+}

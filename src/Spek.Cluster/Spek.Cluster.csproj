@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Cluster</RootNamespace>
+    <AssemblyName>Spek.Cluster</AssemblyName>
+    <PackageId>Spek.Cluster</PackageId>
+    <Description>Reference cluster bootstrap and implementations: `Cluster.Bind`, `StaticSeedClusterMembership`, `ConsistentHashPlacement`. Brings in `Spek.Cluster.Abstractions` transitively. Concrete transport packages (`Spek.Cluster.Tcp`, `Spek.Cluster.Memory`, etc.) reference Abstractions directly without pulling this bootstrap layer.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <ProjectReference Include="..\Spek.Cluster.Abstractions\Spek.Cluster.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Cluster.Memory" />
+    <InternalsVisibleTo Include="Spek.Cluster.Tcp" />
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+</Project>

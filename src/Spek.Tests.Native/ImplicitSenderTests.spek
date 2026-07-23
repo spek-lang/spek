@@ -1,0 +1,49 @@
+// Implicit sender on Tell, in Spek. Converted from the behavioral half of the C#
+// ImplicitSenderTests: a fire-and-forget `peer.Tell(msg)` from inside a handler
+// carries the telling actor as the sender, so the receiver's `return reply` routes
+// back to it. If the implicit sender were lost, the Answer would vanish to NoSender,
+// Requester would never send Proof, and the probe would time out.
+// (The C# test's emitted-C# assertion — `Tell(new Query(), _selfRef)` — stays in C#.)
+
+message Query();
+message Answer();
+message Go();
+message Proof();
+
+actor Responder
+{
+    init() { become Idle; }
+    behavior Idle { on Query => return new Answer(); }
+}
+
+actor Requester
+{
+    ActorRef peer;
+    ActorRef probe;
+
+    init(ActorRef p, ActorRef pr) { peer = p; probe = pr; become Ready; }
+
+    behavior Ready
+    {
+        on Go     => { peer.Tell(new Query()); }   // implicit sender = this Requester
+        on Answer => { probe.Tell(new Proof()); }
+    }
+}
+
+class ImplicitSenderTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void TellFromHandlerReplyRoutesBackToTellingActor()
+    {
+        var probe     = sys.CreateProbe();
+        var responder = sys.Spawn<Responder>();
+        var requester = sys.Spawn<Requester>(responder, probe.Ref);
+
+        probe.Send(requester, new Go());
+
+        probe.ExpectMsg<Proof>();   // round-trip proves the reply found the implicit sender
+    }
+}

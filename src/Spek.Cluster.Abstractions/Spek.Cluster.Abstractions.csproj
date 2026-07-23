@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Add-on package — not part of the initial public package set; flip to true
+         (and add to release.yml's manifest) when this add-on ships. -->
+    <IsPackable>false</IsPackable>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Cluster</RootNamespace>
+    <AssemblyName>Spek.Cluster.Abstractions</AssemblyName>
+    <PackageId>Spek.Cluster.Abstractions</PackageId>
+    <Description>Abstractions for Spek's distributed-cluster layer. Defines `ISpekTransport`, `IClusterMembership`, `IPlacementStrategy`, `ISpekSerializer`, plus the value records (`NodeIdentity`, `ClusterMember`, `ClusterEvent`, `NodeState`, `RemoteEnvelope`). Concrete implementations (`Spek.Cluster.Tcp`, `Spek.Cluster.Memory`, third-party transports) reference this rather than the bootstrap package.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <!-- Build-order only: build spekc before the .spek compile runs. -->
+    <ProjectReference Include="..\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- NodeState (enum) is authored in Spek (NodeState.spek); compiled to obj/.
+       Interfaces, the ClusterEvent record hierarchy, and RemoteEnvelope (object
+       payload) stay C# — Spek expresses none of those. -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Hosting</RootNamespace>
+    <AssemblyName>Spek.Hosting.Abstractions</AssemblyName>
+    <PackageId>Spek.Hosting.Abstractions</PackageId>
+    <Description>Standard lifecycle messages + `HostState` enum used across every Spek hosting adapter (`Spek.Hosting.Console`, `.WindowsService`, `.AspNetCore`, `.Systemd`, `.Launchd`). Reference this if you're authoring a custom hosting adapter.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Build-order only: ensures spekc.dll is built before the .spek compile
+         runs. Not an assembly reference (ReferenceOutputAssembly=false), so it
+         doesn't add Spek.Cli to this package's dependencies. -->
+    <ProjectReference Include="..\Spek.Cli\Spek.Cli.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- The HostState enum + lifecycle messages are authored in Spek
+       (LifecycleMessages.spek); this compiles them into obj/ at build time.
+       SpekChannelMetadataAttribute.cs stays C# — it derives from Attribute,
+       which Spek doesn't express. -->
+  <Import Project="..\..\build\Spek.targets" />
+
+</Project>

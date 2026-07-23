@@ -1,0 +1,34 @@
+// Per-test output capture + cleanup. `init` takes an `ITestOutputHelper` — xUnit
+// injects it per test (the standard xUnit pattern), so `output.WriteLine(...)` is
+// attributed to the right test (Console.WriteLine isn't, being async/shared). The
+// `TestActorSystem` field is disposed automatically after each test.
+
+message Ping();
+message Pong();
+
+actor Echo
+{
+    init() { become Active; }
+    behavior Active { on Ping => return new Pong(); }
+}
+
+class OutputTests
+{
+    Xunit.Abstractions.ITestOutputHelper output;
+    TestActorSystem sys;
+
+    init(Xunit.Abstractions.ITestOutputHelper output)
+    {
+        this.output = output;
+        sys = new TestActorSystem();
+    }
+
+    public void EchoReplies()
+    {
+        var echo = sys.Spawn<Echo>();
+        Pong p = echo.Ask(new Ping());
+
+        output.WriteLine("echo replied with a Pong");   // captured for this test only
+        Xunit.Assert.NotNull(p);
+    }
+}

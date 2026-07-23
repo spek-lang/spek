@@ -1,0 +1,11 @@
+namespace AlertHub;
+
+class JsonFormatter : Formatter
+{
+    public string Render(string host, string detail)
+    {
+        // Literal braces + interpolation don't mix yet ({{ escapes are a
+        // documented lexer limitation), so compose the JSON by hand.
+        return "{ \"host\": \"" + host + "\", \"detail\": \"" + detail + "\" }";
+    }
+}
