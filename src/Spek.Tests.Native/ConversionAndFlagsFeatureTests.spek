@@ -1,0 +1,124 @@
+// Conversions + flags enums, behaviorally, in Spek. The C# suites
+// (ConversionFamilyTests, FlagsEnumTests, FlagsUsageTests) are white-box:
+// they assert lowering shapes and diagnostic codes. These round-trip the
+// features through real actors — To/TryTo values crossing message
+// boundaries, flags combined and queried inside handlers — to prove the
+// story works end-to-end at runtime.
+
+using Xunit;
+
+flags enum Access { Read, Write, Execute, ReadWrite = Read | Write }
+
+message Widen(int small);
+message Widened(long value);
+message Narrow(long big);
+message NarrowReply(bool fit, byte value);
+message Round(double raw);
+message Rounded(int value);
+message Grant(Access granted);
+message CanWrite(bool within, bool hasWrite);
+message ParseAccess(int raw);
+message ParsedAccess(bool valid);
+
+actor Converter
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Widen w => return new Widened(w.small.To<long>());
+
+        on Narrow n =>
+        {
+            var b = n.big.TryTo<byte>();
+            if (b != null) { return new NarrowReply(true, b.Value); }
+            return new NarrowReply(false, 0);
+        }
+
+        on Round r => return new Rounded(r.raw.TryTo<int>(MidpointRounding.ToZero) ?? -1);
+    }
+}
+
+actor AccessGate
+{
+    init() { become Active; }
+
+    behavior Active
+    {
+        on Grant g =>
+        {
+            var within   = g.granted.HasOnlyFlags(Access.Read, Access.Write);
+            var hasWrite = g.granted.HasFlag(Access.Write);
+            return new CanWrite(within, hasWrite);
+        }
+
+        on ParseAccess p => return new ParsedAccess(p.raw.TryTo<Access>() != null);
+    }
+}
+
+class ConversionAndFlagsFeatureTests
+{
+    TestActorSystem sys;
+
+    init() { sys = new TestActorSystem(); }
+
+    public void ToWidensAcrossAMessageBoundary()
+    {
+        var probe = sys.CreateProbe();
+        var conv  = sys.Spawn<Converter>();
+
+        probe.Send(conv, new Widen(41));
+        Widened w = probe.ExpectMsg<Widened>(TimeSpan.FromSeconds(10));
+        Assert.Equal(41L, w.value);
+    }
+
+    public void TryToIsExactOrNull()
+    {
+        var probe = sys.CreateProbe();
+        var conv  = sys.Spawn<Converter>();
+
+        probe.Send(conv, new Narrow(42L));
+        NarrowReply ok = probe.ExpectMsg<NarrowReply>(TimeSpan.FromSeconds(10));
+        Assert.True(ok.fit);
+        Assert.Equal(42, ok.value);
+
+        probe.Send(conv, new Narrow(300L));
+        NarrowReply no = probe.ExpectMsg<NarrowReply>(TimeSpan.FromSeconds(10));
+        Assert.False(no.fit);
+    }
+
+    public void RoundingStrategyIsPartOfTheRequest()
+    {
+        var probe = sys.CreateProbe();
+        var conv  = sys.Spawn<Converter>();
+
+        probe.Send(conv, new Round(2.9));
+        Rounded r = probe.ExpectMsg<Rounded>(TimeSpan.FromSeconds(10));
+        Assert.Equal(2, r.value);
+    }
+
+    public void FlagsCombineAndQueryInsideHandlers()
+    {
+        var probe = sys.CreateProbe();
+        var gate  = sys.Spawn<AccessGate>();
+
+        probe.Send(gate, new Grant(Access.Read | Access.Write));
+        CanWrite c = probe.ExpectMsg<CanWrite>(TimeSpan.FromSeconds(10));
+        Assert.True(c.within);
+        Assert.True(c.hasWrite);
+    }
+
+    public void FlagsAwareTryToAcceptsCombinations()
+    {
+        var probe = sys.CreateProbe();
+        var gate  = sys.Spawn<AccessGate>();
+
+        probe.Send(gate, new ParseAccess(3));   // Read | Write — valid combination
+        ParsedAccess ok = probe.ExpectMsg<ParsedAccess>(TimeSpan.FromSeconds(10));
+        Assert.True(ok.valid);
+
+        probe.Send(gate, new ParseAccess(8));   // undefined bit
+        ParsedAccess no = probe.ExpectMsg<ParsedAccess>(TimeSpan.FromSeconds(10));
+        Assert.False(no.valid);
+    }
+}

@@ -1,0 +1,377 @@
+{
+  "$comment": "Generated from the Spek error-codes reference (docs/reference/errors.md). Do not edit by hand — regenerate with: node out/tools/generateErrorCatalog.js <errors.md>",
+  "codes": {
+    "CE0001": {
+      "code": "CE0001",
+      "status": "active",
+      "summary": "Syntax error (surfaced by ANTLR)",
+      "body": "**Trigger:** Any syntax error that ANTLR rejects at parse time.\n\n**Example (broken):**\n```spek\nactor Foo {\n    init() { become ; }   // missing behavior name\n}\n```\n\nANTLR reports the offending token position. Fix the syntax and recompile."
+    },
+    "CE0010": {
+      "code": "CE0010",
+      "status": "active",
+      "summary": "Message field's type is not in the immutable whitelist",
+      "body": "**Trigger:** A `message` field's declared type is not on the immutability\nwhitelist. See messages.\n\n**Example (broken):**\n```spek\nmessage AddItems(List<string> items);        // List<T> is mutable\nmessage Lookup(IReadOnlyList<int> ids);      // interface — underlying can mutate\n```\n\n**Fix:**\n```spek\nmessage AddItems(ImmutableList<string> items);\nmessage Lookup(ImmutableArray<int> ids);\n```\n\nSpek `enum` types are also accepted, since enum\nmembers are compile-time constants and pass by value — handy when you\nwant a closed set of states on a message:\n\n```spek\nenum Severity { Low, Medium, High }\nmessage Alert(Severity level, string description);\n```\n\nReflection-driven mutation isn't CE0010's concern — see\nCE0080."
+    },
+    "CE0011": {
+      "code": "CE0011",
+      "status": "active",
+      "summary": "`become` target does not name a declared behavior on this actor",
+      "body": "**Trigger:** `become SomeBehavior;` where `SomeBehavior` is not declared on\nthis actor.\n\n**Example (broken):**\n```spek\nactor Switch\n{\n    init() { become Running; }     // no 'Running' behavior defined\n\n    behavior On  { /* ... */ }\n    behavior Off { /* ... */ }\n}\n```\n\n**Fix:** spell the target correctly, or add the missing behavior."
+    },
+    "CE0012": {
+      "code": "CE0012",
+      "status": "active",
+      "summary": "Member access on an `ActorRef` other than `Tell` or `ask`",
+      "body": "**Trigger:** Any member access on an `ActorRef` other than `.Tell(...)` or\n`.Ask(...)`. Including multi-part names like `peer.name`.\n\n**Example (broken):**\n```spek\non Poke =>\n{\n    Console.WriteLine(peer.name);    // reaching into another actor's field\n    peer.DoWork();                   // calling an actor method directly\n}\n```\n\n**Fix:** send a message instead. Actor state and methods are private; the\nonly legal things to do with an `ActorRef` are `Tell`, `ask`, and pass it\naround."
+    },
+    "CE0013": {
+      "code": "CE0013",
+      "status": "active",
+      "summary": "Duplicate declaration — messages/actors at file scope or behaviors/fields/methods within one actor",
+      "body": "**Trigger:** Two declarations with the same simple name — either two\n`message` or two `actor` at file scope, or two `behavior` / field / method\nwith the same name inside one actor. Method overloading is not supported.\n\n**Example (broken):**\n```spek\nmessage Tick();\nmessage Tick();           // CE0013 — duplicate message\n\nactor Worker\n{\n    int counter = 0;\n    int counter = 1;      // CE0013 — duplicate field\n\n    behavior Idle { on Tick => { } }\n    behavior Idle { on Tick => { } }  // CE0013 — duplicate behavior\n}\n```\n\n**Fix:** rename one of the declarations, or delete the redundant one. The\ndiagnostic points at the second occurrence; the first wins for resolution\nin the meantime."
+    },
+    "CE0014": {
+      "code": "CE0014",
+      "status": "active",
+      "summary": "Behavior declared but never reached via `become`",
+      "body": "**Trigger:** A `behavior` is declared on a concrete actor but no `become`\nanywhere in the actor (init, other behaviors, lifecycle hooks) targets it.\nThe first behavior is always implicitly reachable as the entry point;\nsubsequent ones must be reached explicitly.\n\nAbstract actors (`abstract actor ...`) skip this check — derived actors\nmay reference inherited behaviors that look unused in the parent.\n\n**Example (broken):**\n```spek\nactor Switch\n{\n    init() { become On; }\n\n    behavior On    { on Toggle => { become Off; } }\n    behavior Off   { on Toggle => { become On;  } }\n    behavior Dead  { on Toggle => { } }          // CE0014 — never reached\n}\n```\n\n**Fix:** either hook `Dead` into the reachability graph with a matching\n`become Dead;`, or delete it."
+    },
+    "CE0020": {
+      "code": "CE0020",
+      "status": "active",
+      "summary": "Non-`message` type passed to `Tell` or `ask`",
+      "body": "**Trigger:** A non-`message` type passed to `Tell` or `ask`. Fails open on\nUnknown — if the analyzer can't resolve the type, CE0020 does not fire.\n\n**Example (broken):**\n```spek\ntarget.Tell(\"just a string\");            // string is not a message\ntarget.Tell(new StringBuilder(\"nope\"));  // plain class\n```\n\n**Fix:** declare a `message` type and send an instance of it.\n\n```spek\nmessage Note(string text);\n// ...\ntarget.Tell(new Note(\"just a string\"));\n```"
+    },
+    "CE0030": {
+      "code": "CE0030",
+      "status": "reserved",
+      "summary": "Message not in typed `ActorRef<IFoo>` interface",
+      "body": "**Status:** reserved. The code number is reserved; the current analyzer does\nnot emit it."
+    },
+    "CE0042": {
+      "code": "CE0042",
+      "status": "active",
+      "summary": "`.Ask(...)` used outside an `on` handler body",
+      "body": "**Trigger:** `.Ask(...)` used outside an `on` handler body —\ne.g. from a helper method, `init`, or a lifecycle hook.\n\n**Example (broken):**\n```spek\nactor Client\n{\n    init(ActorRef account)\n    {\n        BalanceResponse r = account.Ask(new GetBalance());  // CE0042\n    }\n}\n```\n\n**Fix:** move the `.Ask(...)` into a handler, or refactor the initialization to\nsend a `Tell` and react to the reply in an `on` handler."
+    },
+    "CE0043": {
+      "code": "CE0043",
+      "status": "active",
+      "summary": "`self` or `sender` used outside an `on` handler body",
+      "body": "**Trigger:** `self` or `sender` used outside an `on` handler body.\n\n**Example (broken):**\n```spek\nvoid LogMe()\n{\n    auditLog.Tell(new AuditEntry(self));   // CE0043\n}\n```\n\n**Fix:** the identifiers only make sense during message dispatch. Move the\nlogic into a handler, or pass `self` / `sender` in as a parameter from the\nhandler that calls the helper."
+    },
+    "CE0050": {
+      "code": "CE0050",
+      "status": "active",
+      "summary": "`persist` statement used outside an `on` handler body",
+      "body": "**Trigger:** The `persist;` statement used outside an `on` handler body.\n\n**Example (broken):**\n```spek\ninit()\n{\n    balance = 0m;\n    persist;             // CE0050 — init is not a message handler\n    become Active;\n}\n```\n\n**Fix:** persistence is a per-message concern. Put the `persist;` in the\nhandler that just mutated state."
+    },
+    "CE0051": {
+      "code": "CE0051",
+      "status": "active",
+      "summary": "`become` used inside a plain helper method",
+      "body": "**Trigger:** `become` used inside a plain helper method. Helpers should\nstay pure; switching behavior from inside one obscures control flow.\n\n**Scope note:** `become` **is** accepted in `on` handlers, `init` blocks,\nand all lifecycle hooks (`PreStart`, `PostStop`, `Restore`). Only plain\nmethods are rejected. This matches Akka / Akka.NET convention.\n\n**Example (broken):**\n```spek\nvoid Freeze()\n{\n    isFrozen = true;\n    become Frozen;            // CE0051\n}\n```\n\n**Fix:** move the `become` up to the handler that calls `Freeze()`."
+    },
+    "CE0060": {
+      "code": "CE0060",
+      "status": "active",
+      "summary": "`on Restore` declared but no `persist` / `passivate` on this actor",
+      "body": "**Trigger:** The actor declares `on Restore(Snapshot s) => ...` but has\nneither a `persist;` statement anywhere nor a `passivate` declaration. A\nrestore handler that is never fed is almost always a bug.\n\n**Example (broken):**\n```spek\nactor Wallet\n{\n    decimal balance = 0m;\n\n    on Restore(Snapshot s) =>                 // CE0060\n        balance = s.Get<decimal>(\"balance\");\n\n    behavior Active\n    {\n        on Deposit d => { balance += d.amount; }   // no persist\n    }\n}\n```\n\n**Fix:** add `persist;` where state should be saved, or a `passivate after\nSystem.TimeSpan.FromMinutes(N);` declaration, or remove the dead `on Restore`."
+    },
+    "CE0061": {
+      "code": "CE0061",
+      "status": "retired",
+      "summary": "`passivate` declared but no `on Restore` — auto-restore handles it now",
+      "body": "**No longer an error.** This previously fired when an actor declared `passivate`\n(or `persist`) but had no `on Restore` handler. Proposal #6 made `on Restore`\n**optional**: the compiler now auto-generates a symmetric `OnRestore` that rehydrates\nevery captured field, so a persistent actor can't silently save-but-never-reload. The\nexample below now compiles and round-trips its state automatically:\n\n```spek\nactor Wallet\n{\n    decimal balance = 0m;\n\n    passivate after System.TimeSpan.FromMinutes(10);   // OK now — auto-restore rehydrates balance\n\n    behavior Active\n    {\n        on Deposit d => { balance += d.amount; persist; }\n    }\n}\n```\n\nWrite an explicit `on Restore(Snapshot s) => ...` only for custom restore logic; it then\ntakes over. See persistence — auto-restore."
+    },
+    "CE0070": {
+      "code": "CE0070",
+      "status": "retired",
+      "summary": "Previously \"unresolved name\"; CE0020 covers this uniformly",
+      "body": "**Status:** Retired. Previously reserved for cross-file \"unresolved name\"\ndiagnostics. In practice `SpekCompilation` resolves symbols\nacross all files in the compilation before the analyzer runs, so\nunresolved names always surface via the existing CE0020 (for `ask` /\n`Tell`) or CE0011 / CE0014 (for behavior references). The code number is\nretained as `retired` so downstream tools that keyed on it don't regress."
+    },
+    "CE0080": {
+      "code": "CE0080",
+      "status": "active",
+      "summary": "Hostile namespace import (`System.Reflection`, `Unsafe`, etc.)",
+      "body": "**Trigger:** A `using` declaration imports a namespace that could let user\ncode bypass Spek's compile-time guarantees. Current blocklist prefixes:\n`System.Reflection`, `System.Reflection.Emit`,\n`System.Runtime.CompilerServices`, `System.Runtime.InteropServices`,\n`System.Runtime.Serialization`, `Microsoft.Win32`.\n\n**Example (broken):**\n```spek\nusing System.Reflection;              // CE0080 — reflection bypasses CE0010\n\nmessage Ping();\nactor Sneaky\n{\n    decimal balance = 0m;\n    behavior Idle\n    {\n        on Ping =>\n        {\n            // Without CE0080, reflection could mutate `balance` on this\n            // instance or on some other actor whose ref was leaked.\n            var field = typeof(Sneaky).GetField(\"_balance\");\n        }\n    }\n}\n```\n\n**Fix:** don't import hostile namespaces from Spek. If your program needs\nreflection for a genuine reason, isolate that code in a separate C#\nproject that doesn't reference `Spek.Runtime`, and shuttle results in via\n`message` payloads."
+    },
+    "CE0081": {
+      "code": "CE0081",
+      "status": "active",
+      "summary": "Unreachable `on Failure` arm in a `supervise` strategy",
+      "body": "**Trigger:** An `on Failure` arm inside a `supervise` strategy is\nunreachable. Two shapes:\n\n1. A typed arm follows an untyped catch-all — the catch-all already\n   matches every cause, so nothing reaches the typed arm.\n2. The same exception type appears on two typed arms — only the first\n   fires.\n\n**Example (broken):**\n```spek\nsupervise OneForOne(\n    on Failure: Stop,                              // catches everything\n    on Failure(System.IO.IOException): Restart);   // CE0081 — dead code\n```\n\n```spek\nsupervise OneForOne(\n    on Failure(System.IO.IOException): Restart,\n    on Failure(System.IO.IOException): Stop);      // CE0081 — already matched\n```\n\n**Fix:** put typed arms first; the untyped catch-all goes last. Arms\nmatch top-to-bottom, first-match-wins, matching Akka's\n`SupervisorStrategy` convention.\n\n```spek\nsupervise OneForOne(\n    on Failure(System.IO.IOException): Restart,    // specific first\n    on Failure(System.InvalidOperationException): Stop,\n    on Failure: Escalate);                          // catch-all last\n```"
+    },
+    "CE0082": {
+      "code": "CE0082",
+      "status": "active",
+      "summary": "Duplicate untyped `on Failure` catch-all in a `supervise` strategy",
+      "body": "**Trigger:** Two untyped `on Failure: Action` arms in the same strategy.\nOnly the first is reachable.\n\n**Example (broken):**\n```spek\nsupervise OneForOne(\n    on Failure: Restart,\n    on Failure: Stop);     // CE0082 — the first catch-all already fired\n```\n\n**Fix:** keep exactly one untyped catch-all, or narrow one of the arms\nto a specific exception type."
+    },
+    "CE0090": {
+      "code": "CE0090",
+      "status": "active",
+      "summary": "Actor implements a channel but doesn't cover every input",
+      "body": "**Trigger:** An actor lists a channel in its colon list but has no\n`on MessageType` handler for one of that channel's declared inputs.\nEvery channel input must be covered by at least one behavior handler.\n\n**Example (broken):**\n```spek\nmessage Ping();\nmessage Shutdown();\n\nchannel Hostable\n{\n    on Ping;\n    on Shutdown;\n}\n\nactor PartialHost : Hostable      // CE0090 — missing 'on Shutdown'\n{\n    behavior Running { on Ping => { } }\n}\n```\n\n**Fix:** cover every input the channel declares, anywhere in any\nbehavior (Spek doesn't require they be in the same behavior):\n\n```spek\nactor FullHost : Hostable\n{\n    behavior Running\n    {\n        on Ping     => { }\n        on Shutdown => { }\n    }\n}\n```\n\nA single handler also satisfies every channel that declares the same\ninput — matching C# explicit-interface-implementation semantics."
+    },
+    "CE0091": {
+      "code": "CE0091",
+      "status": "active",
+      "summary": "Unknown channel or base actor in the actor's colon list",
+      "body": "**Trigger:** A name in an actor's colon list (`actor Foo : Bar, Baz`)\nis neither a declared channel nor a declared actor. Also fires when a\nsecond actor-typed name appears after the first — only one base actor\nis permitted; remaining names must be channels.\n\n**Example (broken):**\n```spek\nactor Foo : NoSuchChannel         // CE0091 — name doesn't exist\n{\n    behavior Idle { on Ping => { } }\n}\n```\n\n**Fix:** declare the channel or actor first, or fix the typo:\n\n```spek\nchannel NoSuchChannel { on Ping; }   // add the missing declaration\n\nactor Foo : NoSuchChannel { ... }\n```"
+    },
+    "CE0092": {
+      "code": "CE0092",
+      "status": "active",
+      "summary": "`sender.Tell(...)` of a type that's neither the handler's reply nor a channel `emits`",
+      "body": "**Trigger:** A `sender.Tell(new X())` call inside a handler, where `X`\nis neither the handler's Option-D inferred reply type (i.e. the type\nof `return new X();`) nor a message type declared in any implemented\nchannel's `emits` list. Strict enforcement of the channel's external\noutput contract.\n\nThe check runs only when the actor implements at least one channel.\nIt's disabled entirely for actors whose channel(s) include\n`emits any;`.\n\n**Rules:**\n\n| Form | Gated? |\n|------|--------|\n| `self.Tell(X)` | Free — internal message pump |\n| `someField.Tell(X)` | Free — outbound to another actor |\n| `sender.Tell(X)` where `X` matches `return new X();` in the handler | Free — equivalent to the reply |\n| `sender.Tell(X)` where `X` is in some channel's `emits` | Free — declared output event |\n| `sender.Tell(X)` otherwise | **CE0092** |\n\n**Example (broken):**\n```spek\nchannel Observable\n{\n    on Ping;\n    emits StatusChanged;\n}\n\nactor Leak : Observable\n{\n    behavior Idle\n    {\n        on Ping => { sender.Tell(new Unrelated()); }   // CE0092\n    }\n}\n```\n\n**Fix — three options:**\n\n1. If `Unrelated` is the handler's reply, use `return new Unrelated();`\n   (which also makes `target.Ask(new Ping())` typed at the call site).\n2. If `Unrelated` is an emitted event, add `emits Unrelated;` to the\n   channel.\n3. If the channel is inherently open-ended, add `emits any;` to\n   opt out of strict enforcement."
+    },
+    "CE0093": {
+      "code": "CE0093",
+      "status": "active",
+      "summary": "Channel inherits from an unknown name (or a name that isn't a channel)",
+      "body": "**Trigger:** A channel inherits from a name that doesn't resolve to a\ndeclared channel — either the name doesn't exist, or it resolves to\na `message` / `actor` / `enum` instead. Channel inheritance only\naccepts other channels as bases.\n\n**Example (broken):**\n```spek\nmessage Ping();\nchannel Derived : DoesNotExist { on Ping; }   // CE0093 — unknown name\n```\n\n```spek\nmessage Ping();\nmessage Shutdown();\nchannel ServerHost : Shutdown { on Ping; }    // CE0093 — Shutdown is a message\n```\n\n**Fix:** declare the missing channel, fix the typo, or remove the\nincorrect entry from the inheritance list:\n\n```spek\nchannel HostBase { on Shutdown; }\nchannel ServerHost : HostBase { on Ping; }    // OK\n```"
+    },
+    "CE0094": {
+      "code": "CE0094",
+      "status": "active",
+      "summary": "Circular channel inheritance",
+      "body": "**Trigger:** A channel's inheritance chain forms a cycle. Direct\ncycles (`A : B`, `B : A`) and longer transitive cycles (`A : B`,\n`B : C`, `C : A`) are both detected. Each channel that participates\nin the cycle reports its own diagnostic.\n\n**Example (broken):**\n```spek\nmessage Ping();\nchannel A : B { on Ping; }\nchannel B : A { }            // CE0094 fires on both A and B\n```\n\n**Fix:** break the cycle. Channel inheritance is acyclic; if two\nchannels genuinely share a common subset, extract it into a third\nbase channel and have both inherit from it:\n\n```spek\nchannel Shared { on Ping; }\nchannel A : Shared { }\nchannel B : Shared { }\n```"
+    },
+    "CE0083": {
+      "code": "CE0083",
+      "status": null,
+      "summary": null,
+      "body": "**Trigger:** A handler calls something that **blocks the dispatcher thread**\nwith no async equivalent: `Thread.Sleep`, `Console.ReadLine` / `ReadKey`,\n`Task.WaitAll` / `Task.WaitAny`, `Monitor.Wait`, `SpinWait.SpinUntil`, or a\nwait-handle `WaitOne` / `SignalAndWait`. A parked dispatcher thread starves the\nother actors sharing it.\n\n**Severity:** Error.\n\n**Fix:** Use the async form — `await Task.Delay(...)` for a timed wait,\n`await Task.WhenAll(...)` for fan-in, or model the wait as a delayed message.\n(The value-preserving sync-over-async forms — `task.Result`, `task.Wait()`,\n`x.GetAwaiter().GetResult()` — are *not* CE0083; the invisible-async\npass rewrites those to `await` for you. The editor also offers quick-fixes for\n`Thread.Sleep` and `Task.WaitAll`.) See Footguns for the\nfull policy."
+    },
+    "CE0084": {
+      "code": "CE0084",
+      "status": null,
+      "summary": null,
+      "body": "**Trigger:** A handler calls something that **terminates or escapes the\nprocess** — `Environment.Exit`, `Environment.FailFast`, `Process.Kill`,\n`Process.GetCurrentProcess`. These sever every actor in the system mid-message,\nbypassing supervision, `on Shutdown` cleanup, and shared-region `term {}`\nteardown.\n\n**Severity:** Error.\n\n**Fix:** To bring the node down intentionally, call **`self.System.Shutdown()`**\n— a graceful, non-blocking node shutdown: the handler returns, then every actor\ndrains, each `on Shutdown` and `term {}` runs, and the host exits cleanly. It's\nreached through the ambient `self.System` accessor (a sibling of `self.Log` /\n`self.Metrics`); nothing is injected into your actor.\n\n<!-- spek-test: ignore — demonstrates the CE0084 fix -->\n```spek\nmessage Fatal(string detail);\n\nactor Guardian\n{\n    on Fatal f =>\n    {\n        // was: Environment.Exit(1);   // CE0084 — severs every actor\n        self.System.Shutdown();        // graceful node shutdown\n    }\n}\n```"
+    },
+    "CE0085": {
+      "code": "CE0085",
+      "status": "active",
+      "summary": "Mutating a value (field/index assignment) after sending it via `Tell`/`ask` — incl. through an alias",
+      "body": "**Trigger:** A value is sent via `Tell` / `ask` (handing it to another\nactor) and then **mutated** by the sender — a field or index assignment\nreaching that value, *directly or through an alias*. Once a payload is in\nanother actor's mailbox, mutating it from the sender races against the\nreceiver.\n\nReads are **not** flagged: the only sendable values are immutable\n`message`s, where sharing (reading) after a send is safe by design — only a\nwrite is a race. Pure reassignment (`u = newValue`) just re-binds the local\nand is fine.\n\nThe deep/transitive case (aliasing through nested fields) is not tracked.\n\n**Example (broken):**\n```spek\non Update u =>\n{\n    peer.Tell(u);        // u handed to peer — it now owns the value\n    u.v = 99;            // CE0085 — u has been moved\n}\n```\n\nAliases count too:\n```spek\non Update u =>\n{\n    var w = u;           // w aliases u\n    peer.Tell(u);        // the value is moved\n    w.v = 99;            // CE0085 — mutating an alias of a moved value\n}\n```\n\n**Fix:** mutate before sending, or send a fresh value:\n\n```spek\non Update u =>\n{\n    u.v = 99;\n    peer.Tell(u);        // OK — single hand-off, no later mutation\n}\n```"
+    },
+    "CE0086": {
+      "code": "CE0086",
+      "status": "active",
+      "summary": "`interop using` bypasses safety guarantees (warning, not error)",
+      "body": "**Trigger (warning):** A file uses `interop using NS;` to opt out of\nCE0080's hostile-namespace block. The compiler accepts the\nimport but emits CE0086 to make the safety trade-off visible. This\nis a warning, not an error — the file still compiles.\n\n**Example:**\n```spek\ninterop using System.Reflection;   // CE0086 — interop bypasses safety\n```\n\n**Fix:** prefer the safe alternative when one exists. Use `interop\nusing` only when integrating with a library you trust and there's no\nsafer equivalent. Suppress per-file with the modifier; there's no\nproject-wide opt-out."
+    },
+    "CE0087": {
+      "code": "CE0087",
+      "status": "active",
+      "summary": "Reader handler writes state: field/region assignment, `out`/`ref` argument, or a mutating confined-class method",
+      "body": "**Trigger:** A `reader on X` handler mutates state.\n\nFour flavours:\n\n- **Actor field mutation.** Reader handlers run concurrently\n  with other readers on the same actor; mutating an actor field would\n  race against them.\n- **Shared-region field mutation.** Reader handlers hold the\n  region's reader lock; mutating a region field would race against\n  every other reader on that region across every actor that attaches\n  it.\n- **`out` / `ref` arguments.** Passing an actor field or shared-region\n  state as an `out` or `ref` argument hands the callee a write to it —\n  the same race an assignment would be. `in` arguments are read-only\n  and pass freely.\n- **Confined-class mutation.** Calling a *mutating* method on a\n  `class`-typed actor field (e.g. `builder.Append(...)`) from a reader\n  handler mutates the confined object's state, which would race against\n  other concurrent readers. Pure methods and reads are fine. (Whether a\n  class method mutates is inferred — it writes a field, directly or via a\n  sibling method.)\n\n**Example (broken — actor field):**\n```spek\nactor Counter\n{\n    int n = 0;\n    reader on Get g => { n = 0; return new Reply(n); }   // CE0087\n}\n```\n\n**Example (broken — shared region):**\n```spek\nshared MarketCache { long lastPrice = 0; }\nactor Reporter\n{\n    use MarketCache cache;\n    reader on Tick t => { cache.lastPrice = 0; }   // CE0087\n}\n```\n\n**Example (broken — `out` argument):**\n```spek\nmessage Parse(string s);\nmessage Reply(int n);\n\nactor Cache\n{\n    int cached = 0;\n\n    reader on Parse p =>\n    {\n        int.TryParse(p.s, out cached);    // CE0087 — 'out' writes the field\n        return new Reply(cached);\n    }\n}\n```\n\n**Fix:** promote to `writer on ...`, or move the mutation into a\nseparate writer handler. For an `out` argument, receive the result\ninto a local (`int.TryParse(p.s, out var v)`) and use the local; the\nwrite then never touches actor state. Reader handlers are bound to\nread-only access to actor and region state so the runtime can run them\nconcurrently — that's the contract."
+    },
+    "CE0096": {
+      "code": "CE0096",
+      "status": "active",
+      "summary": "Public/internal handler must reference a declared `message` type",
+      "body": "**Trigger:** A `public on X` or `internal on X` handler references a\ntype `X` that isn't a declared `message`. Public/internal handlers\nform the actor's external API surface (channel coverage, remote\ndispatch). The pattern type must\nresolve to a Spek-declared message so cross-language and cross-process\ncallers can reach it.\n\nPrivate handlers (`private on X`) escape this rule — they're\nreachable only via `self.Tell` from inside the actor and aren't part\nof the public surface, so they can bind to any CLR type. This is\nhow actors take BCL event-args (`FileSystemEventArgs`, `Timer`\ncallback args, etc.) directly without wrapping them in a Spek\n`message`.\n\n**Example (broken):**\n```spek\npublic actor Watcher\n{\n    public on FileSystemEventArgs e => { /* ... */ }   // CE0096\n}\n```\n\n**Fix:** declare a Spek message that wraps the BCL type, or mark the\nhandler `private`:\n\n```spek\n// Option 1: declare a message\nmessage FileChanged(string path);\npublic actor Watcher { public on FileChanged ev => { /* ... */ } }\n\n// Option 2: privatise the handler (intra-actor only)\npublic actor Watcher { private on FileSystemEventArgs e => { /* ... */ } }\n```\n\n> The `on event` form is the cleaner path — see\n> `language/actors.md` — it\n> handles the bridge automatically and produces a public method-group\n> reference for `+=` wiring."
+    },
+    "CE0097": {
+      "code": "CE0097",
+      "status": "active",
+      "summary": "`use X foo;` references an unknown shared region",
+      "body": "**Trigger:** An actor's `use X foo;` declaration names a region type\n`X` that isn't a declared `shared X { ... }` somewhere in the\ncompilation. Cross-namespace resolution is by simple name.\n\n**Example (broken):**\n```spek\nactor PriceWriter\n{\n    use Cache cache;        // CE0097 — no `shared Cache { ... }` exists\n}\n```\n\n**Fix:** declare the region, fix the typo, or remove the `use`\ndeclaration:\n\n```spek\nshared Cache { long value = 0; }\n\nactor PriceWriter\n{\n    use Cache cache;        // OK\n}\n```"
+    },
+    "CE0098": {
+      "code": "CE0098",
+      "status": "active",
+      "summary": "`: Persisted` region has no registered provider in any program block",
+      "body": "**Trigger:** A `shared X : Persisted { ... }` region is declared\nbut no `program` block in the compilation contains a matching\n`system.RegisterPersistenceProvider<X>(...)` call. Spek's\ncompile-time check ensures every persisted region has a place to\nwrite its snapshots before any code can spawn an actor that uses\nit.\n\n**Example (broken):**\n```spek\nshared MarketCache : Persisted\n{\n    long lastPrice = 0;\n}\n// No program block, or one that doesn't register a provider.\n```\n\n**Fix:** add the registration to a `program` block, before any\nactor that uses the region is spawned:\n\n```spek\nprogram Main\n{\n    var system = new ActorSystem(\"myapp\");\n    system.RegisterPersistenceProvider<MarketCache>(\n        new FileSnapshotStore(\"/var/lib/myapp/market\"));\n    spawn<PriceWriter>();\n    await system.AwaitTermination();\n}\n```\n\nIf persistence isn't actually needed, drop the `: Persisted`\nmarker — the region is then transient (in-memory only,\ndiscarded on process exit), which is the default."
+    },
+    "CE0100": {
+      "code": "CE0100",
+      "status": "active",
+      "summary": "Direct assignment of a shared-region read into an actor field",
+      "body": "**Trigger:** A handler assigns a shared-region read directly into\nan actor field. The actor would then hold a reference to data the\nregion still owns; a later writer on the region could mutate that\ndata while the actor is still reading from it.\n\n**Example (broken):**\n```spek\nshared Cache { string current = \"\"; }\nactor Worker\n{\n    use Cache cache;\n    string mine = \"\";\n\n    on Refresh =>\n    {\n        mine = cache.current;       // CE0100\n    }\n}\n```\n\n**Fix:** Route the value through a local (the local makes the\nsnapshot decision explicit) or through a deep-copy call:\n\n```spek\non Refresh =>\n{\n    var snap = cache.current;       // a deliberate borrow\n    mine = snap;\n}\n\n// or:\non Refresh =>\n{\n    mine = string.Copy(cache.current);   // deep copy\n}\n```\n\nThe rule fires only on direct assignments. Calls, projections,\nand locals all sanitise the value because they make the\nintent visible at the call site."
+    },
+    "CE0101": {
+      "code": "CE0101",
+      "status": "active",
+      "summary": "Reference to a `deprecated` shared-region field (warning)",
+      "body": "**Trigger:** A reference (read or write) to a shared-region field\nmarked `deprecated`. The field still works — the data is captured\nand restored normally — but the warning surfaces so callers know\nto plan a move off the field before a future version marks it\n`retired`.\n\n**Severity:** Warning. The build continues; the diagnostic is\ninformational.\n\n**Example (warns):**\n```spek\nshared MarketCache\n{\n    deprecated string oldSymbol = \"\";\n}\n\nactor Trader\n{\n    use MarketCache cache;\n    on Refresh =>\n    {\n        var s = cache.oldSymbol;   // CE0101 (warning)\n    }\n}\n```\n\n**Fix:** Migrate the code off the deprecated field. Read the\nreplacement field instead, or copy the snapshot's old value\nforward in a one-time migration actor and stop reading the\ndeprecated field from new code."
+    },
+    "CE0102": {
+      "code": "CE0102",
+      "status": "active",
+      "summary": "Reference to a `retired` shared-region field",
+      "body": "**Trigger:** A reference to a shared-region field marked\n`retired`. The field name is reserved (a future field may not\nreuse it) and the field is skipped from capture/restore — the\npersistence store sees the key disappear from new snapshots and\ndrops it on the next save.\n\n**Example (broken):**\n```spek\nshared MarketCache\n{\n    retired string oldSymbol = \"\";\n}\n\nactor Trader\n{\n    use MarketCache cache;\n    on Refresh =>\n    {\n        var s = cache.oldSymbol;   // CE0102\n    }\n}\n```\n\n**Fix:** Remove the reference. Retired fields are gone for\npractical purposes — they exist in source only to reserve the\nname. If the data is still needed, mark the field `deprecated`\ninstead and migrate callers off gradually."
+    },
+    "CE0103": {
+      "code": "CE0103",
+      "status": "active",
+      "summary": "Non-exhaustive `switch` over a sealed `enum` value",
+      "body": "**Trigger:** A `switch` expression's subject is a value of a\nSpek `enum` type, and the arms don't cover every variant.\n\nEvery Spek `enum` is sealed by default — the language treats\nthe variant set as closed, exactly the variants declared in\nsource. A `switch` over an enum value must therefore either\nlist an arm for every variant, or include a `_` discard arm\nto opt out of exhaustiveness explicitly.\n\nThe headline rationale is **cross-actor versioning during\nrolling deploys**: when half the nodes have the old enum and\nhalf have the new one, exhaustiveness catches the mismatch on\nthe new code at compile time, not at the first message that\nhits the unhandled variant in production.\n\n**Example (broken):**\n```spek\nenum Status { Active, Inactive, Pending }\n\nactor Worker\n{\n    on Tick =>\n    {\n        Status s = Status.Active;\n        var label = s switch {\n            Status.Active   => \"a\",\n            Status.Inactive => \"i\",\n            // CE0103 — missing arm for Status.Pending\n        };\n    }\n}\n```\n\n**Fix:** Add the missing arm, or include a `_` discard arm\nwhen the catch-all is what you want:\n\n```spek\n// Cover every variant explicitly.\nvar label = s switch {\n    Status.Active   => \"a\",\n    Status.Inactive => \"i\",\n    Status.Pending  => \"p\",\n};\n\n// Or opt out of exhaustiveness with `_`.\nvar label = s switch {\n    Status.Active => \"a\",\n    _             => \"other\",\n};\n```\n\nThe check fires when the subject's type can be resolved to a\ndeclared `enum` — typed locals (`Status s = …;`), parameters,\nand actor fields. Untyped `var s = …;` locals only get the\ncheck when the initializer's type can be classified at the\nsemantic layer.\n\nA `when` guard on an arm doesn't count as a definitive cover\nfor that variant — the compiler can't prove the guard is\nalways true, so the variant still needs another unguarded arm\nor a `_` to satisfy exhaustiveness."
+    },
+    "CE0106": {
+      "code": "CE0106",
+      "status": "retired",
+      "summary": "folded into CE0119 — raw concurrency is now a hard error",
+      "body": "**Retired — folded into CE0119.** CE0106 was a *warning*\nthat fired only when a `Task.Run` lambda captured an actor field directly. It is\nsuperseded by CE0119, which forbids the raw concurrency-spawning\nprimitives outright (a hard error), capture or not — closing the escape instead\nof merely flagging it."
+    },
+    "CE0107": {
+      "code": "CE0107",
+      "status": "active",
+      "summary": "Redundant explicit `Task<T>` annotation never used as a Task (warning)",
+      "body": "**Trigger:** A top-level local declared with an explicit `Task<T>`\nor `ValueTask<T>` type — the invisible-async\nescape hatch — that is never used *as a Task*.\n\nUnder invisible async, naming the Task type opts a binding out of the\nauto-await so you keep the raw Task. But a lazy `var` already defers\nthe await to the use site and runs concurrently the same way, so the\nonly thing an explicit `Task<T>` adds is the ability to consume the\nvalue *as a Task* — to hand it to a Task-shaped API, forward it out of\nthe method, or capture it. If you never do that, the annotation has no\neffect: `var` would produce identical behaviour.\n\n**Severity:** Warning. The code is correct either way — this is a\n\"you wrote more than you needed\" nudge, not a soundness problem.\n\n**Example (warns):**\n```spek\npublic int Plus()\n{\n    Task<int> n = ComputeAsync();   // CE0107 — never used as a Task\n    return n + 1;                   // `n` is consumed as a value\n}\n```\n\n**Fix:** Drop the explicit type and let `var` defer it (you keep the\nconcurrency):\n```spek\npublic int Plus()\n{\n    var n = ComputeAsync();\n    return n + 1;\n}\n```\n\n**Not flagged** (the Task is genuinely used as a Task):\n```spek\npublic Task<string> Get(string path)\n{\n    Task<string> t = System.IO.File.ReadAllTextAsync(path);\n    return t;                       // forwarded — keep the Task type\n}\n```\n```spek\nTask<string> a = ReadAsync(x);\nTask<string> b = ReadAsync(y);\nSystem.Threading.Tasks.Task.WhenAll(a, b);   // handed to a Task API\n```\n\nThe check is sound-by-construction: it warns only for **top-level**\nlocals (where `var` provably defers the same way) and suppresses on\nany use that *could* be a task context — a member access (it might be\n`.Result` / `.ConfigureAwait`), a call receiver, any argument, a\n`ref`/`out` argument, a bare `return t`, an assignment, or rebinding\ninto another Task local. So it never suggests dropping a `Task<T>`\nthat's doing real work; it may stay quiet on a redundant one it can't\nprove (e.g. `t.SomeResultProperty`)."
+    },
+    "CE0108": {
+      "code": "CE0108",
+      "status": "active",
+      "summary": "Region field-level visibility flows through to emit (no diagnostic — emit-only change)",
+      "body": "**Trigger:** This is an emit-only change — there's no diagnostic\nthat fires under the CE0108 code. Field-level visibility modifiers\non shared regions flow through to the generated C# class:\n\n- No modifier (default) → `public`. Preserves the existing\n  \"attaching actors can read/write\" contract.\n- Explicit `public` → `public`.\n- Explicit `private` → `private`. The field is internal to the\n  region — set in `init { }` or used by other fields, not\n  reachable from attaching actors.\n- Explicit `internal` / `protected` → emitted verbatim.\n\nAttempting to read a `private` region field from an attaching\nactor surfaces as a Roslyn `CS0122` (\"inaccessible due to its\nprotection level\") error in the generated C#."
+    },
+    "CE0109": {
+      "code": "CE0109",
+      "status": "active",
+      "summary": "Non-nullable reference field without initializer (warning)",
+      "body": "**Trigger:** A non-nullable reference-typed field without an\ninitializer, on an actor or shared region that doesn't have an\n`init { }` block to set the field at construction time.\n\n**Severity:** Warning. The build continues; the diagnostic\npoints at the missing initialization so authors can decide\nwhether to add `= …`, mark the field nullable (`T?`), or move\nconstruction into an `init` block.\n\n**Example (warns):**\n```spek\nactor Worker\n{\n    string name;          // CE0109 (warning) — no init, not nullable\n\n    on Tick =>\n    {\n    }\n}\n```\n\n**Fix:** Pick whichever expresses the field's semantics:\n\n```spek\n// Default value at decl time.\nstring name = \"anon\";\n\n// Or mark nullable if null is meaningful.\nstring? name;\n\n// Or set it from an init parameter.\ninit(string n) { name = n; }\n```\n\nThe check skips owners with any `init` block — the init body is\npresumed to handle initialization (Spek doesn't yet walk init\nbodies looking for specific assignments). Value-typed fields\n(`int`, `bool`, `DateTime`, etc.) are skipped because they\nhave natural defaults."
+    },
+    "CE0110": {
+      "code": "CE0110",
+      "status": "active",
+      "summary": "Disposable-typed field with no `term { }` block (warning)",
+      "body": "**Trigger:** An actor or shared region holds a field whose type\nname matches a disposable-looking heuristic (BCL types ending\nin `Stream`/`Reader`/`Writer`/`Connection`/`Pipe`/`Channel`,\nplus an explicit list of common disposables like `HttpClient`,\n`FileSystemWatcher`, `CancellationTokenSource`,\n`SemaphoreSlim`, `Timer`, etc.) but the owner has no\n`term { }` block.\n\n**Severity:** Warning. The heuristic produces some false\npositives by design (the type *might* not actually implement\n`IDisposable`); the warning is a nudge, not a hard error.\n\n**Example (warns):**\n```spek\nshared HttpPool\n{\n    HttpClient? client;          // CE0110 (warning)\n    // No term block — client never gets disposed.\n}\n```\n\n**Fix:** Add a `term { }` block that releases the resource:\n\n```spek\nshared HttpPool\n{\n    HttpClient? client;\n\n    init    { client = new HttpClient(); }\n    term    { if (client != null) client.Dispose(); }\n}\n```\n\nIf the field intentionally outlives the owner (the resource is\nmanaged elsewhere), suppress the warning by structuring the\ncode so the field's owner doesn't hold it directly — pass it\nin or fetch it from a host service."
+    },
+    "CE0112": {
+      "code": "CE0112",
+      "status": "active",
+      "summary": "Mutable `class` used as a shared-region field (escapes confinement)",
+      "body": "**Trigger:** A `shared` region declares a field whose type is a mutable\n`class`. A class is mutable and single-owner; a shared region is reachable\nfrom every actor that attaches it, so a class field there would expose\n**mutable state shared across actors** — exactly what the confined-class\nmodel forbids.\n\n**Severity:** Error.\n\n**Example (errors):**\n<!-- spek-test: ignore — demonstrates the CE0112 trigger -->\n```spek\nclass Counter { int n = 0; public void Inc() { n = n + 1; } }\n\nshared Stats\n{\n    Counter hits = new Counter();   // CE0112 — a class can't be shared state\n}\n```\n\n**Fix:** Shared state must be immutable or region-native. Use a primitive (or\na region-native counter), or keep the class confined to a single actor:\n\n<!-- spek-test: ignore — illustrative fix -->\n```spek\nshared Stats\n{\n    long hits = 0;          // a primitive is fine in a region\n}\n```\n\nRelated escapes are blocked elsewhere: a class can't be a `message` field or\nask-reply (CE0010 — a class isn't immutable). A class stays confined\nto its owning actor."
+    },
+    "CE0113": {
+      "code": "CE0113",
+      "status": "active",
+      "summary": "Assignment through a null-conditional access (`x?.y = v`)",
+      "body": "**Trigger:** The left-hand side of an assignment reaches through a\nnull-conditional access (`?.` or `?[`). C# has no null-conditional\n*assignment* — `x?.y = v` is not a thing — so without this check the\nemitted C# would fail with an opaque error pointing at the generated file.\n\n**Severity:** Error.\n\n**Example (errors):**\n<!-- spek-test: ignore — demonstrates the CE0113 trigger -->\n```spek\nmessage Update(int v);\n\nactor A\n{\n    on Update u =>\n    {\n        u?.v = 1;        // CE0113 — no null-conditional assignment\n    }\n}\n```\n\n**Fix:** Test for null explicitly, then assign through a plain access:\n\n<!-- spek-test: ignore — illustrative fix -->\n```spek\nmessage Update(int v);\n\nactor A\n{\n    on Update u =>\n    {\n        if (u != null) { u.v = 1; }\n    }\n}\n```\n\nNull-conditional *reads* (`var n = u?.v;`, `xs?[0]`) are unaffected.\n\n> **Note — `.Result` is not an error.** Reading `Task<T>.Result` would block\n> the dispatcher, but Spek's invisible-async pass **rewrites `task.Result` into\n> `(await task)`** (same value, no blocking), so it needs no diagnostic — see\n> invisible async. The blocking *method* forms `.Wait()` /\n> `.GetResult()` stay CE0083 errors."
+    },
+    "CE0115": {
+      "code": "CE0115",
+      "status": "active",
+      "summary": "Synchronous BCL file I/O in a handler (warning; rewritten to async)",
+      "body": "**Trigger:** A handler calls synchronous BCL I/O — `File.ReadAllText`,\n`File.ReadAllBytes`, `File.ReadAllLines`, `File.WriteAllText`,\n`File.WriteAllBytes`, `File.AppendAllText` — that blocks the dispatcher thread\nwhile the disk responds. Each of these has a drop-in `*Async` sibling.\n\n**Severity:** Warning. Unlike CE0083 (a hard error for blocks with\nno async form), sync I/O is *occasionally* legitimate — a one-off config read\nin an `init` block, for instance.\n\n**What Spek does:** in a handler or method body, the\ninvisible-async pass **already rewrites this for you** —\n`File.ReadAllText(p)` is emitted as `await File.ReadAllTextAsync(p)`, the same\nvalue with no blocked dispatcher (type-checked against `System.IO.File`, so a\nlook-alike `File` of your own is untouched). The warning still fires for two\nreasons: it steers you to write the async form directly (clearer intent, and\nthe editor offers a one-click quick-fix), and it covers the one place the\nrewrite *can't* reach — an `init` block or constructor, which can't be `async`,\nso there the sync call really does block.\n\n**Example (warns; rewritten in a handler):**\n<!-- spek-test: ignore — demonstrates the CE0115 trigger -->\n```spek\nmessage Load(string path);\n\nactor Reader\n{\n    on Load l =>\n    {\n        var text = File.ReadAllText(l.path);   // CE0115 — emitted as await File.ReadAllTextAsync(...)\n    }\n}\n```\n\n**Write it directly** to silence the warning (identical behaviour):\n\n<!-- spek-test: ignore — illustrative fix -->\n```spek\nmessage Load(string path);\n\nactor Reader\n{\n    on Load l =>\n    {\n        var text = File.ReadAllTextAsync(l.path);   // awaited automatically\n    }\n}\n```\n\nCE0115 fires only on the bare `File.Method` form (matching `using System.IO;`\ncode), the same conservative shape as CE0083's static blocklist."
+    },
+    "CE0116": {
+      "code": "CE0116",
+      "status": "active",
+      "summary": "Sequential `await` in a `foreach` over an `*Async` call (hint)",
+      "body": "**Trigger:** A `foreach` loop whose body calls a method whose name ends in\n`Async`. Under invisible async each such call is awaited\nbefore the next iteration, so the waits run back-to-back — if the iterations are\nindependent, that's slower than overlapping them.\n\n**Severity:** Hint — an editor suggestion only. It never fails the build, and\nthere is **no auto-fix**: parallelizing a loop changes side-effect ordering and\nturns the first exception into an aggregate, so whether it's safe is the\ndeveloper's call, not the compiler's.\n\n**Example (hints):**\n<!-- spek-test: ignore — demonstrates the CE0116 trigger -->\n```spek\nmessage Sync(System.Collections.Generic.List<string> ids);\n\nactor Catalog\n{\n    on Sync s =>\n    {\n        foreach (var id in s.ids)\n        {\n            directory.RefreshAsync(id);   // CE0116 — awaited once per iteration\n        }\n    }\n}\n```\n\n**Fix (when the iterations are independent):** collect the work and await it\ntogether rather than one-at-a-time. CE0116 is conservative — it fires on\n`foreach` only (the canonical \"process each item\" shape), and only on the\n`*Async` naming convention, so a genuinely sequential loop that must run in\norder can simply leave it (it's a hint, not an error)."
+    },
+    "CE0117": {
+      "code": "CE0117",
+      "status": "active",
+      "summary": "Unknown option name in a `supervise` strategy (expected `maxRetries`/`withinTime`)",
+      "body": "**Trigger:** A `supervise` strategy lists a named option whose name isn't a\nrecognized supervise option. Because `maxRetries`/`withinTime` are ordinary\nnamed arguments (not reserved keywords), a misspelling parses cleanly and is\ncaught here rather than surfacing as a raw syntax error.\n\n**Example (broken):**\n```spek\nmessage Ping();\nactor Parent\n{\n    behavior Idle { on Ping => { } }\n    supervise OneForOne(on Failure: Restart, maxRetres: 2);   // CE0117 — 'maxRetres'\n}\n```\n\n**Fix:** use a recognized option name — `maxRetries` or `withinTime`."
+    },
+    "CE0118": {
+      "code": "CE0118",
+      "status": "active",
+      "summary": "Actor declares both a `supervise` decl and an explicit `OnChildFailure` override",
+      "body": "**Trigger:** An actor declares both a `supervise` declaration and a hand-written\n`OnChildFailure` override. The `supervise` decl already generates `OnChildFailure`,\nso the explicit override would be silently dropped — the worst failure mode (it\nparses, emits, and does nothing).\n\n**Example (broken):**\n```spek\nmessage Ping();\nactor Parent\n{\n    behavior Idle { on Ping => { } }\n    supervise OneForOne(on Failure: Restart);          // generates OnChildFailure\n    FailureDirective OnChildFailure(ActorRef child, System.Exception cause, object msg)\n    {                                                   // CE0118 — would be dropped\n        return FailureDirective.Resume;\n    }\n}\n```\n\n**Fix:** pick one form. Use the declarative `supervise` (now including\n`Resume`), or remove the `supervise` decl and keep the\nimperative `OnChildFailure` override for conditional logic."
+    },
+    "CE0119": {
+      "code": "CE0119",
+      "status": "active",
+      "summary": "Raw concurrency primitive (`Task.Run`, `Parallel.*`, `new Thread`, …) in Spek source",
+      "body": "**Trigger:** Spek source spawns raw concurrency — a delegate that runs on a\nthread-pool or OS thread *outside* any actor's turn. Recognised forms:\n`Task.Run`, `Parallel.For` / `Parallel.ForEach` / `Parallel.Invoke`,\n`ThreadPool.QueueUserWorkItem`, `new Thread(...)`, and `new Timer(callback, ...)`.\n\n**Why:** these bypass the serialization that makes Spek race-free. Work started\non another thread can read and write actor state concurrently with the actor's\nown handlers — exactly the data race the language exists to prevent. Concurrency\nin Spek comes from actors; the actor (and the reader/writer shared region) is the\nonly unit of concurrent execution the compiler can keep safe.\n\n**Severity:** Error. A warning wouldn't close the escape — the racy code would\nstill compile and run. Fires everywhere in Spek source: handlers, `init`, module\nand class methods, and `program`.\n\n**Example (rejected):**\n```spek\non StartJob job =>\n{\n    Task.Run(() => { balance = balance + job.amount; });   // CE0119\n}\n```\n\n**Fix:** model the concurrent work as an actor — spawn a child and `Tell` it the\njob, then reply with a message when it's done. The child's state is serialised by\nits own mailbox, so there's no race:\n```spek\non StartJob job => { worker.Tell(job); }\n```\n\n**Not flagged:** awaited Task-returning BCL calls — `File.ReadAllTextAsync(...)`,\n`Task.Delay(...)`, `HttpClient.GetAsync(...)`. Those are resumed *inside* the\nactor's turn by invisible async (see Async without await);\nonly thread-*spawning* is forbidden. A third-party library that spawns threads\ninternally is a trust boundary the compiler can't see into — wrap its use behind\nan actor. Design note: `designs/no-raw-concurrency-ce0119.md`."
+    },
+    "CE0120": {
+      "code": "CE0120",
+      "status": "active",
+      "summary": "Behavior or state inside an `interface` (a method body, accessor body, or field)",
+      "body": "**Trigger:** An `interface` declares behavior or state — a method with a body, a\nproperty accessor with a body, a property initializer, or a field. A Spek\n`interface` is the class-side implementation contract, and a contract declares\nthe outward shape of a type, never the implementation.\n\n**Why:** this is the deliberate divergence from C# 8 and later, which allow\ndefault method bodies on an interface. Spek holds the interface to its pre-C#-8\nmeaning: signatures only. Behavior always lives in the concrete type — a\nclass's method bodies, an actor's `behavior` block — never smuggled into the\nthing it implements, so you can always see where work happens by reading the\nimplementation. A field is state, which a contract likewise never carries.\n\n**Severity:** Error. The rule is the guarantee; a warning would let behavior\nhide inside a contract anyway.\n\n**Example (rejected):**\n```spek\ninterface Validator\n{\n    bool IsValid(string input) { return input.Length > 0; }   // CE0120 — body\n    int  MinLength;                                            // CE0120 — field\n}\n```\n\n**Fix:** leave the signature and move the behavior to the implementing class.\nExpose state as a property signature, which the class satisfies with a field or\ncomputed property:\n```spek\ninterface Validator\n{\n    bool IsValid(string input);\n    int  MinLength { get; }\n}\n\nclass NonEmpty : Validator\n{\n    public bool IsValid(string input) { return input.Length >= MinLength; }\n    public int  MinLength { get => 1; }\n}\n```"
+    },
+    "CE0121": {
+      "code": "CE0121",
+      "status": "active",
+      "summary": "Handler dispatches on an `interface` or `channel` instead of a `message`",
+      "body": "**Trigger:** An `on` handler is keyed on an `interface` or a `channel` rather\nthan on a `message`. Handlers dispatch on the message type — a concrete\nmessage, or an `abstract message` base for a family — never on an\nimplementation contract. The rule holds for every visibility, `private`\nincluded.\n\n**Why:** an `interface` / `channel` is the *provider* side of a contract (\"I\npromise to provide these methods / handle these messages\"); a message is the\n*received* side. Routing a handler on a provider contract collapses that\ndistinction and makes dispatch multi-valued and non-local: a message can\nimplement several interfaces, so `on IAudited` and `on IPrioritized` could both\nmatch one message with no clear winner, and a message's handlers would no\nlonger be findable from its type alone. Keeping dispatch keyed on the single,\nlinear message hierarchy is what keeps message flow visible. See\n`designs/type-contracts.md`.\n\n**Example (rejected):**\n```spek\ninterface Greet { string Hello(); }\n\nactor A\n{\n    on Greet => { }        // CE0121 — Greet is an interface, not a message\n}\n```\n\n**Fix:** to handle a family of messages, give them a shared `abstract message`\nbase and dispatch on it (one linear hierarchy); to react to a cross-cutting\nconcern across unrelated messages (audit, correlation, priority), use an\ningress policy or a shared field the handler reads, not a handler keyed on the\ncontract:\n```spek\nabstract message Command();\nmessage Start() : Command;\nmessage Stop()  : Command;\n\nactor A\n{\n    on Command c => { }    // OK — receives every Command variant\n}\n```"
+    },
+    "CE0122": {
+      "code": "CE0122",
+      "status": "active",
+      "summary": "Abstract method in a non-abstract class/actor, or a `private` abstract method",
+      "body": "**Trigger:** An `abstract` method is used where it can't be: inside a `class` or\n`actor` that isn't itself `abstract`, or marked `private` (so no subclass could\never implement it).\n\n**Why:** an abstract method is a promise the subclass fulfills, so it only makes\nsense on an `abstract class` / `abstract actor`, and it has to be reachable — a\n`private` abstract method is a contradiction. Spek's class and actor inheritance\nis reuse plus abstract methods, and nothing more: there is no `virtual`/\n`override`, because the only methods a subclass specializes are the abstract\nones, and the emitter infers the `override` for you.\n\n**Example (rejected):**\n```spek\nclass A { public abstract int F(); }   // CE0122 — A is not `abstract class`\n```\n\n**Fix:** mark the class abstract, and make the abstract method `public` or\n`protected`:\n```spek\nabstract class A { public abstract int F(); }\nclass B : A { public int F() { return 1; } }   // implements it; `override` inferred\n```"
+    },
+    "CE0123": {
+      "code": "CE0123",
+      "status": "active",
+      "summary": "Base list: extends a non-abstract or unknown base, or two base classes (class/actor)",
+      "body": "**Trigger:** A base list is malformed: a `class` or `actor` extends a name that\nisn't a declared type, extends a **concrete** base, or lists more than one base\nclass. Only an `abstract class` (or `abstract actor`) may be a base, and there is\na single base (plus, for classes, any number of interfaces).\n\n**Why:** concrete classes and actors are emitted `sealed` — inheritance is\nreserved for abstract bases that exist to be extended — and C# is\nsingle-inheritance. Keeping the rule strict means a hierarchy is always shallow\nand its base is always meant to be shared. For actors specifically, the\nmessage-protocol side of sharing already has a home: a\n`channel`.\n\n**Example (rejected):**\n```spek\nclass A { }\nclass B : A { }        // CE0123 — A is concrete, so it's sealed and can't be a base\n```\n\n**Fix:** make the base abstract, or — if you only wanted to reuse `A`'s\nfunctionality without a subtype relationship — hold an `A` as a field\n(composition) instead of extending it:\n```spek\nabstract class A { }\nclass B : A { }        // OK\n```"
+    },
+    "CE0124": {
+      "code": "CE0124",
+      "status": "active",
+      "summary": "A message variant's base is not a declared `abstract message`",
+      "body": "**Trigger:** A message variant names a base (`message NodeUp(...) : Base`) that\nisn't a declared `abstract message` — the name doesn't resolve, or it resolves to\na concrete message. A message family's base is the abstract dispatch contract the\nvariants share.\n\n**Why:** an `abstract message` is a family marker: you never send it, you handle\nit (`on Base` receives every variant). Requiring the base to be abstract keeps\nthe model crisp — a base exists to be dispatched on, and a variant is one of a\nclosed, deliberately-declared set.\n\n**Example (rejected):**\n```spek\nmessage A();\nmessage B() : A;       // CE0124 — A is a concrete message, not `abstract message`\n```\n\n**Fix:** make the base an `abstract message`:\n```spek\nabstract message Event();\nmessage A() : Event;\nmessage B() : Event;   // `on Event` now receives both A and B\n```"
+    },
+    "CE0125": {
+      "code": "CE0125",
+      "status": "active",
+      "summary": "An `abstract message` base declares fields (base-carries-fields is deferred)",
+      "body": "**Trigger:** An `abstract message` declares fields. For now a polymorphic\nmessage base must be empty — a family marker with no payload of its own.\n\n**Why:** a variant that inherits shared fields from its base would have to pass\nthem through to the base's constructor (`message NodeUp(...) : Event(shared)`),\nwhich isn't wired up yet. Shipping the empty-base case first keeps the common\npattern — a marker base plus variants that each carry their own fields —\navailable without the extra machinery. A base that carries shared fields is\nplanned.\n\n**Example (rejected):**\n```spek\nabstract message Event(int Id);   // CE0125 — abstract base can't carry fields yet\n```\n\n**Fix:** move the fields onto each variant:\n```spek\nabstract message Event();\nmessage NodeUp(int Id, string Node) : Event;\nmessage NodeDown(int Id)            : Event;\n```"
+    },
+    "CE0126": {
+      "code": "CE0126",
+      "status": "active",
+      "summary": "Send to a statically-known actor that handles the message in NO behavior (dead mail)",
+      "body": "**Trigger:** A `Tell` or `.Ask` whose target's concrete actor type is\nstatically known — a local or field whose only origin is `spawn<T>(...)` /\n`Spawn<T>(...)`, or `self` — sends a message that actor handles in **no\nbehavior**. Such a send is provably dead mail: no state the actor can `become`\nwill ever process it, so at runtime it could only dead-letter.\n\n**Why:** `ActorRef` is untyped (typed `ActorRef<Channel>` is the reserved\nCE0030), so a send is not type-checked against\nits target in general. But when the compiler can *see* where the ref came\nfrom, \"this actor can never process this message\" is as provable as an\nunknown `become` target — and gets the same treatment. The check is\ndeliberately conservative in both directions:\n\n- **Handled in *another* behavior → legal.** The handled surface is the union\n  across every behavior (and the base-actor chain). A message that's only\n  valid in a different state is the `become` state machine at work, not dead\n  mail.\n- **Unknown-origin refs → silent.** `sender`, refs carried in message fields,\n  collections, remote refs: no static type, no check. Closing that half is\n  the 2.x typed-ref work.\n- **`on any` → handles everything.** A catch-all is precisely the declaration\n  \"I accept unchecked mail,\" so proxies and taps never flag.\n- **Private handlers count only for `self.Tell`** — they aren't part of the\n  external surface (the same split CE0096 makes).\n\n**Example (rejected):**\n```spek\nmessage Ping();\nmessage Wrong();\n\nactor Child\n{\n    on Ping => { }\n}\n\nactor Parent\n{\n    on Ping =>\n    {\n        var c = spawn<Child>();\n        c.Tell(new Wrong());     // CE0126 — Child never handles Wrong\n    }\n}\n```\n\n**Fix:** add an `on Wrong` handler to `Child`, send a message it does handle,\nor — for a deliberate pass-through — give the target an `on any` catch-all."
+    },
+    "CE0127": {
+      "code": "CE0127",
+      "status": "active",
+      "summary": "`To<T>` / `TryTo<T>` target is not a numeric primitive or a declared enum/class/message/interface",
+      "body": "**Trigger:** A `To<T>()` or `TryTo<T>()` call whose target type the conversion\nrouting can't reason about. The target must be a numeric primitive (`int`,\n`double`, `decimal`, …) or a declared Spek `enum`, `class`, `message`, or\n`interface`; external types, generics, arrays, and nullable targets all fall\noutside the checked lowering, so the compiler refuses to guess.\n\n**Example (rejected):**\n```spek\nmodule Conv\n{\n    public int Use(int x)\n    {\n        var u = x.TryTo<Uri>();    // CE0127 — Uri is an external type\n        return x;\n    }\n}\n```\n\n**Fix:** convert to a target the routing knows, or move the external-type\nconversion into a C# interop file and hand the result back through a\n`message` payload or a module function."
+    },
+    "CE0128": {
+      "code": "CE0128",
+      "status": "active",
+      "summary": "Declaring a method named `To` or `TryTo` (reserved for the conversion family)",
+      "body": "**Trigger:** A `class`, `actor`, or `module` declares a method named `To` or\n`TryTo`. The names are reserved for the Spek conversion family (`x.To<T>()` /\n`x.TryTo<T>()`), whose calls the compiler rewrites — a user method with the\nsame name would collide with that rewrite.\n\n**Example (rejected):**\n```spek\nclass Money\n{\n    public int To(int x) { return x; }    // CE0128 — 'To' is reserved\n}\n```\n\n**Fix:** rename the method (`ConvertTo`, `AsCents`, …)."
+    },
+    "CE0129": {
+      "code": "CE0129",
+      "status": "active",
+      "summary": "C#-style cast `(T)x`; Spek has no cast operator (use `To`/`TryTo`/`is`/`as`)",
+      "body": "**Trigger:** A C#-style cast, `(T)expr`. Spek has no cast operator; the parser\nrecognizes the shape purely so this diagnostic can teach the replacement. A\ncast hides three different risk profiles — silent numeric wraparound, runtime\ndowncast failure, intentional truncation — and the conversion family splits\nthem into checked spellings.\n\n**Example (rejected):**\n```spek\nmodule Conv\n{\n    public int Round(double d)\n    {\n        var x = (int)d;    // CE0129 — no cast operator\n        return x;\n    }\n}\n```\n\n**Fix:** pick the spelling that matches the risk. `x.To<T>()` when the\nconversion is lossless (Roslyn-enforced), `x.TryTo<T>()` (returning `T?`) when\nit can lose information or fail:\n\n```spek\nmodule Conv\n{\n    public int? Round(double d)\n    {\n        return d.TryTo<int>();    // int? — null when the value doesn't fit\n    }\n\n    public long Widen(int n)\n    {\n        return n.To<long>();      // lossless, so always succeeds\n    }\n}\n```\n\nThe message adapts to the target: for a declared class, message, or interface\nit suggests the type tests `x is T v` / `x as T`, and for a declared enum it\nsuggests `x.TryTo<T>()`, which is `null` when the enum doesn't define the\nvalue."
+    },
+    "CE0130": {
+      "code": "CE0130",
+      "status": "active",
+      "summary": "Invalid `flags enum` declaration (declared `None`, non-power-of-two value, duplicate bit, bad union)",
+      "body": "**Trigger:** A `flags enum` declaration that could lie about its bits. Five\nshapes are rejected: declaring `None` (it's provided automatically as the\nempty set, `= 0`), an explicit value that isn't a power of two, two members\nwith the same bit value, a union naming a member that isn't declared above\nit, and a union member on a plain (non-flags) `enum`.\n\n**Example (rejected):**\n```spek\nflags enum P { None, Read }              // CE0130 — None is provided automatically\nflags enum Q { Read = 3 }                // CE0130 — 3 is not a power of two\nflags enum R { Read = 1, Also = 1 }      // CE0130 — same bit value as Read\nenum S { A, B, AB = A | B }              // CE0130 — unions need 'flags enum'\n```\n\n**Fix:** let the compiler assign the bits. Members without explicit values\nauto-assign the next free power of two, `None = 0` comes for free, and\ncombinations are declared as unions of earlier members:\n\n```spek\nflags enum Perm { Read, Write, Execute, ReadWrite = Read | Write }\n```\n\nThe declaration emits `[System.Flags]`, so C# consumers see an ordinary\nflags enum."
+    },
+    "CE0131": {
+      "code": "CE0131",
+      "status": "active",
+      "summary": "Bitwise operator on an enum that is not a `flags enum`",
+      "body": "**Trigger:** A bitwise operator (`|`, `&`, `^`) combining two literals of the\nsame declared `enum` that isn't a `flags enum`. Plain enum members are\narbitrary values, not disjoint bits, so a bitwise combination is meaningless\nand usually produces a value the enum doesn't define.\n\nWhen every member of the enum is a hand-rolled distinct power of two, the\nmessage adds a did-you-mean: \"Every member is a distinct power of two — did\nyou mean 'flags enum Perm'?\"\n\n**Example (rejected):**\n```spek\nenum Sev { Low, High }\n\nmodule M\n{\n    public int F()\n    {\n        var x = Sev.Low | Sev.High;    // CE0131 — Sev is not a flags enum\n        return 0;\n    }\n}\n```\n\n**Fix:** declare the enum a `flags enum` if its members are meant to combine;\nkeep plain enums to `==` comparisons and `switch`. The check fires only on\nliteral `EnumName.Member` operands, the shape the footgun actually takes;\ngeneral enum-typed expressions are not tracked."
+    },
+    "CE0132": {
+      "code": "CE0132",
+      "status": "active",
+      "summary": "`&` of two distinct single-bit flags members (provably empty)",
+      "body": "**Trigger:** `&` between two *different* single-bit members of the same\n`flags enum`. Flags members are disjoint bits, so the intersection is provably\nempty — the expression is always `None`, and the author almost certainly\nmeant `|`.\n\n**Example (rejected):**\n```spek\nflags enum Perm { Read, Write }\n\nmodule M\n{\n    public int F()\n    {\n        var x = Perm.Read & Perm.Write;    // CE0132 — always empty\n        return 0;\n    }\n}\n```\n\n**Fix:** use `|` to combine flags. Masking against a union member is a\nlegitimate intersection and passes:\n\n```spek\nflags enum Perm { Read, Write, ReadWrite = Read | Write }\n\nmodule M\n{\n    public Perm Mask(Perm p)\n    {\n        return p & Perm.ReadWrite;    // OK — a genuine mask test\n    }\n}\n```"
+    },
+    "CE0133": {
+      "code": "CE0133",
+      "status": "active",
+      "summary": "`HasFlag`-family call on a non-flags enum, or with a `None` argument",
+      "body": "**Trigger:** A `HasFlag` / `HasAnyFlags` / `HasOnlyFlags` call whose argument\nmakes the test degenerate. Two shapes: the argument is a literal of a plain\n(non-flags) enum, where flag tests are meaningless; or the argument is the\nflags enum's `None`, which degenerates each verb its own way —\n`HasFlag(Perm.None)` is always true, `HasAnyFlags(Perm.None)` is always\nfalse, and `HasOnlyFlags(Perm.None)` is a disguised equality (it reduces to\n`== Perm.None`).\n\n**Example (rejected):**\n```spek\nenum Sev { Low, High }\nflags enum Perm { Read, Write }\n\nmodule M\n{\n    public bool A(Sev s)  { return s.HasFlag(Sev.Low); }         // CE0133 — Sev is not a flags enum\n    public bool B(Perm p) { return p.HasFlag(Perm.None); }       // CE0133 — always true\n    public bool C(Perm p) { return p.HasAnyFlags(Perm.None); }   // CE0133 — always false\n    public bool D(Perm p) { return p.HasOnlyFlags(Perm.None); }  // CE0133 — reduces to == Perm.None\n}\n```\n\n**Fix:** compare plain enums with `==`; test flags emptiness with\n`x == Perm.None`:\n\n```spek\nflags enum Perm { Read, Write }\n\nmodule M\n{\n    public bool IsEmpty(Perm p) { return p == Perm.None; }\n    public bool CanRead(Perm p) { return p.HasFlag(Perm.Read); }\n}\n```"
+    },
+    "CE0134": {
+      "code": "CE0134",
+      "status": "active",
+      "summary": "Direct time read (`DateTime.UtcNow`, `Stopwatch.*`, …) inside an actor (warning)",
+      "body": "**Trigger:** An actor body reads time directly: `DateTime.Now` / `UtcNow` /\n`Today` (and the `DateTimeOffset` equivalents), `Environment.TickCount` /\n`TickCount64`, or `Stopwatch.StartNew` / `Stopwatch.GetTimestamp`.\n\n**Severity:** Warning. The code compiles and behaves correctly in production;\nthe diagnostic protects the virtual-time guarantee in tests.\n\n**Why:** the runtime routes every semantic clock — passivation idleness,\nrestart windows, `self.Clock` reads — through the system clock, and the test\nkit can virtualize that clock (a `TestActorSystem` with `virtualTime: true`\nturns hours of idle time into one `AdvanceClock` call). A direct\n`DateTime.UtcNow` bypasses the clock, so under virtual time it silently\ndiverges from every timer and every other clock read. Same posture as\nCE0119, one layer up. The check is scoped to actor bodies:\n`program` blocks, modules, and classes are host-side code with no\n`self.Clock` and no virtual-time guarantee to uphold, so reading real time\nthere is legitimate and stays silent.\n\n**Example (warns):**\n```spek\nmessage T();\n\nactor Sampler\n{\n    on T t =>\n    {\n        var now = DateTime.UtcNow;    // CE0134 (warning) — bypasses the clock\n    }\n}\n```\n\n**Fix:** read through the actor's clock accessor: `self.Clock.GetUtcNow()`\nfor wall time, `self.Clock.GetTimestamp()` for monotonic measurements. Under\na real-time system they return exactly what the direct reads would; under\nvirtual time they stay in lockstep with timers.\n\n{: .note }\n> **File-organization hints are not diagnostics.** The language server also\n> nudges you toward the C# conventions of one top-level type per file, named\n> after the type. Those are editor *suggestions* (LSP hints) — not `CE` codes,\n> not emitted by `spekc` or a build — so they live in the editor, not this\n> catalog."
+    }
+  }
+}

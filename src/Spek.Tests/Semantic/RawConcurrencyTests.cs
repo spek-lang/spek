@@ -161,6 +161,38 @@ public sealed class RawConcurrencyTests
     }
 
     [Fact]
+    public void CE0119_AsParallel_Errors()
+    {
+        // PLINQ is raw parallelism by another spelling: everything downstream
+        // of .AsParallel() runs on thread-pool threads outside any actor's
+        // turn. Instance-shaped, so it rides the bare-method-name mechanism
+        // the CE0083 instance blocklist uses.
+        const string src = """
+            using System.Linq;
+            using System.Collections.Generic;
+
+            message Sum();
+            actor Totals
+            {
+                List<int> items = new List<int>();
+
+                on Sum =>
+                {
+                    var total = items.AsParallel().Sum(x => x);
+                }
+            }
+            """;
+        var parsed = SpekCompiler.Parse(src);
+        Assert.False(parsed.Success, "CE0119 is an error — it must fail the build.");
+        Assert.True(HasError(parsed, "CE0119"));
+
+        // The message must steer to the Spek alternatives.
+        var d = parsed.Diagnostics.First(x => x.Code == "CE0119");
+        Assert.Contains("foreach", d.Message);
+        Assert.Contains("child actors", d.Message);
+    }
+
+    [Fact]
     public void CE0119_DomainTypeNamedTimer_NotFlagged()
     {
         // `new Timer(60)` on a domain class named Timer (no delegate argument)
@@ -179,5 +211,42 @@ public sealed class RawConcurrencyTests
             """;
         var parsed = SpekCompiler.Parse(src);
         Assert.DoesNotContain(parsed.Diagnostics, d => d.Code == "CE0119");
+    }
+
+    [Fact]
+    public void CE0119_FullyQualified_TaskRun_StillErrors()
+    {
+        // Red-team find: the static-call blocklist reduced a call to
+        // Type.Method only for single-part names, so ANY namespace
+        // qualification skipped CE0119/CE0083/CE0084/CE0115 entirely.
+        // The fully-qualified spelling must be caught like the bare one.
+        const string src = """
+            message Tick();
+            actor A
+            {
+                int counter = 0;
+                void Drain() { counter = counter - 1; }
+                on Tick => { System.Threading.Tasks.Task.Run(Drain); }
+            }
+            """;
+        var parsed = SpekCompiler.Parse(src);
+        Assert.False(parsed.Success);
+        Assert.True(HasError(parsed, "CE0119"));
+    }
+
+    [Fact]
+    public void CE0083_And_CE0084_FullyQualified_StillError()
+    {
+        // Same root cause across the shared static table: qualified
+        // Thread.Sleep (CE0083) and Environment.Exit (CE0084) were both
+        // silent before the suffix-match fix.
+        const string src = """
+            message Tick();
+            actor A { on Tick => { System.Threading.Thread.Sleep(50); System.Environment.Exit(1); } }
+            """;
+        var parsed = SpekCompiler.Parse(src);
+        Assert.False(parsed.Success);
+        Assert.True(HasError(parsed, "CE0083"));
+        Assert.True(HasError(parsed, "CE0084"));
     }
 }

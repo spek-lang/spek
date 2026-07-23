@@ -1,0 +1,22 @@
+{
+  // Debug this Spek app with breakpoints in .spek files. The env block
+  // re-enables the .NET diagnostics port, which the C# debugger disables
+  // by default — with it on, `spekc observe` and the Spek Actors panel
+  // can attach to the debugged process and show the live actor tree.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug SpekHelloWorld",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/bin/Debug/net10.0/SpekHelloWorld.dll",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "COMPlus_EnableDiagnostics": "1",
+        "DOTNET_EnableDiagnostics": "1"
+      }
+    }
+  ]
+}

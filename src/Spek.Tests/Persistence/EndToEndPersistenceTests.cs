@@ -56,7 +56,7 @@ public sealed class EndToEndPersistenceTests : IDisposable
     }
 
     [Fact]
-    public async Task FileStore_State_Survives_System_Restart()
+    public async Task FileStore_State_Survives_System_RestartAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
 
@@ -82,7 +82,7 @@ public sealed class EndToEndPersistenceTests : IDisposable
     }
 
     [Fact]
-    public async Task SqliteStore_State_Survives_System_Restart()
+    public async Task SqliteStore_State_Survives_System_RestartAsync()
     {
         var dbPath = Path.Combine(_tempDir, "spek.db");
         Directory.CreateDirectory(_tempDir);

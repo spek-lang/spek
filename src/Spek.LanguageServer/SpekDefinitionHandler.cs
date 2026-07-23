@@ -101,11 +101,11 @@ internal sealed class SpekDefinitionHandler : DefinitionHandlerBase
 
     internal static OmniSharp.Extensions.LanguageServer.Protocol.Models.Range SpanToRange(SourceSpan span)
     {
-        // Spek: 1-based, end-inclusive. LSP: 0-based, end-exclusive.
+        // Spek: 1-based, end-exclusive. LSP: 0-based, end-exclusive.
         var startLine = Math.Max(0, span.StartLine - 1);
         var startCol  = Math.Max(0, span.StartColumn - 1);
         var endLine   = Math.Max(0, span.EndLine - 1);
-        var endCol    = Math.Max(0, span.EndColumn);
+        var endCol    = Math.Max(0, span.EndColumn - 1);
         return new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(
             new Position(startLine, startCol),
             new Position(endLine, endCol));

@@ -13,6 +13,10 @@ enum Severity
     High,   // trailing comma is legal
 }
 
+// ── enums: plain with values, flags with auto powers + unions ───────────
+enum Priority { Low, Medium = 5, High }
+flags enum Access { Read, Write, Execute, ReadWrite = Read | Write }
+
 // ── messages: plain, generic-with-default, abstract family ──────────────
 message Ping();
 message Pong(int n);
@@ -133,6 +137,13 @@ actor Kitchen : Api
     {
         on Ping =>
         {
+            // conversions: To (compile-proven lossless) / TryTo (exact-or-null)
+            long widened = cache.To<long>();
+            byte? narrow = big.TryTo<byte>();
+            int? rounded = ratio.TryTo<int>(MidpointRounding.ToZero);
+            var granted  = Access.Read | Access.Write;
+            var canWrite = granted.HasFlag(Access.Write)
+                        && granted.HasOnlyFlags(Access.Read, Access.Write);
             var greeting = $"cache={cache}, price={price:F2}";
             var path = @"C:\temp\file.txt";
             var both = $@"verbatim {greeting} interp";

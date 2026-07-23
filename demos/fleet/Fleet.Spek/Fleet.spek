@@ -1,0 +1,74 @@
+namespace Fleet;
+
+// The IoT fleet, Spek pane. The recovery story is the supervise clause —
+// nothing else. A NaN reading models a firmware fault: the device actor
+// crashes mid-dispatch, supervision restarts it, and the fleet keeps
+// serving. Compare Fleet.CSharp/ChannelFleet.cs: every line of its
+// try/catch, rebuild, and retry bookkeeping is what this clause replaces.
+
+message Reading(int deviceId, double value);
+message Processed();
+message GetTotal();
+message TotalReply(long total);
+
+actor Collector
+{
+    long total = 0;
+
+    behavior Default
+    {
+        on Processed p => { total = total + 1; }
+        on GetTotal g => { return new TotalReply(total); }
+    }
+}
+
+actor Device
+{
+    ActorRef collector;
+
+    init(ActorRef c) { collector = c; }
+
+    behavior Default
+    {
+        on Reading r =>
+        {
+            Firmware.Process(r.value);
+            collector.Tell(new Processed());
+        }
+    }
+}
+
+actor FleetHub
+{
+    ActorRef collector;
+    System.Collections.Generic.Dictionary<int, ActorRef> devices =
+        new System.Collections.Generic.Dictionary<int, ActorRef>();
+
+    init(ActorRef c) { collector = c; }
+
+    supervise OneForOne(on Failure: Restart, maxRetries: 1000000, withinTime: System.TimeSpan.FromSeconds(1));
+
+    behavior Default
+    {
+        on Reading r =>
+        {
+            if (!devices.ContainsKey(r.deviceId))
+            {
+                devices[r.deviceId] = spawn<Device>(collector);
+            }
+            devices[r.deviceId].Tell(r);
+        }
+    }
+}
+
+module Firmware
+{
+    public void Process(double value)
+    {
+        if (double.IsNaN(value))
+        {
+            object? none = null;
+            object crash = none ?? throw new System.InvalidOperationException("firmware fault: NaN reading");
+        }
+    }
+}

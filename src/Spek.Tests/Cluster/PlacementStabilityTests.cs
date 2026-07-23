@@ -27,7 +27,9 @@ public class PlacementStabilityTests
     {
         var map = new Dictionary<string, string>(keyCount);
         for (int k = 0; k < keyCount; k++)
-            map[$"key-{k}"] = p.ResolveOwner("Actor", $"key-{k}", members)!.Label;
+            // ResolveOwner never returns null for a non-empty member list,
+            // and every member here is built by Node(i) with an "n{i}" label.
+            map[$"key-{k}"] = p.ResolveOwner("Actor", $"key-{k}", members)!.Label!;
         return map;
     }
 

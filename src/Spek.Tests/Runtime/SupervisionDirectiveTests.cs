@@ -87,7 +87,7 @@ public class SupervisionDirectiveTests
     }
 
     [Fact]
-    public async Task ParentResume_PreservesChildInstanceAndState_AndKeepsItAlive()
+    public async Task ParentResume_PreservesChildInstanceAndState_AndKeepsItAliveAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("resume", deadLetterSink: sink);
@@ -101,7 +101,7 @@ public class SupervisionDirectiveTests
         parent.Tell(new TellChild(new Crash()));
         parent.Tell(new TellChild(new Crash()));
 
-        var child = await AskChildRef(probe, parent);
+        var child = await AskChildRefAsync(probe, parent);
 
         // Ask the surviving instance for its counter. If Resume preserved the
         // instance, the count is 2 (both mutations rode through the throws).
@@ -112,7 +112,7 @@ public class SupervisionDirectiveTests
         Assert.False(child.IsStopped, "Resume must not stop the child.");
 
         // Resume is non-terminal: each crash is reported with a "resuming" reason.
-        await WaitUntil(() => sink.Records.Count(r => r.Cause is not null) >= 2);
+        await WaitUntilAsync(() => sink.Records.Count(r => r.Cause is not null) >= 2);
         Assert.True(
             sink.Records.Count(r => r.Reason.Contains("resuming", StringComparison.OrdinalIgnoreCase)) >= 2,
             "Both crashes should be dead-lettered with a 'resuming' reason.");
@@ -219,13 +219,13 @@ public class SupervisionDirectiveTests
                     break;
                 case GetChildRef:
                     // Resolve the grandchild ref by asking the parent, then relay.
-                    _grandchild = await ResolveGrandchild();
+                    _grandchild = await ResolveGrandchildAsync();
                     sender.Tell(new ChildRefReply(_grandchild!));
                     break;
             }
         }
 
-        private async Task<ActorRef> ResolveGrandchild()
+        private async Task<ActorRef> ResolveGrandchildAsync()
         {
             if (_grandchild is not null) return _grandchild;
             var reply = await _parent!.AskAsync<ChildRefReply>(new GetChildRef(), TimeSpan.FromSeconds(10));
@@ -237,7 +237,7 @@ public class SupervisionDirectiveTests
     }
 
     [Fact]
-    public async Task Escalate_ImmediateSupervisorReturnsRestart_RestartsChild()
+    public async Task Escalate_ImmediateSupervisorReturnsRestart_RestartsChildAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("escalate-restart", deadLetterSink: sink);
@@ -248,7 +248,7 @@ public class SupervisionDirectiveTests
             FailureDirective.Restart, FailureDirective.Restart);
         grandparent.Tell(new SpawnChild());
 
-        var leaf = await AskChildRef(probe, grandparent);
+        var leaf = await AskChildRefAsync(probe, grandparent);
 
         // Prime the leaf's in-memory counter, then crash it. A Restart drops
         // the instance, so the post-restart counter is back to 0 (state reset).
@@ -257,7 +257,7 @@ public class SupervisionDirectiveTests
 
         leaf.Tell(new Crash());                                  // counter→1 in old instance, then throw → Restart
 
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("restarting", StringComparison.OrdinalIgnoreCase)));
 
         // Fresh instance: counter is 0 again, and the leaf is alive.
@@ -269,7 +269,7 @@ public class SupervisionDirectiveTests
     }
 
     [Fact]
-    public async Task Escalate_EveryLevelEscalates_ClimbsToRoot_DegradesToStop()
+    public async Task Escalate_EveryLevelEscalates_ClimbsToRoot_DegradesToStopAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("escalate-all", deadLetterSink: sink);
@@ -283,13 +283,13 @@ public class SupervisionDirectiveTests
             FailureDirective.Escalate, FailureDirective.Escalate);
         grandparent.Tell(new SpawnChild());
 
-        var leaf = await AskChildRef(probe, grandparent);
+        var leaf = await AskChildRefAsync(probe, grandparent);
 
         leaf.Tell(new Crash());
 
         // Wait for BOTH terminal conditions — the leaf stopping and the
         // root-reached dead-letter — which settle on slightly different timings.
-        await WaitUntil(() => leaf.IsStopped && sink.Records.Any(r =>
+        await WaitUntilAsync(() => leaf.IsStopped && sink.Records.Any(r =>
             r.Reason.Contains("escalate at root", StringComparison.OrdinalIgnoreCase)));
         Assert.True(leaf.IsStopped, "When every level escalates up to the root, the child must end up stopped.");
         Assert.Contains(sink.Records, r =>
@@ -299,7 +299,7 @@ public class SupervisionDirectiveTests
     // Fixed: ResolveEscalation now climbs the supervisor chain, so the grandparent's
     // Restart is consulted past the escalating parent and the leaf is restarted (alive).
     [Fact]
-    public async Task Escalate_ParentEscalates_GrandparentRestarts_ClimbsAndRestartsChild()
+    public async Task Escalate_ParentEscalates_GrandparentRestarts_ClimbsAndRestartsChildAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("escalate-climb", deadLetterSink: sink);
@@ -311,14 +311,14 @@ public class SupervisionDirectiveTests
             FailureDirective.Restart, FailureDirective.Escalate);
         grandparent.Tell(new SpawnChild());
 
-        var leaf = await AskChildRef(probe, grandparent);
+        var leaf = await AskChildRefAsync(probe, grandparent);
 
         leaf.Tell(new Crash());
 
         // The climb-to-grandparent surfaces a "restarting" dead-letter. Use the
         // default (generous) timeout — under a saturated thread pool the
         // crash → escalate → climb → restart chain can take a while to dispatch.
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("restarting", StringComparison.OrdinalIgnoreCase)));
 
         Assert.False(leaf.IsStopped,
@@ -367,7 +367,7 @@ public class SupervisionDirectiveTests
     }
 
     [Fact]
-    public async Task PerChildBudget_RestartsTwiceThenStopsOnThirdCrash()
+    public async Task PerChildBudget_RestartsTwiceThenStopsOnThirdCrashAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("budget", deadLetterSink: sink);
@@ -376,21 +376,21 @@ public class SupervisionDirectiveTests
         var parent = system.Spawn<BudgetedRestartParent>();
         parent.Tell(new SpawnChild());
 
-        var child = await AskChildRef(probe, parent);
+        var child = await AskChildRefAsync(probe, parent);
 
         // First crash: budget log empty (0 < 2) → Restart; child stays alive.
         child.Tell(new Crash());
-        await WaitUntil(() => CountReason(sink, "restarting") >= 1);
+        await WaitUntilAsync(() => CountReason(sink, "restarting") >= 1);
         Assert.False(child.IsStopped, "First crash should restart, not stop.");
 
         // Second crash: log at 1 (< 2) → Restart; still alive.
         child.Tell(new Crash());
-        await WaitUntil(() => CountReason(sink, "restarting") >= 2);
+        await WaitUntilAsync(() => CountReason(sink, "restarting") >= 2);
         Assert.False(child.IsStopped, "Second crash should restart, not stop.");
 
         // Third crash: log at 2 (>= 2) → budget exhausted → degrade to Stop.
         child.Tell(new Crash());
-        await WaitUntil(() => child.IsStopped);
+        await WaitUntilAsync(() => child.IsStopped);
 
         Assert.True(child.IsStopped, "Third crash should exceed the budget and stop the child.");
         Assert.Equal(2, CountReason(sink, "restarting"));
@@ -404,7 +404,7 @@ public class SupervisionDirectiveTests
         sink.Records.Count(r => r.Reason.Contains(fragment, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Asks a parent for its child's ref and returns it.</summary>
-    private static async Task<ActorRef> AskChildRef(TestProbe probe, ActorRef parent)
+    private static async Task<ActorRef> AskChildRefAsync(TestProbe probe, ActorRef parent)
     {
         // The parent may not have spawned its child yet (SpawnChild is queued).
         // Retry the request until a non-null child ref comes back.
@@ -420,7 +420,7 @@ public class SupervisionDirectiveTests
         }
     }
 
-    private static async Task WaitUntil(Func<bool> predicate, int timeoutMs = 30_000)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = 30_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

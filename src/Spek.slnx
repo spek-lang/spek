@@ -4,6 +4,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="Spek.Benchmarks.Language/Spek.Benchmarks.Language.csproj" />
+  <Project Path="Spek.Benchmarks.Toolchain/Spek.Benchmarks.Toolchain.csproj" />
   <Project Path="Spek.Benchmarks/Spek.Benchmarks.csproj" />
   <Project Path="Spek.Build/Spek.Build.csproj" />
   <Project Path="Spek.Cli/Spek.Cli.csproj" />

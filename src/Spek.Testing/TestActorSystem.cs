@@ -22,22 +22,43 @@ public sealed class TestActorSystem : IDisposable
     public TestActorSystem(
         string name = "test",
         ISnapshotStore? snapshotStore = null,
-        IDeadLetterSink? deadLetterSink = null)
+        IDeadLetterSink? deadLetterSink = null,
+        bool virtualTime = false,
+        ChaosPlan? chaos = null)
     {
-        _system = new ActorSystem(name, snapshotStore, deadLetterSink);
+        Clock   = virtualTime ? new ManualTimeProvider() : null;
+        _system = new ActorSystem(name, snapshotStore, deadLetterSink, Clock, chaos);
     }
+
+    /// <summary>
+    /// The system's manual clock when the test opted into virtual time
+    /// (<c>virtualTime: true</c>); null otherwise. Under virtual time the
+    /// runtime's semantic clocks (passivation idleness, restart windows,
+    /// <c>self.Clock</c>) stand still until <see cref="AdvanceClock"/> moves
+    /// them — a passivation timeout of minutes becomes one call. Real-time
+    /// tests are unaffected by default; opting the default over to virtual
+    /// time is deliberately deferred until the wait helpers pump the clock.
+    /// </summary>
+    public ManualTimeProvider? Clock { get; }
+
+    /// <summary>Moves virtual test time forward — see <see cref="Clock"/>.</summary>
+    public void AdvanceClock(TimeSpan delta)
+        => (Clock ?? throw new InvalidOperationException(
+                "This TestActorSystem runs on real time. Construct it with " +
+                "virtualTime: true to control the clock."))
+            .Advance(delta);
 
     /// <summary>Starts the actor under test and returns its
     /// <see cref="ActorRef"/> — the handle you <c>Tell</c>/<c>Ask</c>
     /// through to drive it. The actor's <c>init</c> has run by the time
     /// this returns.</summary>
-    public ActorRef Spawn<TActor>(params object[] args) where TActor : ActorBase
+    public ActorRef Spawn<TActor>(params object?[] args) where TActor : ActorBase
         => _system.Spawn<TActor>(args);
 
     /// <summary>Non-generic <see cref="Spawn{TActor}"/> — useful when the
     /// actor type is only known at runtime (e.g. dynamically-compiled Spek
     /// code loaded via reflection).</summary>
-    public ActorRef Spawn(Type actorType, params object[] args)
+    public ActorRef Spawn(Type actorType, params object?[] args)
         => _system.Spawn(actorType, args);
 
     /// <summary>Starts a persistent actor bound to
@@ -46,25 +67,25 @@ public sealed class TestActorSystem : IDisposable
     /// processing messages — combine with a shared
     /// <c>snapshotStore</c> across two test systems to exercise
     /// persist/respawn scenarios.</summary>
-    public ActorRef SpawnPersistent<TActor>(string persistenceKey, params object[] args)
+    public ActorRef SpawnPersistent<TActor>(string persistenceKey, params object?[] args)
         where TActor : ActorBase
         => _system.SpawnPersistent<TActor>(persistenceKey, args);
 
     /// <summary>Non-generic <see cref="SpawnPersistent{TActor}"/> — useful
     /// when the actor type is only known at runtime.</summary>
-    public ActorRef SpawnPersistent(Type actorType, string persistenceKey, params object[] args)
+    public ActorRef SpawnPersistent(Type actorType, string persistenceKey, params object?[] args)
         => _system.SpawnPersistent(actorType, persistenceKey, args);
 
     /// <summary>Async <see cref="Spawn{TActor}"/> — use when the test
     /// system's <see cref="ISnapshotStore"/> does real I/O, so spawning
     /// doesn't block a pool thread.</summary>
-    public Task<ActorRef> SpawnAsync<TActor>(params object[] args) where TActor : ActorBase
+    public Task<ActorRef> SpawnAsync<TActor>(params object?[] args) where TActor : ActorBase
         => _system.SpawnAsync<TActor>(args);
 
     /// <summary>Async <see cref="SpawnPersistent{TActor}"/> — the restore
     /// from the snapshot store happens without blocking a pool
     /// thread.</summary>
-    public Task<ActorRef> SpawnPersistentAsync<TActor>(string persistenceKey, params object[] args)
+    public Task<ActorRef> SpawnPersistentAsync<TActor>(string persistenceKey, params object?[] args)
         where TActor : ActorBase
         => _system.SpawnPersistentAsync<TActor>(persistenceKey, args);
 
@@ -145,6 +166,31 @@ public sealed class TestActorSystem : IDisposable
     /// <summary>How many times <paramref name="actor"/> has been restarted by
     /// supervision (0 if it was stopped, or never failed).</summary>
     public int RestartCountOf(ActorRef actor) => actor.Slot?.RestartCount ?? 0;
+
+    /// <summary>Messages that fully entered dispatch on <paramref name="actor"/> —
+    /// pairs with the dead-letter sink for "every message reached a terminal
+    /// state" assertions.</summary>
+    public long DispatchCountOf(ActorRef actor) => actor.Slot?.DispatchedCount ?? 0;
+
+    /// <summary>Aggregate ask-reply invariants (delivered / duplicate-dropped /
+    /// failed across all reply cells since <see cref="ResetReplyDiagnostics"/>).
+    /// A nonzero duplicate count in a test that expects one reply per ask is
+    /// a reply-routing bug.</summary>
+    public static (long Delivered, long DupDropped, long Failed) ReplyDiagnostics =>
+        (Spek.Runtime.ReplyDiagnostics.Delivered,
+         Spek.Runtime.ReplyDiagnostics.DupDropped,
+         Spek.Runtime.ReplyDiagnostics.Failed);
+
+    /// <summary>Zeroes the ask-reply counters (call at test start).</summary>
+    public static void ResetReplyDiagnostics() => Spek.Runtime.ReplyDiagnostics.Reset();
+
+    /// <summary>Attach a passive inbox observer to the actor under test —
+    /// see <see cref="ActorSystem.Observe"/>. Pair with
+    /// <see cref="RecordingObserver"/> to assert on traffic without
+    /// instrumenting the actor.</summary>
+    public InboxObserverHandle Observe(
+        ActorRef actor, Action<ObservedMessage> onMessage, int bufferCapacity = 1024) =>
+        _system.Observe(actor, onMessage, bufferCapacity);
 
     /// <summary>Awaits until <paramref name="actor"/> has restarted at least
     /// <paramref name="count"/> times (default 1); throws <see cref="TimeoutException"/>

@@ -32,7 +32,7 @@ public class ShutdownTokenPolicyTests
     }
 
     [Fact]
-    public async Task DrainTimeout_TurnsForceful_CancelsToken_AndWedgedHandlerUnwinds()
+    public async Task DrainTimeout_TurnsForceful_CancelsToken_AndWedgedHandlerUnwindsAsync()
     {
         var started = new TaskCompletionSource();
         var system  = new ActorSystem("t");

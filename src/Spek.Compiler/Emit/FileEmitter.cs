@@ -17,6 +17,9 @@ public sealed class FileEmitter
     /// <param name="asyncReferencePaths">Extra assembly paths fed to the
     /// invisible-async pass so it can auto-await Task-returning APIs from
     /// outside the BCL (e.g. AspNetCore). Null uses the BCL alone.</param>
+    /// <param name="emitTests">When true (test projects), a module/class whose
+    /// name ends in <c>Tests</c> compiles as a test container — its public
+    /// methods emit as <c>[SpekTest]</c> xUnit facts.</param>
     public string Emit(SpekFile file, SymbolTable? symbols = null, string? sourceFileName = null,
         IReadOnlyList<string>? asyncReferencePaths = null, bool emitTests = false)
     {
@@ -519,13 +522,51 @@ public sealed class FileEmitter
         };
 
         w.DocComment(e.DocComment);
+        if (e.IsFlags)
+        {
+            // The attribute is the C#-interop footnote; the guarantees live
+            // in the analyzer (validated values, gated operators). Emitting
+            // it keeps ToString() ("Read, Write") and Enum.Parse correct for
+            // every consumer.
+            w.Line("[System.Flags]");
+        }
         w.Line($"{vis} enum {e.Name}");
         w.Line("{");
         w.Indent();
-        foreach (var m in e.Members)
+        if (e.IsFlags)
         {
-            w.DocComment(m.DocComment);
-            w.Line($"{m.Name},");
+            // Provided zero member: the empty set. User zero members are a
+            // CE (the HasFlag(None) trap), so this is always safe to add.
+            w.Line("None = 0,");
+            var used = new HashSet<long>(
+                e.Members.Where(m => m.Value is not null).Select(m => m.Value!.Value));
+            long nextPow = 1;
+            foreach (var m in e.Members)
+            {
+                w.DocComment(m.DocComment);
+                if (m.UnionOf is not null)
+                {
+                    w.Line($"{m.Name} = {string.Join(" | ", m.UnionOf)},");
+                }
+                else if (m.Value is not null)
+                {
+                    w.Line($"{m.Name} = {m.Value},");
+                }
+                else
+                {
+                    while (used.Contains(nextPow)) nextPow <<= 1;
+                    used.Add(nextPow);
+                    w.Line($"{m.Name} = {nextPow},");
+                }
+            }
+        }
+        else
+        {
+            foreach (var m in e.Members)
+            {
+                w.DocComment(m.DocComment);
+                w.Line(m.Value is not null ? $"{m.Name} = {m.Value}," : $"{m.Name},");
+            }
         }
         w.Dedent();
         w.Line("}");

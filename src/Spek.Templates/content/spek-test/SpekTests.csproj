@@ -20,9 +20,9 @@
   <ItemGroup>
     <!-- The Spek runtime, the xUnit test adapter (brings xunit transitively), and
          the MSBuild integration that compiles .spek during `dotnet build`/`test`. -->
-    <PackageReference Include="Spek.Runtime" Version="0.1.0-alpha.*" />
-    <PackageReference Include="Spek.Testing.Xunit" Version="0.1.0-alpha.*" />
-    <PackageReference Include="Spek.Build" Version="0.1.0-alpha.*" PrivateAssets="all" />
+    <PackageReference Include="Spek.Runtime" Version="0.1.*" />
+    <PackageReference Include="Spek.Testing.Xunit" Version="0.1.*" />
+    <PackageReference Include="Spek.Build" Version="0.1.*" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>

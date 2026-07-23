@@ -67,6 +67,66 @@ public sealed class InterpolationTests
         AssertCompiles(code, "InterpEmbeddedBrace");
     }
 
+    // ── Red-team emit-F1: a To<T> conversion inside a hole lowers to a
+    //    `global::`-qualified call; the `::` must be parenthesized so C# doesn't
+    //    read the first `:` as the format specifier (was CS0103 on green Spek). ──
+    [Fact]
+    public void Hole_ConversionLowering_ParenthesizedAndCompiles()
+    {
+        const string src = """
+            message M(int n);
+            actor A { init() { become Go; } behavior Go {
+                on M m => { System.Console.WriteLine($"v={m.n.To<long>()}"); } } }
+            """;
+        var (ok, code, diags) = Emit(src);
+        Assert.True(ok, diags);
+        Assert.Contains("{(global::Spek.Conversions.To<long>", code);   // wrapped
+        AssertCompiles(code, "InterpConversion");
+    }
+
+    // ── Red-team emit-F2: a ternary in a hole — its `:` is NOT the format
+    //    delimiter (SplitHole must not split there), and the emit must
+    //    parenthesize it (was CS8361 on green Spek). ──
+    [Fact]
+    public void Hole_Ternary_ParsesParenthesizedAndCompiles()
+    {
+        const string src = """
+            message M(int n);
+            actor A { init() { become Go; } behavior Go {
+                on M m => { System.Console.WriteLine($"s={m.n > 0 ? "pos" : "neg"}"); } } }
+            """;
+        var (ok, code, diags) = Emit(src);
+        Assert.True(ok, diags);
+        Assert.DoesNotContain("{m.n > 0 ? \"pos\"", code);   // NOT verbatim-passthrough
+        AssertCompiles(code, "InterpTernary");
+    }
+
+    // ── A ternary WITH a format suffix: the ternary colon is consumed, the
+    //    trailing `:F2` still splits off as the format. ──
+    [Fact]
+    public void Hole_TernaryWithFormatSuffix_Compiles()
+    {
+        const string src = """
+            message M(double d);
+            actor A { init() { become Go; } behavior Go {
+                on M m => { System.Console.WriteLine($"x={m.d > 0 ? m.d : 0.0:F2}"); } } }
+            """;
+        var (ok, code, diags) = Emit(src);
+        Assert.True(ok, diags);
+        Assert.Contains(":F2}", code);   // format suffix preserved
+        AssertCompiles(code, "InterpTernaryFormat");
+    }
+
+    // ── False-positive guard: a plain hole is NOT over-parenthesized. ──
+    [Fact]
+    public void Hole_SimpleLocal_StaysBare()
+    {
+        var (ok, code, diags) = Emit("""program Main { int x = 3; System.Console.WriteLine($"x={x}"); }""");
+        Assert.True(ok, diags);
+        Assert.Contains("$\"x={x}\"", code);
+        Assert.DoesNotContain("{(x)}", code);
+    }
+
     // ── Nested braces in a hole (object/collection initializer) ──
     [Fact]
     public void Hole_NestedBraces_Compiles()
@@ -143,5 +203,71 @@ public sealed class InterpolationTests
         Assert.True(ok, diags);
         Assert.Contains("{_count}", code);
         AssertCompiles(code, "VerbatimInterpFieldRef");
+    }
+
+    // ── Interpolation-heavy source: every hole shape at once ──
+    // Each hole is sub-parsed by ParseSpekExpression, which (like the main
+    // parse) predicts in SLL first and falls back to full LL on a bail.
+    // This drives many holes through that two-stage path in one source:
+    // qualified nested calls, member calls on a field, arithmetic, a format
+    // suffix, and adjacent holes — asserting the emitted C# keeps every
+    // invocation intact and still rewrites fields inside holes.
+    [Fact]
+    public void ManyHoles_IncludingNestedCalls_ParseAndEmit()
+    {
+        const string src = """
+            module Pricing
+            {
+                public string Stamp(int id)
+                {
+                    return "#" + id.ToString();
+                }
+            }
+
+            message Order(int id, decimal amount);
+            message Line(string text);
+            actor Register
+            {
+                int sold = 0;
+                decimal total = 0.00m;
+
+                on Order x =>
+                {
+                    sold = sold + 1;
+                    total = total + x.amount;
+                    return new Line(
+                        $"total: {Pricing.Stamp(x.id)} sold={sold} sum={total:F2} avg={ total / sold } tag={x.id.ToString().PadLeft(4, '0')}");
+                }
+            }
+            """;
+        var (ok, code, diags) = Emit(src);
+        Assert.True(ok, diags);
+
+        // Nested qualified call survives the sub-parse whole.
+        Assert.Contains("Pricing.Stamp(x.id)", code);
+        // Field references inside holes are rewritten...
+        Assert.Contains("{_sold}", code);
+        Assert.Contains("_total / _sold", code);
+        // ...the format suffix rides along verbatim...
+        Assert.Contains(":F2}", code);
+        // ...and a chained member call on a message field stays an invocation.
+        Assert.Contains("x.id.ToString().PadLeft(4, '0')", code);
+
+        AssertCompiles(code, "InterpManyHoles");
+    }
+
+    // ── A hole that isn't an expression still falls back to verbatim ──
+    // Pins the ParseSpekExpression null path through BOTH prediction
+    // stages: the SLL parse bails, the full-LL retry also rejects, and the
+    // builder keeps the hole as literal text instead of crashing or
+    // reporting a diagnostic — unchanged from the single-stage behaviour.
+    [Fact]
+    public void Hole_NonExpression_FallsBackToVerbatimText()
+    {
+        var (ok, code, diags) = Emit(
+            """program Main { int x = 7; System.Console.WriteLine($"x={x} and {not valid spek}"); }""");
+        Assert.True(ok, diags);
+        Assert.Contains("{not valid spek}", code);   // verbatim, not parsed
+        Assert.Contains("{x}", code);                // the valid hole still parses
     }
 }

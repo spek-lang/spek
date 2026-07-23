@@ -48,7 +48,7 @@ public sealed class TestProbe
     }
 
     /// <summary>
-    /// Non-generic <see cref="ExpectMsg{T}"/>. Useful for dynamically-compiled
+    /// Non-generic <see cref="ExpectMsg{T}(TimeSpan?)"/>. Useful for dynamically-compiled
     /// message types whose <see cref="Type"/> is only known at runtime.
     /// </summary>
     public object ExpectMsg(Type expectedType, TimeSpan? timeout = null)

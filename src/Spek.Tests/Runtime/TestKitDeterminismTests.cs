@@ -50,7 +50,7 @@ public class TestKitDeterminismTests
     }
 
     [Fact]
-    public async Task WaitUntilAsync_ReturnsOnceConditionHolds()
+    public async Task WaitUntilAsync_ReturnsOnceConditionHoldsAsync()
     {
         _workDone = false;
         using var system = new TestActorSystem("until");
@@ -64,7 +64,7 @@ public class TestKitDeterminismTests
     }
 
     [Fact]
-    public async Task WaitUntilAsync_ThrowsDescriptiveTimeout()
+    public async Task WaitUntilAsync_ThrowsDescriptiveTimeoutAsync()
     {
         var ex = await Assert.ThrowsAsync<TimeoutException>(() =>
             TestActorSystem.WaitUntilAsync(

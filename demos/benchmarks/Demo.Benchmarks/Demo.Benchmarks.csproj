@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Demo.Benchmarks</RootNamespace>
+    <!-- BenchmarkDotNet requires a Release build to produce meaningful numbers. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\fleet\Fleet.Contracts\Fleet.Contracts.csproj" />
+    <ProjectReference Include="..\..\fleet\Fleet.Spek\Fleet.Spek.csproj" />
+    <ProjectReference Include="..\..\fleet\Fleet.CSharp\Fleet.CSharp.csproj" />
+    <ProjectReference Include="..\..\ratelimiter\RateLimiter.Contracts\RateLimiter.Contracts.csproj" />
+    <ProjectReference Include="..\..\ratelimiter\RateLimiter.Spek\RateLimiter.Spek.csproj" />
+    <ProjectReference Include="..\..\ratelimiter\RateLimiter.CSharp\RateLimiter.CSharp.csproj" />
+    <ProjectReference Include="..\Readers.Spek\Readers.Spek.csproj" />
+  </ItemGroup>
+
+</Project>

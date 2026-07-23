@@ -82,27 +82,39 @@ public sealed class TcpClusterTransport : ISpekTransport
 
     public event Action<NodeIdentity, RemoteEnvelope, Exception>? DeliveryFailed;
 
-    public Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default)
+    public async Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default)
     {
-        if (_shutdown.IsCancellationRequested) return Task.CompletedTask;
+        if (_shutdown.IsCancellationRequested) return;
 
         // Find or open the outbound connection to this peer.
         if (!_outbound.TryGetValue(target.Id, out var conn))
         {
             DeliveryFailed?.Invoke(target, envelope, new InvalidOperationException(
                 $"No outbound connection registered for node {target}. Call ConnectToPeer() first."));
-            return Task.CompletedTask;
+            return;
         }
 
+        // One frame at a time per connection: PipeWriter is not safe for
+        // concurrent writers, and before this gate two actors sending to the
+        // same peer from different threads could interleave GetSpan/Advance
+        // and corrupt the wire. The gate also makes the connection's frame
+        // scratch buffer safely reusable (perf r15). Flush faults are routed
+        // to DeliveryFailed like every other send failure, per the
+        // ISpekTransport contract.
+        await conn.SendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            TcpFrame.Write(conn.Writer, envelope, envelope.Message.GetType().FullName!, _serializer);
-            return conn.Writer.FlushAsync(cancellationToken).AsTask();
+            TcpFrame.Write(conn.Writer, envelope, envelope.Message.GetType().FullName!,
+                _serializer, conn.FrameScratch);
+            await conn.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             DeliveryFailed?.Invoke(target, envelope, ex);
-            return Task.CompletedTask;
+        }
+        finally
+        {
+            conn.SendGate.Release();
         }
     }
 
@@ -304,6 +316,13 @@ public sealed class TcpClusterTransport : ISpekTransport
         public PipeWriter Writer { get; }
         public PipeReader Reader { get; }
 
+        /// <summary>Serializes frame writes — PipeWriter is single-writer.</summary>
+        public SemaphoreSlim SendGate { get; } = new(1, 1);
+
+        /// <summary>Payload staging buffer, reused across frames under
+        /// <see cref="SendGate"/> (perf r15).</summary>
+        public ArrayBufferWriter<byte> FrameScratch { get; } = new(4096);
+
         public OutboundConnection(TcpClient client, PipeWriter writer, PipeReader reader)
         {
             Client = client;
@@ -316,6 +335,7 @@ public sealed class TcpClusterTransport : ISpekTransport
             try { Writer.Complete(); } catch { /* ignore */ }
             try { Reader.Complete(); } catch { /* ignore */ }
             Client.Dispose();
+            SendGate.Dispose();
         }
     }
 }

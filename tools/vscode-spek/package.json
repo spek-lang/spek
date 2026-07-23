@@ -1,8 +1,8 @@
 {
   "name": "vscode-spek",
   "displayName": "Spek",
-  "description": "Syntax highlighting and language server support for the Spek programming language.",
-  "version": "0.1.2",
+  "description": "Syntax highlighting, language server support, live actor introspection, and error-code explanations for the Spek programming language.",
+  "version": "0.1.0",
   "publisher": "spek-lang",
   "license": "Apache-2.0",
   "icon": "icon.png",
@@ -15,17 +15,30 @@
     "vscode": "^1.80.0"
   },
   "main": "./out/extension.js",
-  "categories": ["Programming Languages"],
+  "categories": [
+    "Programming Languages"
+  ],
   "activationEvents": [
-    "onLanguage:spek"
+    "onLanguage:spek",
+    "onDebug",
+    "onDebugResolve:spek"
   ],
   "contributes": {
     "languages": [
       {
         "id": "spek",
-        "aliases": ["Spek", "spek"],
-        "extensions": [".spek"],
-        "configuration": "./language-configuration.json"
+        "aliases": [
+          "Spek",
+          "spek"
+        ],
+        "extensions": [
+          ".spek"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icon.png",
+          "dark": "./icon.png"
+        }
       }
     ],
     "grammars": [
@@ -49,6 +62,32 @@
       {
         "command": "spek.showEmittedCSharp",
         "title": "Spek: Show Emitted C# (experimental)"
+      },
+      {
+        "command": "spek.attachToProcess",
+        "title": "Spek: Attach to Process"
+      },
+      {
+        "command": "spek.detachFromProcess",
+        "title": "Spek: Detach from Process"
+      },
+      {
+        "command": "spek.showActorPanel",
+        "title": "Spek: Show Live Actor Panel"
+      },
+      {
+        "command": "spek.explainErrorCode",
+        "title": "Spek: Explain Error Code"
+      },
+      {
+        "command": "spek.runProjectOfFile",
+        "title": "Spek: Run Project of This File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "spek.debugProjectOfFile",
+        "title": "Spek: Debug Project of This File",
+        "icon": "$(debug-alt)"
       }
     ],
     "menus": {
@@ -56,9 +95,85 @@
         {
           "command": "spek.showEmittedCSharp",
           "when": "editorLangId == spek && config.spek.experimental.showEmittedCSharp"
+        },
+        {
+          "command": "spek.detachFromProcess",
+          "when": "spek.observe.attached"
+        },
+        {
+          "command": "spek.showActorPanel",
+          "when": "spek.observe.attached"
+        },
+        {
+          "command": "spek.runProjectOfFile",
+          "when": "editorLangId == spek"
+        },
+        {
+          "command": "spek.debugProjectOfFile",
+          "when": "editorLangId == spek"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "spek.runProjectOfFile",
+          "when": "editorLangId == spek",
+          "group": "navigation@1"
+        },
+        {
+          "command": "spek.debugProjectOfFile",
+          "when": "editorLangId == spek",
+          "group": "navigation@2"
         }
       ]
     },
+    "debuggers": [
+      {
+        "type": "spek",
+        "label": "Spek",
+        "languages": [
+          "spek"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "properties": {
+              "file": {
+                "type": "string",
+                "description": "The .spek file whose project to run. Defaults to the active editor's file."
+              }
+            }
+          }
+        },
+        "configurationSnippets": [
+          {
+            "label": "Spek: Launch project of a .spek file",
+            "description": "Builds the project that compiles the .spek file (or its executable harness) and debugs it with the .NET debugger.",
+            "body": {
+              "type": "spek",
+              "request": "launch",
+              "name": "Spek: Debug project of active .spek file"
+            }
+          }
+        ]
+      }
+    ],
+    "taskDefinitions": [
+      {
+        "type": "spek",
+        "properties": {
+          "action": {
+            "type": "string",
+            "description": "What the task does: build or run."
+          },
+          "project": {
+            "type": "string",
+            "description": "Absolute path of the .csproj the task operates on."
+          }
+        },
+        "required": [
+          "action"
+        ]
+      }
+    ],
     "configuration": {
       "type": "object",
       "title": "Spek",
@@ -66,24 +181,64 @@
         "spek.languageServer.path": {
           "type": "string",
           "default": "spek-lsp",
-          "description": "Path to the Spek language server executable. Default: `spek-lsp` (resolved from PATH). During the preview the server isn't published to NuGet yet — build it from the Spek repo and install it as a global dotnet tool, or set this to the built `spek-lsp` binary."
+          "description": "Path to the Spek language server executable. Default: `spek-lsp` (resolved from PATH). During the preview the server isn't published to NuGet yet \u2014 build it from the Spek repo and install it as a global dotnet tool, or set this to the built `spek-lsp` binary."
         },
         "spek.languageServer.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Enable the Spek language server. Turn off to get syntax highlighting without diagnostics or hover."
         },
+        "spek.spekc.path": {
+          "type": "string",
+          "default": "spekc",
+          "description": "Path to the `spekc` CLI executable, used by 'Spek: Attach to Process' for live actor introspection. Default: `spekc` (resolved from PATH)."
+        },
+        "spek.observe.mailboxWarningDepth": {
+          "type": "number",
+          "default": 10,
+          "description": "Mailbox depth at which an actor is highlighted in the live actor panel and CodeLens \u2014 a queue this deep usually means a slow or stuck handler."
+        },
+        "spek.observe.autoAttachOnDebug": {
+          "type": "string",
+          "enum": [
+            "always",
+            "spekProjectsOnly",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Attach the live actor panel to every .NET (coreclr) debug session.",
+            "Attach only when the debugged project is a Spek project \u2014 launched by a Spek run/debug command, or with .spek sources in (or referenced by) the debugged project.",
+            "Never attach automatically; use \"Spek: Attach to Process\" manually."
+          ],
+          "default": "spekProjectsOnly",
+          "description": "Open the live actor panel automatically when a .NET debug session starts, attached to the debuggee's process."
+        },
         "spek.experimental.showEmittedCSharp": {
           "type": "boolean",
           "default": false,
-          "description": "Experimental. Enables the 'Spek: Show Emitted C#' command, which opens the C# the compiler generates for the current file. Off by default on purpose — reading the generated C# is a diagnostic aid, not part of the intended workflow, so lean on it sparingly."
+          "description": "Experimental. Enables the 'Spek: Show Emitted C#' command, which opens the C# the compiler generates for the current file. Off by default on purpose \u2014 reading the generated C# is a diagnostic aid, not part of the intended workflow, so lean on it sparingly."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "key": "f5",
+        "command": "spek.debugProjectOfFile",
+        "when": "editorLangId == spek && editorTextFocus && !inDebugMode"
+      },
+      {
+        "key": "ctrl+f5",
+        "mac": "cmd+f5",
+        "command": "spek.runProjectOfFile",
+        "when": "editorLangId == spek && editorTextFocus && !inDebugMode"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node --test \"out/test/**/*.test.js\"",
+    "gen:errors": "node out/tools/generateErrorCatalog.js",
     "vscode:prepublish": "npm run compile"
   },
   "dependencies": {

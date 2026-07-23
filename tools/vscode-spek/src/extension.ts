@@ -7,6 +7,10 @@ import {
   ServerOptions,
   TransportKind,
 } from 'vscode-languageclient/node';
+import { ObserveController } from './observe/controller';
+import { registerDebugAutoAttach } from './observe/debugAutoAttach';
+import { registerRunDebug } from './run/runDebug';
+import { registerCeExplain } from './errors/explain';
 
 let client: LanguageClient | undefined;
 
@@ -27,11 +31,76 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('spek.showEmittedCSharp', () => showEmittedCSharp()),
   );
 
+  // Live actor introspection: "Spek: Attach to Process" spawns
+  // `spekc observe <pid> --json` and drives the actor panel, the status
+  // bar item, and per-session live CodeLens. All of it detaches when the
+  // panel closes or the command runs again. The panel tab wears the same
+  // mark as the .spek file icon.
+  const observe = new ObserveController({
+    light: vscode.Uri.joinPath(context.extensionUri, 'icon.png'),
+    dark: vscode.Uri.joinPath(context.extensionUri, 'icon.png'),
+  });
+  context.subscriptions.push(
+    observe,
+    vscode.commands.registerCommand('spek.attachToProcess', () => observe.attachCommand()),
+    vscode.commands.registerCommand('spek.detachFromProcess', () => observe.detach()),
+    vscode.commands.registerCommand('spek.showActorPanel', () => observe.showPanel()),
+  );
+
+  // Run/debug the project of the active .spek file: F5 (via the `spek`
+  // debug-configuration provider) plus the two explicit commands.
+  registerRunDebug(context);
+
+  // Actor tree auto-opens while debugging: a DAP tracker on coreclr
+  // sessions reads the debuggee pid and attaches the observe session.
+  registerDebugAutoAttach(context, observe);
+
+  // CE-code explanations: hover links on diagnostics plus the
+  // "Spek: Explain Error Code" command, backed by the bundled catalog.
+  registerCeExplain(context);
+
   const config = vscode.workspace.getConfiguration('spek');
   const enabled: boolean = config.get('languageServer.enabled', true);
   if (!enabled) {
     return;
   }
+
+  // Activation can now also happen via debugging (onDebug) in workspaces
+  // that contain no Spek at all — starting spek-lsp there would only produce
+  // a "server didn't start" toast. Start the language server when a .spek
+  // document is already open or the workspace has .spek files; otherwise
+  // start it lazily the first time a .spek document opens.
+  if (!(await workspaceHasSpek())) {
+    const lazy = vscode.workspace.onDidOpenTextDocument(async (doc) => {
+      if (doc.languageId === 'spek' && !client) {
+        lazy.dispose();
+        await startLanguageServer();
+      }
+    });
+    context.subscriptions.push(lazy);
+    return;
+  }
+
+  await startLanguageServer();
+}
+
+async function workspaceHasSpek(): Promise<boolean> {
+  if (vscode.workspace.textDocuments.some((d) => d.languageId === 'spek')) return true;
+  if (vscode.window.activeTextEditor?.document.languageId === 'spek') return true;
+  try {
+    const hits = await vscode.workspace.findFiles(
+      '**/*.spek',
+      '**/{node_modules,bin,obj,out}/**',
+      1,
+    );
+    return hits.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function startLanguageServer(): Promise<void> {
+  const config = vscode.workspace.getConfiguration('spek');
 
   const serverPath: string = config.get('languageServer.path', 'spek-lsp');
 

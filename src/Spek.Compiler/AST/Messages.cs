@@ -34,7 +34,16 @@ public record EnumDecl(
     SourceSpan Span,
     Visibility Visibility,
     string Name,
-    IReadOnlyList<EnumMember> Members
+    IReadOnlyList<EnumMember> Members,
+    bool IsFlags = false
 ) : TopLevelDecl(Span);
 
-public record EnumMember(SourceSpan Span, string Name) : AstNode(Span);
+/// <summary>An enum member, optionally with an explicit value: a signed
+/// integer literal (<see cref="Value"/>) or, in a flags enum, a union of
+/// earlier members (<see cref="UnionOf"/>). At most one of the two is set.</summary>
+public record EnumMember(
+    SourceSpan Span,
+    string Name,
+    long? Value = null,
+    IReadOnlyList<string>? UnionOf = null
+) : AstNode(Span);

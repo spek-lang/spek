@@ -59,7 +59,7 @@ public sealed class MetricEmissionTests
     }
 
     [Fact]
-    public async Task Enqueue_EmitsMailboxDepthGauge()
+    public async Task Enqueue_EmitsMailboxDepthGaugeAsync()
     {
         TestSignal.Reset();
         var sink = new CapturingSink();
@@ -74,7 +74,7 @@ public sealed class MetricEmissionTests
     }
 
     [Fact]
-    public async Task Dispatch_EmitsCounterAndHistogram()
+    public async Task Dispatch_EmitsCounterAndHistogramAsync()
     {
         TestSignal.Reset();
         var sink = new CapturingSink();

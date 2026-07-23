@@ -24,7 +24,8 @@ public static class CliRunner
     public static int Run(string[] args, System.IO.TextWriter @out, System.IO.TextWriter error)
     {
         if (args.Length < 1 || (args[0] != "compile" && args[0] != "format"
-                                && args[0] != "proto-import" && args[0] != "proto-export"))
+                                && args[0] != "proto-import" && args[0] != "proto-export"
+                                && args[0] != "observe"))
         {
             error.WriteLine("Usage: spekc compile      <file.spek> [--out <dir>] [--check] [--ref <dll>] [--no-line-map]");
             error.WriteLine("       spekc compile      <dir>       [--out <dir>]   (compiles *.spek in directory)");
@@ -35,17 +36,26 @@ public static class CliRunner
             error.WriteLine("         --no-line-map  emit without #line directives (no .spek source mapping)");
             error.WriteLine("         --abs-line-map #line directives use absolute .spek paths (for debugging:");
             error.WriteLine("                        the PDB then resolves sources without a working-dir guess)");
+            error.WriteLine("         --base <dir>   mirror the input tree under --out relative to this dir");
+            error.WriteLine("                        (the MSBuild integration passes this to lay out obj/spek/)");
+            error.WriteLine("         --tests        emit test blocks in *Tests modules/classes as native tests");
+            error.WriteLine("                        (MSBuild passes this automatically for test projects)");
             error.WriteLine("       spekc format       <file.spek> [--write]       (rewrite file in place with --write)");
             error.WriteLine("       spekc format       <dir>       [--write]       (formats *.spek in directory)");
             error.WriteLine("       spekc proto-import <descriptor.bin> <ChannelName> [--out <file.g.spek>]");
             error.WriteLine("                                              (synthesise channel from a proto descriptor)");
             error.WriteLine("       spekc proto-export <file.spek> <ChannelName> [--out <file.proto>] [--package <name>]");
             error.WriteLine("                                              (emit .proto from a channel decl)");
+            error.WriteLine("       spekc observe      <pid> [--actor <path>] [--once] [--json]");
+            error.WriteLine("                                              (live actor table of a running Spek process;");
+            error.WriteLine("                                               --json emits NDJSON samples for tooling)");
             return 1;
         }
 
         switch (args[0])
         {
+            case "observe":
+                return ObserveCommand.Run(args[1..], @out, error);
             case "format":
                 return RunFormat(args[1..], @out, error);
             case "proto-import":

@@ -42,7 +42,7 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         Assert.Contains("private async Task Waiting_HandleAsync", code);
         Assert.Contains("case Ping _:", code);
         // The reply carries the actor as its sender (implicit-sender convention).
-        Assert.Contains("_currentSender.Tell(new Pong(), _selfRef)", code);
+        Assert.Contains("_sender.Tell(new Pong(), _selfRef)", code);
     }
 
     // ─── 03 — Become ─────────────────────────────────────────────────────────

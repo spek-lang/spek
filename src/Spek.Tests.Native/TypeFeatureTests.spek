@@ -3,6 +3,8 @@
 // both assert on emitted shape, and Roslyn does the type-checking). These instead round-trip
 // a value through a generic class field and a module method to prove they work at runtime.
 
+using Xunit;
+
 class Box<T>
 {
     T item;
@@ -58,8 +60,8 @@ class TypeFeatureTests
 
         probe.Send(holder, new SetVal(42));
         probe.Send(holder, new GetVal());
-        ValReply r = probe.ExpectMsg<ValReply>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal(42, r.v);
+        ValReply r = probe.ExpectMsg<ValReply>(TimeSpan.FromSeconds(10));
+        Assert.Equal(42, r.v);
     }
 
     public void ModuleFunctionIsCallableFromAHandler()
@@ -68,7 +70,7 @@ class TypeFeatureTests
         var calc  = sys.Spawn<Calculator>();
 
         probe.Send(calc, new Compute(21));
-        Computed c = probe.ExpectMsg<Computed>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal(42, c.result);
+        Computed c = probe.ExpectMsg<Computed>(TimeSpan.FromSeconds(10));
+        Assert.Equal(42, c.result);
     }
 }

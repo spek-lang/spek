@@ -1,0 +1,229 @@
+namespace Elevators;
+
+// The elevator bank — the sixty-second sizzle. Six cars, one dispatcher.
+// The dispatcher is also the supervisor: when a car's controller crashes
+// mid-trip, the supervise clause below restarts it with clean state. The
+// dispatcher notices the amnesia, redistributes the car's stranded stops
+// to healthy cars, and hands the reborn controller its last known
+// position — the car goes out of service, runs express to the lobby, and
+// rejoins the rotation when the doors open. No hall call is ever lost,
+// and there is no try/catch anywhere in this file.
+
+message HallCall(int floor);
+message GoTo(int floor);
+message Tick();
+message Status(int carId, int floor, int queued, int servedFloor, bool inService);
+message Malfunction(int carId);
+message Trip();
+message ResetTo(int floor);
+message GetBank();
+message BankState(string encoded);
+
+actor Car
+{
+    int id;
+    int floor = 1;
+    bool inService = true;
+    System.Collections.Generic.List<int> stops = new System.Collections.Generic.List<int>();
+
+    init(int carId) { id = carId; }
+
+    behavior Default
+    {
+        on GoTo g => { stops.Add(g.floor); }
+
+        on Trip t => { Controller.Fault(id); }
+
+        // The dispatcher hands a reborn controller its last known
+        // position: resume there, out of service, and head for the lobby.
+        on ResetTo r =>
+        {
+            floor = r.floor;
+            inService = false;
+            stops.Clear();
+        }
+
+        on Tick t =>
+        {
+            var served = -1;
+            if (!inService)
+            {
+                if (floor > 1) { floor = floor - 1; }        // express, no stops
+                else { inService = true; }                   // doors open: back to work
+            }
+            else if (stops.Count > 0)
+            {
+                var target = stops[0];
+                if (floor < target) { floor = floor + 1; }
+                if (floor > target) { floor = floor - 1; }
+                if (floor == target)
+                {
+                    stops.RemoveAt(0);
+                    served = target;
+                }
+            }
+            // Reply routes to the Tick's sender — the dispatcher. This
+            // heartbeat is the whole reconciliation protocol.
+            return new Status(id, floor, stops.Count, served, inService);
+        }
+    }
+}
+
+public actor Dispatcher
+{
+    System.Collections.Generic.Dictionary<int, ActorRef> cars =
+        new System.Collections.Generic.Dictionary<int, ActorRef>();
+    System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>> assigned =
+        new System.Collections.Generic.Dictionary<int, System.Collections.Generic.List<int>>();
+    System.Collections.Generic.Dictionary<int, int> lastFloor =
+        new System.Collections.Generic.Dictionary<int, int>();
+    System.Collections.Generic.Dictionary<int, int> zeroStrikes =
+        new System.Collections.Generic.Dictionary<int, int>();
+    System.Collections.Generic.Dictionary<int, bool> inService =
+        new System.Collections.Generic.Dictionary<int, bool>();
+    System.Collections.Generic.Dictionary<int, bool> resetPending =
+        new System.Collections.Generic.Dictionary<int, bool>();
+    long served = 0;
+    long redistributed = 0;
+
+    init(int carCount)
+    {
+        foreach (var i in System.Linq.Enumerable.Range(1, carCount))
+        {
+            cars[i] = spawn<Car>(i);
+            assigned[i] = new System.Collections.Generic.List<int>();
+            lastFloor[i] = 1;
+            zeroStrikes[i] = 0;
+            inService[i] = true;
+            resetPending[i] = false;
+        }
+    }
+
+    supervise OneForOne(on Failure: Restart, maxRetries: 1000, withinTime: System.TimeSpan.FromSeconds(10));
+
+    behavior Default
+    {
+        on HallCall h =>
+        {
+            // Least-loaded car in service takes the call; if the whole
+            // bank is somehow rebooting at once, fall back to least-loaded
+            // regardless (the call waits in that car's queue).
+            var best = 0;
+            var bestLoad = 2147483647;
+            foreach (var id in cars.Keys)
+            {
+                if (inService[id] && assigned[id].Count < bestLoad)
+                {
+                    best = id;
+                    bestLoad = assigned[id].Count;
+                }
+            }
+            if (best == 0)
+            {
+                foreach (var id in cars.Keys)
+                {
+                    if (assigned[id].Count < bestLoad)
+                    {
+                        best = id;
+                        bestLoad = assigned[id].Count;
+                    }
+                }
+            }
+            assigned[best].Add(h.floor);
+            cars[best].Tell(new GoTo(h.floor));
+        }
+
+        on Tick t =>
+        {
+            foreach (var id in cars.Keys) { cars[id].Tell(new Tick()); }
+        }
+
+        on Status s =>
+        {
+            // Service-state bookkeeping. While a reset is in flight the
+            // car still reports its pre-reset state, so ignore its claim
+            // until it confirms being out of service — or reports back in
+            // service at the lobby, which means the reset already ran to
+            // completion (a car that crashed at floor 1 has nowhere to
+            // descend from).
+            if (resetPending[s.carId])
+            {
+                if (!s.inService) { resetPending[s.carId] = false; }
+                else if (s.floor == 1)
+                {
+                    resetPending[s.carId] = false;
+                    inService[s.carId] = true;
+                }
+            }
+            else
+            {
+                inService[s.carId] = s.inService;
+            }
+
+            if (s.servedFloor >= 0)
+            {
+                assigned[s.carId].Remove(s.servedFloor);
+                served = served + 1;
+            }
+
+            // Reconciliation: a car reporting an empty queue while stops
+            // are still assigned to it has lost its memory — supervision
+            // restarted it. Three consecutive reports rule out a GoTo
+            // still in flight. Its stranded stops go back to the pool,
+            // and the reborn controller is sent back to the lobby from
+            // its last known position.
+            if (s.inService && s.queued == 0 && assigned[s.carId].Count > 0 && s.servedFloor < 0)
+            {
+                zeroStrikes[s.carId] = zeroStrikes[s.carId] + 1;
+                if (zeroStrikes[s.carId] >= 3)
+                {
+                    var stranded = assigned[s.carId];
+                    assigned[s.carId] = new System.Collections.Generic.List<int>();
+                    zeroStrikes[s.carId] = 0;
+                    inService[s.carId] = false;
+                    resetPending[s.carId] = true;
+                    cars[s.carId].Tell(new ResetTo(lastFloor[s.carId]));
+                    foreach (var f in stranded)
+                    {
+                        redistributed = redistributed + 1;
+                        self.Tell(new HallCall(f));
+                    }
+                }
+            }
+            else
+            {
+                zeroStrikes[s.carId] = 0;
+            }
+
+            // Position bookkeeping runs last, and freezes while strikes
+            // accumulate: a restarted car reports the lobby, but the
+            // position that matters for the reset is where the car was
+            // when its controller died.
+            if (zeroStrikes[s.carId] == 0) { lastFloor[s.carId] = s.floor; }
+        }
+
+        on Malfunction m => { cars[m.carId].Tell(new Trip()); }
+
+        on GetBank g =>
+        {
+            var text = $"served={served};redist={redistributed}";
+            foreach (var id in cars.Keys)
+            {
+                var queue = "";
+                foreach (var f in assigned[id]) { queue = queue + (queue == "" ? "" : "+") + f; }
+                var svc = inService[id] ? 1 : 0;
+                text = text + $"|{id}:{lastFloor[id]}:{assigned[id].Count}:{queue}:{svc}";
+            }
+            return new BankState(text);
+        }
+    }
+}
+
+module Controller
+{
+    public void Fault(int carId)
+    {
+        object? none = null;
+        object crash = none ?? throw new System.InvalidOperationException($"car {carId}: controller fault");
+    }
+}

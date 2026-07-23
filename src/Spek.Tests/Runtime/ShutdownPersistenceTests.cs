@@ -58,7 +58,7 @@ public sealed class ShutdownPersistenceTests
         """;
 
     [Fact]
-    public async Task TenChainedActors_SharedPersistedRegion_FlushesOnShutdown_AndRehydrates()
+    public async Task TenChainedActors_SharedPersistedRegion_FlushesOnShutdown_AndRehydratesAsync()
     {
         var parsed = SpekCompiler.Parse(Src);
         Assert.True(parsed.Success,

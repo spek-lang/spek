@@ -1,0 +1,43 @@
+namespace RateLimiter;
+
+// The rate limiter, Spek pane. Every API key is an actor holding its own
+// token bucket. That buys three things the C# twin has to build by hand:
+// per-key decisions are serialized by the mailbox (no lock, no CAS loop),
+// the time source is self.Clock (virtualizable in tests), and idle keys
+// cost nothing — the passivate clause below is the entire eviction story.
+// The window equals Capacity/RefillPerSecond, so a passivated key that
+// re-materializes with a fresh bucket behaves exactly like one that idled
+// and refilled naturally. Compare ShardedLimiter.cs: its sweeper timer,
+// per-bucket lock, and evict-vs-refill race are what these lines replace.
+
+message Check();
+message Verdict(bool allowed);
+
+public actor ApiKey
+{
+    double tokens = 10.0;
+    System.DateTimeOffset lastRefill;
+
+    passivate after System.TimeSpan.FromSeconds(2);
+
+    behavior Default
+    {
+        on Check c =>
+        {
+            var now = self.Clock.GetUtcNow();
+            if (lastRefill != System.DateTimeOffset.MinValue)
+            {
+                var elapsed = (now - lastRefill).TotalSeconds;
+                tokens = System.Math.Min(10.0, tokens + elapsed * 5.0);
+            }
+            lastRefill = now;
+
+            if (tokens >= 1.0)
+            {
+                tokens = tokens - 1.0;
+                return new Verdict(true);
+            }
+            return new Verdict(false);
+        }
+    }
+}

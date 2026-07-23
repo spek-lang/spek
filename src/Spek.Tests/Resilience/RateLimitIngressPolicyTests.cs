@@ -10,7 +10,7 @@ public sealed class RateLimitIngressPolicyTests
         new("test/actor", "Channel", new object(), DateTimeOffset.UtcNow);
 
     [Fact]
-    public async Task TokenBucket_allows_within_burst_then_defers()
+    public async Task TokenBucket_allows_within_burst_then_defersAsync()
     {
         await using var policy = RateLimitIngressPolicy.TokenBucket(
             permitsPerSecond: 1,
@@ -33,7 +33,7 @@ public sealed class RateLimitIngressPolicyTests
     }
 
     [Fact]
-    public async Task FixedWindow_rejects_after_quota_exhausted()
+    public async Task FixedWindow_rejects_after_quota_exhaustedAsync()
     {
         await using var policy = RateLimitIngressPolicy.FixedWindow(
             permits: 2,
@@ -47,7 +47,7 @@ public sealed class RateLimitIngressPolicyTests
     }
 
     [Fact]
-    public async Task Concurrency_allows_up_to_permit_count()
+    public async Task Concurrency_allows_up_to_permit_countAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 2);
 

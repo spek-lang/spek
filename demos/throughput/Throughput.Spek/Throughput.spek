@@ -1,0 +1,36 @@
+namespace Throughput;
+
+// The throughput demo, Spek pane: two shapes of load and no scenery.
+// Paddle pairs volley a Fire countdown using the return-to-sender idiom —
+// a handler's return value routes to whoever sent the message, so once
+// the harness serves the first ball the two paddles rally on their own.
+// Counter is the tell-storm sink. Every dispatch lands on a long counter,
+// and the harness settles the books after each pass: counted hits must
+// equal messages sent, exactly.
+
+message Fire(int remaining);
+message Hit();
+message GetCount();
+message Count(long n);
+
+public actor Paddle
+{
+    long hits = 0;
+
+    on Fire f =>
+    {
+        hits = hits + 1;
+        if (f.remaining > 0) { return new Fire(f.remaining - 1); }
+    }
+
+    on GetCount => return new Count(hits);
+}
+
+public actor Counter
+{
+    long hits = 0;
+
+    on Hit => { hits = hits + 1; }
+
+    on GetCount => return new Count(hits);
+}

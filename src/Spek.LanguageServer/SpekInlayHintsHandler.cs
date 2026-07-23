@@ -49,16 +49,19 @@ internal sealed class SpekInlayHintsHandler : InlayHintsHandlerBase
             var reply = symbols.InferReplyType(msg.Type);
             if (reply is null) continue;
 
-            // Span() sets EndColumn = stop-token(`)`).Column + 1; because ANTLR
-            // columns are 0-based, that value used as a 0-based LSP character lands
-            // just past the closing `)`, exactly where the annotation should read.
-            var pos = new Position(ask.Span.EndLine - 1, ask.Span.EndColumn);
+            // EndColumn is 1-based exclusive (one past the closing `)`), so as a
+            // 0-based LSP character it needs -1 — landing just past the `)`,
+            // exactly where the annotation should read.
+            var pos = new Position(ask.Span.EndLine - 1, ask.Span.EndColumn - 1);
             if (!InRange(pos, request.Range)) continue;
 
             hints.Add(new InlayHint
             {
                 Position    = pos,
-                Label       = $": {reply}",
+                // Explicit construction: the implicit string conversion is
+                // declared null-in/null-out, so assigning it directly to the
+                // non-nullable Label raises CS8601.
+                Label       = new StringOrInlayHintLabelParts($": {reply}"),
                 Kind        = InlayHintKind.Type,
                 PaddingLeft = false,
                 Tooltip     = new StringOrMarkupContent("Inferred reply type of this .Ask(…)"),

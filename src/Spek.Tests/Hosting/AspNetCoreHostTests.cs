@@ -35,7 +35,7 @@ public class AspNetCoreHostTests
     }
 
     [Fact]
-    public async Task GenericHost_StartsAndStops_ActorReceivesShutdown()
+    public async Task GenericHost_StartsAndStops_ActorReceivesShutdownAsync()
     {
         lock (Gate) _shutdownReceived = false;
 
@@ -59,7 +59,7 @@ public class AspNetCoreHostTests
     }
 
     [Fact]
-    public async Task ShutdownGrace_BoundsTheStopWait()
+    public async Task ShutdownGrace_BoundsTheStopWaitAsync()
     {
         // An actor that ignores Shutdown — the host should still exit
         // when the grace window expires, not hang forever.

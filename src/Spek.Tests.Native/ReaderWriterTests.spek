@@ -4,6 +4,8 @@
 // handler replies (the fire-and-forget reader path drops nothing) and a writer handler
 // runs and replies. Concurrency *overlap* measurement stays C# (needs timing internals).
 
+using Xunit;
+
 message StartReader();
 message StartWriter();
 message ReaderReply();
@@ -42,11 +44,11 @@ class ReaderWriterTests
         var received = 0;
         for (var i = 0; i < n; i = i + 1)
         {
-            probe.ExpectMsg<ReaderReply>(System.TimeSpan.FromSeconds(10));
+            probe.ExpectMsg<ReaderReply>(TimeSpan.FromSeconds(10));
             received = received + 1;
         }
 
-        Xunit.Assert.Equal(25, received);   // all reader handlers ran and replied
+        Assert.Equal(25, received);   // all reader handlers ran and replied
     }
 
     public void WriterHandlerRunsAndReplies()
@@ -55,6 +57,6 @@ class ReaderWriterTests
         var coord = sys.Spawn<Coordinator>();
 
         probe.Send(coord, new StartWriter());
-        probe.ExpectMsg<WriterReply>(System.TimeSpan.FromSeconds(10));   // writer dispatched + replied
+        probe.ExpectMsg<WriterReply>(TimeSpan.FromSeconds(10));   // writer dispatched + replied
     }
 }

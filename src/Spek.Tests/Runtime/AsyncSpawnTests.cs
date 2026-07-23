@@ -7,7 +7,7 @@ namespace Spek.Tests.Runtime;
 
 /// <summary>
 /// Proves the async spawn path works with a snapshot store that does
-/// real async I/O (simulated via <see cref="Task.Delay"/>). The sync
+/// real async I/O (simulated via <see cref="Task.Delay(int)"/>). The sync
 /// <see cref="ActorSystem.Spawn{TActor}"/> path would block on the
 /// delay and potentially deadlock on single-threaded sync contexts;
 /// <see cref="ActorSystem.SpawnPersistentAsync{TActor}"/> does not.
@@ -58,7 +58,7 @@ public class AsyncSpawnTests
     }
 
     [Fact]
-    public async Task SpawnPersistentAsync_LoadsSnapshotWithoutBlocking()
+    public async Task SpawnPersistentAsync_LoadsSnapshotWithoutBlockingAsync()
     {
         var store = new DelayedStore();
 
@@ -70,7 +70,7 @@ public class AsyncSpawnTests
             actor.Tell(new Increment());
             actor.Tell(new Increment());
 
-            await WaitUntil(async () =>
+            await WaitUntilAsync(async () =>
                 await store.LoadAsync("counter-1") is { } s && s.Get<int>("n") == 3);
         }
 
@@ -97,7 +97,7 @@ public class AsyncSpawnTests
     }
 
     [Fact]
-    public async Task SpawnAsync_NonPersistent_WorksToo()
+    public async Task SpawnAsync_NonPersistent_WorksTooAsync()
     {
         using var system = new ActorSystem("t");
         var actor = await system.SpawnAsync<Counter>();
@@ -115,7 +115,7 @@ public class AsyncSpawnTests
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private static async Task WaitUntil(Func<Task<bool>> predicate, int timeoutMs = 3000)
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate, int timeoutMs = 3000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

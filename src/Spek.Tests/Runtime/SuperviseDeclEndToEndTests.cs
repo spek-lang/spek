@@ -33,7 +33,7 @@ public class SuperviseDeclEndToEndTests
         """;
 
     [Fact]
-    public async Task DefaultSupervise_AppliesRestartPolicy_StopsAfterBudgetExceeded()
+    public async Task DefaultSupervise_AppliesRestartPolicy_StopsAfterBudgetExceededAsync()
     {
         const string src = """
             namespace SuperviseDemo;
@@ -67,13 +67,13 @@ public class SuperviseDeclEndToEndTests
             }
             """;
 
-        var childStopped = await RunSupervisionScenario(src, "SuperviseRestartE2E", boomsToSend: 4);
+        var childStopped = await RunSupervisionScenarioAsync(src, "SuperviseRestartE2E", boomsToSend: 4);
         Assert.True(childStopped,
             "Child should be stopped after 4th Boom exceeds the 3-restart budget.");
     }
 
     [Fact]
-    public async Task DefaultSupervise_WithStopAction_StopsChildOnFirstFailure()
+    public async Task DefaultSupervise_WithStopAction_StopsChildOnFirstFailureAsync()
     {
         const string src = """
             namespace SuperviseDemo;
@@ -107,12 +107,12 @@ public class SuperviseDeclEndToEndTests
             }
             """;
 
-        var childStopped = await RunSupervisionScenario(src, "SuperviseStopE2E", boomsToSend: 1);
+        var childStopped = await RunSupervisionScenarioAsync(src, "SuperviseStopE2E", boomsToSend: 1);
         Assert.True(childStopped, "Child should be stopped immediately on first Boom with on Failure: Stop.");
     }
 
     [Fact]
-    public async Task DefaultSupervise_WithRestartNoBudget_KeepsRestartingForever()
+    public async Task DefaultSupervise_WithRestartNoBudget_KeepsRestartingForeverAsync()
     {
         const string src = """
             namespace SuperviseDemo;
@@ -146,7 +146,7 @@ public class SuperviseDeclEndToEndTests
             }
             """;
 
-        var childStopped = await RunSupervisionScenario(src, "SuperviseUnlimitedE2E", boomsToSend: 10);
+        var childStopped = await RunSupervisionScenarioAsync(src, "SuperviseUnlimitedE2E", boomsToSend: 10);
         Assert.False(childStopped,
             "Child should still be alive — unlimited budget means 10 Booms all restart cleanly.");
     }
@@ -158,7 +158,7 @@ public class SuperviseDeclEndToEndTests
     /// (System shutdown stops every actor gracefully, so reading
     /// IsStopped after disposal would always be true and couldn't distinguish a
     /// supervision stop from the shutdown stop.)
-    private static async Task<bool> RunSupervisionScenario(
+    private static async Task<bool> RunSupervisionScenarioAsync(
         string spekSource, string assemblyName, int boomsToSend)
     {
         var parse = SpekCompiler.Parse(spekSource);

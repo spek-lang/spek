@@ -20,8 +20,9 @@ public abstract class IngressPolicy
     /// <paramref name="context"/> before it reaches the actor's
     /// handler. The policy only renders the verdict and updates its
     /// own admission state (tokens, windows, permits) — the runtime
-    /// acts on the returned <see cref="PolicyDecision"/>, dispatching
-    /// on Allow and dead-lettering with the policy's reason otherwise.
+    /// acts on the returned <see cref="PolicyDecision"/>: dispatch on
+    /// Allow, dead-letter with the policy's reason on Reject, and
+    /// delayed re-admission (bounded, clock-driven) on Defer.
     /// Runs on the dispatch path for every message, so implementations
     /// should complete synchronously whenever the decision doesn't
     /// require waiting.

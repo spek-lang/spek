@@ -33,14 +33,27 @@ namespace Spek;
 public sealed class ActorRef
 {
     // Exactly one of these is non-null (other than NoSender, which has
-    // both null — used as a sentinel for "no sender" in Tell).
+    // all null — used as a sentinel for "no sender" in Tell). The reply
+    // cell is the third, lightweight shape: the sender ref of an ask,
+    // where a Tell completes the asker's task directly instead of going
+    // through a mailbox.
     private readonly ActorSlot? _slot;
     private readonly IRemoteEndpoint? _remote;
+    private readonly ReplyCell? _replyCell;
+    private readonly short _replyToken;   // the cell generation this ref may complete
 
     internal ActorRef(ActorSlot slot)
     {
         _slot = slot;
         _remote = null;
+    }
+
+    internal ActorRef(ReplyCell cell, short token)
+    {
+        _slot = null;
+        _remote = null;
+        _replyCell = cell;
+        _replyToken = token;
     }
 
     /// <summary>
@@ -61,6 +74,7 @@ public sealed class ActorRef
     {
         if (_slot is not null) _slot.Enqueue(this, message, NoSender);
         else if (_remote is not null) _remote.Dispatch(this, message, NoSender);
+        else if (_replyCell is not null) _replyCell.Deliver(_replyToken, message);
         else DeadLetterToNoSender(message);
     }
 
@@ -76,6 +90,7 @@ public sealed class ActorRef
     {
         if (_slot is not null) _slot.Enqueue(this, message, sender);
         else if (_remote is not null) _remote.Dispatch(this, message, sender);
+        else if (_replyCell is not null) _replyCell.Deliver(_replyToken, message);
         else DeadLetterToNoSender(message);
     }
 
@@ -94,26 +109,53 @@ public sealed class ActorRef
             "raw Tell without a sender argument)");
 
     /// <summary>Request-reply. Awaitable inside on-handler bodies only.</summary>
-    public Task<TResponse> AskAsync<TResponse>(object message)
+    public ValueTask<TResponse> AskAsync<TResponse>(object message)
     {
         if (_remote is not null)
             throw new NotSupportedException(
                 "AskAsync against a remote actor is not yet supported — " +
                 "use Tell with an explicit reply message for now.");
 
-        var tcs = new TaskCompletionSource<TResponse>();
-        var replySlot = new ActorSlot(
-            factory: () => new ActorBase.ReplyActor<TResponse>(tcs),
-            system: null,
-            persistenceKey: null,
-            snapshotStore: null,
-            deadLetterSink: null);
-        var replyRef = new ActorRef(replySlot);
-        replySlot.Materialize(replyRef);
-
-        _slot?.Enqueue(this, message, replyRef);
-        return tcs.Task;
+        var scope = _slot?.SystemForChildren?.ReplyScope;
+        var cell = PooledReplyCell<TResponse>.Rent(scope);
+        var token = cell.Token;
+        if (_slot is null)
+        {
+            // Wedge-class guard: an ask against a slotless ref (NoSender, a
+            // reply ref) used to return a task that never completed. Fail
+            // fast instead — a hang is the worst possible diagnostic.
+            cell.Fail(token, new InvalidOperationException(
+                "AskAsync on a ref with no local actor (NoSender or a reply " +
+                "ref) — this ask could never complete."));
+            return new ValueTask<TResponse>(cell, token);
+        }
+        // Issued before the enqueue so the scope never observes a completion
+        // it hasn't seen the ask for (dispatch can complete the cell inline).
+        scope?.OnIssued();
+        _slot.Enqueue(this, message, new ActorRef(cell, token));
+        return new ValueTask<TResponse>(cell, token);
     }
+
+    /// <summary>
+    /// Fails a pending ask when the target's handler threw before it could
+    /// reply. On a cell-backed sender the asker's task faults directly; a
+    /// regular actor sender routes to <see cref="ActorBase.FailReplyWith"/>,
+    /// whose base implementation is a no-op — safe to call always.
+    /// </summary>
+    internal void FailReply(Exception ex)
+    {
+        if (_replyCell is not null) _replyCell.Fail(_replyToken, ex);
+        else _slot?.Current?.FailReplyWith(ex);
+    }
+
+    /// <summary>
+    /// True when this ref is an ask's reply-cell sender whose reply has not
+    /// yet completed — the dispatch loop fails such a cell if the handler
+    /// returns without replying, so a no-timeout <c>AskAsync</c> can't hang.
+    /// False for regular sends and already-completed asks (making a follow-up
+    /// <see cref="FailReply"/> a harmless no-op).
+    /// </summary>
+    internal bool IsPendingReply => _replyCell is not null && !_replyCell.IsCompleted(_replyToken);
 
     /// <summary>
     /// Request-reply with a deadline. Identical to
@@ -121,12 +163,45 @@ public sealed class ActorRef
     /// <see cref="TimeoutException"/> if no reply arrives within
     /// <paramref name="timeout"/> — an ask against a stopped, wedged, or
     /// reply-less target should never hang its caller forever.
+    ///
+    /// Since perf r11 the deadline rides the reply cell itself, armed on the
+    /// system's shared <see cref="AskDeadlineSweeper"/> — no bridging
+    /// <c>Task&lt;T&gt;</c>, no per-ask WaitAsync timer, so a timeout ask
+    /// allocates the same as a plain one. Deadlines fire up to one sweep
+    /// period (~25&#160;ms) late, never early.
     /// </summary>
-    public Task<TResponse> AskAsync<TResponse>(object message, TimeSpan timeout) =>
-        AskAsync<TResponse>(message).WaitAsync(timeout);
+    public ValueTask<TResponse> AskAsync<TResponse>(object message, TimeSpan timeout)
+    {
+        if (_remote is not null)
+            throw new NotSupportedException(
+                "AskAsync against a remote actor is not yet supported — " +
+                "use Tell with an explicit reply message for now.");
 
-    /// <summary>True if the target actor has stopped (voluntary exit or a Stop directive).</summary>
-    public bool IsStopped => _slot?.IsStopped ?? _remote?.IsKnownDead ?? true;
+        var scope = _slot?.SystemForChildren?.ReplyScope;
+        var cell = PooledReplyCell<TResponse>.Rent(scope);
+        var token = cell.Token;
+        if (_slot is null)
+        {
+            cell.Fail(token, new InvalidOperationException(
+                "AskAsync on a ref with no local actor (NoSender or a reply " +
+                "ref) — this ask could never complete."));
+            return new ValueTask<TResponse>(cell, token);
+        }
+        // Issued before Arm: arming on a disposed system fails the cell
+        // immediately, and that failure must land on an already-issued ask.
+        scope?.OnIssued();
+        // Arm before enqueueing so a reply can never race an unarmed window;
+        // the cell's token gate makes reply-vs-deadline first-wins either way.
+        _slot.SystemForChildren?.AskDeadlines.Arm(cell, token, timeout);
+        _slot.Enqueue(this, message, new ActorRef(cell, token));
+        return new ValueTask<TResponse>(cell, token);
+    }
+
+    /// <summary>True if the target actor has stopped (voluntary exit or a Stop
+    /// directive). A reply-cell ref (an ask's sender) counts as stopped once
+    /// its reply has landed.</summary>
+    public bool IsStopped =>
+        _slot?.IsStopped ?? _remote?.IsKnownDead ?? _replyCell?.IsCompleted(_replyToken) ?? true;
 
     /// <summary>
     /// True if the actor has a live instance loaded. False when the slot has
@@ -166,8 +241,10 @@ public sealed class ActorRef
     /// Attach an <see cref="IngressPolicy"/> that gates messages
     /// destined for this actor. Multiple policies may be attached;
     /// they are evaluated in attachment order and the first non-Allow
-    /// decision wins (rejected/deferred messages are dead-lettered
-    /// with the policy's reason).
+    /// decision wins. A rejected message dead-letters with the
+    /// policy's reason; a deferred one is re-enqueued by the runtime
+    /// after the policy's RetryAfter, dead-lettering only when its
+    /// bounded re-admission budget runs out (or the actor has stopped).
     ///
     /// No-op for remote refs — apply ingress policies on the actor's
     /// home node, not on the caller side.

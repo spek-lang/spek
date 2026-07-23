@@ -77,7 +77,9 @@ public record RefArgExpr(SourceSpan Span, ParamModifier Modifier, Expr Inner) : 
 // Inline out-variable declaration at a call site: `Foo(out var x)`.
 // Only produced at argument positions. The variable is introduced into the
 // enclosing scope (C# out-var semantics); emit is `out var x`.
-public record OutVarExpr(SourceSpan Span, string Name) : Expr(Span);
+/// <summary>Inline out-variable declaration at a call site: <c>out var x</c>
+/// (inferred, <see cref="TypeName"/> null) or <c>out int x</c> (explicit).</summary>
+public record OutVarExpr(SourceSpan Span, string Name, string? TypeName = null) : Expr(Span);
 
 // Named argument at a call site: `Foo(width: 3)`. Only produced at
 // argument positions (parser's `arg` rule). Modeled as an Expr wrapping the
@@ -113,10 +115,15 @@ public record DefaultExpr(SourceSpan Span, TypeRef? Type) : Expr(Span);
 // Used for free-standing factory functions imported via `using` (e.g.
 // `debounce(500)` after `using Spek.Streams`). The compiler emits the
 // callee verbatim — Roslyn resolves the import.
+// `TypeArgs` carries an explicit generic annotation the author wrote
+// (`debounce<Reading>(500)`); empty when they left inference to the callee
+// (`debounce(500)`). The stream-chain emitter injects the message type only
+// when the author supplied none, so an explicit annotation always wins.
 public record InvocationExpr(
     SourceSpan Span,
     string Callee,
-    IReadOnlyList<Expr> Args
+    IReadOnlyList<Expr> Args,
+    IReadOnlyList<TypeRef>? TypeArgs = null
 ) : Expr(Span);
 
 // Index access: expr[index]. NullConditional => emit `?[` instead of `[`.

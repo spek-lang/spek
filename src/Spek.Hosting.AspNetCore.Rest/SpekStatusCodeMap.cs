@@ -53,7 +53,7 @@ public sealed class SpekStatusCodeMap
 
     /// <summary>
     /// Resolve a status code by reply type. Returns
-    /// <see cref="StatusCodes.Status200OK"/> when no mapping exists
+    /// <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status200OK"/> when no mapping exists
     /// — the standard "this is a normal response" case.
     /// </summary>
     public int ResolveFor(Type replyType)

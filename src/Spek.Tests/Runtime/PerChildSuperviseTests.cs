@@ -28,7 +28,7 @@ public class PerChildSuperviseTests
         """;
 
     [Fact]
-    public async Task PerChildForm_OverridesDefault_ForTargetedChild()
+    public async Task PerChildForm_OverridesDefault_ForTargetedChildAsync()
     {
         // `hot` is supervised with Stop (per-child override).
         // `cold` falls through to the default (Restart).

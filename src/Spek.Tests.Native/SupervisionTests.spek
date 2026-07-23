@@ -2,6 +2,8 @@
 // dogfoods sys.ExpectStop / ExpectRestart / RestartCountOf against Spek-defined
 // actors (a crashing child + a parent that restarts it).
 
+using Xunit;
+
 message Crash();
 message SpawnChild();
 message GetChildRef();
@@ -15,7 +17,7 @@ actor CrashChild
 
     behavior Active
     {
-        on Crash => { throw new System.InvalidOperationException("boom"); }
+        on Crash => { throw new InvalidOperationException("boom"); }
     }
 }
 
@@ -50,7 +52,7 @@ actor BudgetedRestartParent
         on GetChildRef => return new ChildRefReply(child);
     }
 
-    supervise OneForOne(on Failure: Restart, maxRetries: 2, withinTime: System.TimeSpan.FromSeconds(30));
+    supervise OneForOne(on Failure: Restart, maxRetries: 2, withinTime: TimeSpan.FromSeconds(30));
 }
 
 // Parent-driven Resume: the child mutates state then throws; Resume keeps the SAME
@@ -64,7 +66,7 @@ actor CountingCrashChild
 
     behavior Active
     {
-        on Crash    => { counter = counter + 1; throw new System.InvalidOperationException("boom after mutate"); }
+        on Crash    => { counter = counter + 1; throw new InvalidOperationException("boom after mutate"); }
         on GetCount => return new CountReply(counter);
     }
 }
@@ -98,7 +100,7 @@ class SupervisionTests
         child.Tell(new Crash());
 
         sys.ExpectStop(child);
-        Xunit.Assert.Equal(0, sys.RestartCountOf(child));
+        Assert.Equal(0, sys.RestartCountOf(child));
     }
 
     // Regression guard for the fire-and-forget bug: sys.ExpectStop returns a Task
@@ -112,7 +114,7 @@ class SupervisionTests
         child.Tell(new Crash());
 
         sys.ExpectStop(child);                 // must block until the actor has stopped
-        Xunit.Assert.True(child.IsStopped);
+        Assert.True(child.IsStopped);
     }
 
     public void RestartStrategyRestartsTheChild()
@@ -122,13 +124,13 @@ class SupervisionTests
         parent.Tell(new SpawnChild());
 
         probe.Send(parent, new GetChildRef());
-        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(TimeSpan.FromSeconds(10));
 
         parent.Tell(new Crash());              // → forwarded to the child → it throws → parent Restarts it
         sys.ExpectRestart(r.child);
 
-        Xunit.Assert.True(sys.RestartCountOf(r.child) >= 1);
-        Xunit.Assert.False(r.child.IsStopped);
+        Assert.True(sys.RestartCountOf(r.child) >= 1);
+        Assert.False(r.child.IsStopped);
     }
 
     public void PerChildRestartBudgetStopsAfterTwoRestarts()
@@ -138,22 +140,22 @@ class SupervisionTests
         parent.Tell(new SpawnChild());
 
         probe.Send(parent, new GetChildRef());
-        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(TimeSpan.FromSeconds(10));
         var leaf = r.child;
 
         leaf.Tell(new Crash());                   // 1st failure → restart
         sys.ExpectRestart(leaf, 1);
-        Xunit.Assert.False(leaf.IsStopped);
+        Assert.False(leaf.IsStopped);
 
         leaf.Tell(new Crash());                   // 2nd failure → restart (budget now full)
         sys.ExpectRestart(leaf, 2);
-        Xunit.Assert.False(leaf.IsStopped);
+        Assert.False(leaf.IsStopped);
 
         leaf.Tell(new Crash());                   // 3rd failure → budget exhausted → stop
         sys.ExpectStop(leaf);
 
-        Xunit.Assert.True(leaf.IsStopped);
-        Xunit.Assert.Equal(2, sys.RestartCountOf(leaf));
+        Assert.True(leaf.IsStopped);
+        Assert.Equal(2, sys.RestartCountOf(leaf));
     }
 
     public void ResumePreservesChildInstanceAndState()
@@ -163,7 +165,7 @@ class SupervisionTests
         parent.Tell(new SpawnChild());
 
         probe.Send(parent, new GetChildRef());
-        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(System.TimeSpan.FromSeconds(10));
+        ChildRefReply r = probe.ExpectMsg<ChildRefReply>(TimeSpan.FromSeconds(10));
         var leaf = r.child;
 
         // Each crash increments the counter THEN throws; Resume keeps the same
@@ -173,9 +175,9 @@ class SupervisionTests
         leaf.Tell(new Crash());
 
         probe.Send(leaf, new GetCount());
-        CountReply reply = probe.ExpectMsg<CountReply>(System.TimeSpan.FromSeconds(10));
+        CountReply reply = probe.ExpectMsg<CountReply>(TimeSpan.FromSeconds(10));
 
-        Xunit.Assert.Equal(2, reply.n);
-        Xunit.Assert.False(leaf.IsStopped);
+        Assert.Equal(2, reply.n);
+        Assert.False(leaf.IsStopped);
     }
 }

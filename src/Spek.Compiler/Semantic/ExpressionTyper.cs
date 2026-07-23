@@ -2,6 +2,27 @@ using Spek.Compiler.AST;
 
 namespace Spek.Compiler.Semantic;
 
+/// <summary>Which reference-typed root a reader-handler local aliases, so a
+/// write or mutating call reached through the local is judged by CE0087 as if
+/// it had named the root directly.</summary>
+public enum FieldAliasKind
+{
+    /// <summary>The local aliases a <c>use X handle;</c> shared-region attachment
+    /// (<c>var c = cache;</c>). A write through it (<c>c.field = …</c>) is a
+    /// region write.</summary>
+    Region,
+    /// <summary>The local aliases a confined-class actor field
+    /// (<c>var h = counter;</c>). A mutating method on it (<c>h.Inc()</c>) or a
+    /// member write (<c>h.n = …</c>) mutates the field's object.</summary>
+    ConfinedClass,
+}
+
+/// <summary>A local bound to a reference-typed CE0087 root — a <c>use</c> region
+/// handle or a confined-class actor field (with the class name). Value-typed
+/// roots are intentionally not tracked: aliasing a primitive/struct field copies
+/// it, so a write through the alias never reaches the field.</summary>
+public readonly record struct FieldAlias(FieldAliasKind Kind, string Root, string? ClassName);
+
 /// <summary>Coarse classification of what an expression evaluates to.</summary>
 public enum ExprKind
 {
@@ -36,6 +57,12 @@ public sealed class ExpressionTyper
     // switch subject is an enum value, and to look up the enum's
     // variant set without re-deriving it from the arms.
     private readonly Dictionary<string, TypeRef> _localTypes = new();
+    // CE0087 reachability: locals that alias a reference-typed root a reader
+    // must not write through — a `use` region handle or a confined-class actor
+    // field. Populated by the semantic walker as it sees `var h = field;`
+    // declarations; a rebind (or a shadowing parameter) clears the entry so a
+    // reused name never inherits a stale alias.
+    private readonly Dictionary<string, FieldAlias> _aliases = new();
 
     public ExpressionTyper(SymbolTable symbols, ActorSymbols actor)
     {
@@ -43,8 +70,27 @@ public sealed class ExpressionTyper
         _actor = actor;
     }
 
-    /// <summary>Record the inferred kind of a <c>var</c>-declared local.</summary>
-    public void RegisterLocal(string name, ExprKind kind) => _locals[name] = kind;
+    /// <summary>Record the inferred kind of a <c>var</c>-declared local. Clears
+    /// any prior CE0087 alias for the name (a redeclaration sheds it; the
+    /// walker re-establishes it via <see cref="SetAlias"/> when the new
+    /// initializer still aliases a field).</summary>
+    public void RegisterLocal(string name, ExprKind kind)
+    {
+        _locals[name] = kind;
+        _aliases.Remove(name);
+    }
+
+    /// <summary>Records (or, with <c>null</c>, clears) the reference-typed root a
+    /// reader-handler local aliases for CE0087.</summary>
+    public void SetAlias(string name, FieldAlias? alias)
+    {
+        if (alias is { } a) _aliases[name] = a;
+        else _aliases.Remove(name);
+    }
+
+    /// <summary>The CE0087 alias this local resolves to, or <c>null</c>.</summary>
+    public FieldAlias? GetAlias(string name) =>
+        _aliases.TryGetValue(name, out var a) ? a : null;
 
     /// <summary>
     /// Record the declared type of a typed local
@@ -55,6 +101,7 @@ public sealed class ExpressionTyper
     {
         _locals[name] = ClassifyTypeRef(type);
         _localTypes[name] = type;
+        _aliases.Remove(name);
     }
 
     /// <summary>True if <paramref name="name"/> resolves to an actor
@@ -71,6 +118,9 @@ public sealed class ExpressionTyper
     {
         _locals[name] = ClassifyTypeRef(type);
         _localTypes[name] = type;
+        // A parameter (incl. a lambda parameter) shadows any same-named field,
+        // so it also sheds any CE0087 alias the name carried.
+        _aliases.Remove(name);
     }
 
     /// <summary>
@@ -95,6 +145,12 @@ public sealed class ExpressionTyper
         if (_actor.Fields.TryGetValue(name, out var field)) return field.Type;
         return null;
     }
+
+    /// <summary>The declared type of a typed local, parameter, or actor field
+    /// by name — the by-name companion to <see cref="TryGetType"/>, for
+    /// resolving the head of a multi-part name (<c>msg.field</c>) without
+    /// synthesising an <see cref="Expr"/>. Null when the name isn't typed.</summary>
+    public TypeRef? TypeOfName(string name) => TryGetSimpleType(name);
 
     /// <summary>
     /// Classifies a bare identifier (local var first, then actor field).

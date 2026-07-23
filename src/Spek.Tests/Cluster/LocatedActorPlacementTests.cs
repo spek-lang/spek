@@ -142,7 +142,7 @@ public class LocatedActorPlacementTests
     }
 
     [Fact]
-    public async Task Locate_LocalActivation_HandlesMessages()
+    public async Task Locate_LocalActivation_HandlesMessagesAsync()
     {
         using var fabric = new InMemoryClusterFabric();
         using var system = new ActorSystem("solo");
@@ -169,7 +169,7 @@ public class LocatedActorPlacementTests
     }
 
     [Fact]
-    public async Task Locate_TwoSystems_KeyDeterministicOwnerActivatesOnceTotal()
+    public async Task Locate_TwoSystems_KeyDeterministicOwnerActivatesOnceTotalAsync()
     {
         // Stand up two ActorSystems sharing a fabric. Both register the
         // same located-actor type. From either side,

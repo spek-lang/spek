@@ -99,7 +99,7 @@ public sealed class RestEndToEndTests
     // ─── Tests ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Get_HappyPath_Returns200WithUser()
+    public async Task Get_HappyPath_Returns200WithUserAsync()
     {
         var (http, lifetime) = await StartHostAsync();
         await using var _ = lifetime;
@@ -114,7 +114,7 @@ public sealed class RestEndToEndTests
     }
 
     [Fact]
-    public async Task Get_NotFound_Returns404FromEmitTypeMapping()
+    public async Task Get_NotFound_Returns404FromEmitTypeMappingAsync()
     {
         var (http, lifetime) = await StartHostAsync();
         await using var _ = lifetime;
@@ -128,7 +128,7 @@ public sealed class RestEndToEndTests
     }
 
     [Fact]
-    public async Task Post_CreatesUser_Returns200WithCreatedRecord()
+    public async Task Post_CreatesUser_Returns200WithCreatedRecordAsync()
     {
         var (http, lifetime) = await StartHostAsync();
         await using var _ = lifetime;
@@ -144,7 +144,7 @@ public sealed class RestEndToEndTests
     }
 
     [Fact]
-    public async Task ListUsers_BindsQueryParams()
+    public async Task ListUsers_BindsQueryParamsAsync()
     {
         var (http, lifetime) = await StartHostAsync();
         await using var _ = lifetime;

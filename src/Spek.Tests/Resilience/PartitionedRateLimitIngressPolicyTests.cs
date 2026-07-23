@@ -12,7 +12,7 @@ public sealed class PartitionedRateLimitIngressPolicyTests
         new("test/actor", "Channel", new TenantMessage(tenant), DateTimeOffset.UtcNow);
 
     [Fact]
-    public async Task Per_key_buckets_isolate_tenants()
+    public async Task Per_key_buckets_isolate_tenantsAsync()
     {
         await using var policy = PartitionedRateLimitIngressPolicy<string>.PerKeyTokenBucket(
             keySelector:      ctx => ((TenantMessage)ctx.Message).TenantId,

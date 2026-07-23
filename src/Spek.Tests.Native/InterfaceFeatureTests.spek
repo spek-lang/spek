@@ -5,6 +5,8 @@
 // "swap EmailValidator for another implementation without touching the caller"
 // example from the contracts-per-type design, proven at runtime.
 
+using Xunit;
+
 interface Validator
 {
     bool IsValid(string input);
@@ -57,14 +59,14 @@ class InterfaceFeatureTests
 
         // Default is EmailValidator: "hello" has no '@' -> invalid.
         probe.Send(gate, new Check("hello"));
-        Verdict v1 = probe.ExpectMsg<Verdict>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.False(v1.ok);
+        Verdict v1 = probe.ExpectMsg<Verdict>(TimeSpan.FromSeconds(10));
+        Assert.False(v1.ok);
 
         // Swap the implementation behind the same field; the call site is
         // unchanged. NonEmptyValidator: "hello" is non-empty -> valid.
         probe.Send(gate, new UseValidator(1));
         probe.Send(gate, new Check("hello"));
-        Verdict v2 = probe.ExpectMsg<Verdict>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.True(v2.ok);
+        Verdict v2 = probe.ExpectMsg<Verdict>(TimeSpan.FromSeconds(10));
+        Assert.True(v2.ok);
     }
 }

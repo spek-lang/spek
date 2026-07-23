@@ -43,6 +43,66 @@ public sealed class InvisibleAsyncTests(ITestOutputHelper output)
         Assert.Contains("await System.Threading.Tasks.Task.Delay(1", code);
     }
 
+    // ── Red-team emit-C: a method the author already declared Task/ValueTask-
+    //    returning must NOT be re-wrapped when the async pass marks it async —
+    //    `Task<int>` became `Task<Task<int>>` and broke the body's return. ──
+    [Fact]
+    public void DeclaredTaskReturn_IsNotDoubleWrapped()
+    {
+        const string src = """
+            module Calc
+            {
+                Task<int> LoadAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        // The declared spelling (`Task<int>`) is preserved, just prefixed async.
+        Assert.Contains("async Task<int> LoadAsync", code);
+        Assert.DoesNotContain("Task<Task<int>>", code);
+        var (ok, summary, _) = RoslynCompileHelper.TryCompile(code, "DeclaredTaskReturn");
+        Assert.True(ok, $"emitted C# must compile:\n{summary}");
+    }
+
+    [Fact]
+    public void DeclaredValueTaskReturn_IsNotDoubleWrapped()
+    {
+        const string src = """
+            module Calc
+            {
+                System.Threading.Tasks.ValueTask<int> VtAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.DoesNotContain("Task<System.Threading.Tasks.ValueTask", code);
+        Assert.DoesNotContain("Task<ValueTask", code);
+    }
+
+    // A plain (non-Task) return with an awaitable body still wraps correctly.
+    [Fact]
+    public void DeclaredPlainReturn_StillWrapsToTask()
+    {
+        const string src = """
+            module Calc
+            {
+                int LenAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.Contains("async System.Threading.Tasks.Task<int> LenAsync", code);
+    }
+
     [Fact]
     public void ModuleMethod_BecomesAsync_WhenItAwaits()
     {

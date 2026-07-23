@@ -36,9 +36,9 @@ public interface ISpekTransport : IAsyncDisposable
     Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Wires up the inbound handler. Called once during
-    /// <see cref="Spek.Runtime.ActorSystem.RegisterTransport"/> — the
-    /// system installs its dispatcher here, and the transport invokes
+    /// Wires up the inbound handler. Called once during cluster
+    /// bootstrap (<c>Cluster.Bind</c> in <c>Spek.Cluster</c>) — the
+    /// cluster installs its dispatcher here, and the transport invokes
     /// it whenever a peer node sends us an envelope. Calling twice
     /// replaces the previous handler.
     /// </summary>
@@ -47,7 +47,7 @@ public interface ISpekTransport : IAsyncDisposable
     /// <summary>
     /// Fires when a send fails irrecoverably (target node is gone,
     /// envelope serialization rejected, the transport itself is
-    /// disposing). The <see cref="ActorSystem"/> uses this to
+    /// disposing). The <see cref="Spek.Runtime.ActorSystem"/> uses this to
     /// dead-letter the offending message and raise a
     /// <c>RemoteNodeUnreachable</c> notification.
     /// </summary>

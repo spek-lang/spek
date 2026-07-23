@@ -109,7 +109,7 @@ public sealed class ReaderConcurrencyTests
     }
 
     [Fact]
-    public async Task ManyReaders_AllReceiveReplies_NoneLost()
+    public async Task ManyReaders_AllReceiveReplies_NoneLostAsync()
     {
         // Stress-test: fire 100 readers, expect 100 replies. Verifies
         // the fire-and-forget reader path doesn't drop messages.
@@ -137,7 +137,7 @@ public sealed class ReaderConcurrencyTests
     }
 
     [Fact]
-    public async Task ReaderException_DeadLettersMessage_AndFailsAskersTaskWithAskException()
+    public async Task ReaderException_DeadLettersMessage_AndFailsAskersTaskWithAskExceptionAsync()
     {
         // Reader handler triggers a runtime exception (divide-by-zero
         // — `throw` itself isn't in the language until try/catch lands).
@@ -186,7 +186,8 @@ public sealed class ReaderConcurrencyTests
         var askMethod = typeof(ActorRef).GetMethods()
             .Single(m => m.Name == nameof(ActorRef.AskAsync) && m.GetParameters().Length == 1)
             .MakeGenericMethod(typeof(object));
-        var task = (Task)askMethod.Invoke(actor, new[] { Activator.CreateInstance(triggerThrow)! })!;
+        var pending = (ValueTask<object>)askMethod.Invoke(actor, new[] { Activator.CreateInstance(triggerThrow)! })!;
+        var task = pending.AsTask();
 
         // The ask task should fault with AskException — not hang.
         var ex = await Assert.ThrowsAsync<AskException>(async () =>
@@ -209,7 +210,7 @@ public sealed class ReaderConcurrencyTests
     }
 
     [Fact]
-    public async Task WriterReceivesReply_AfterReadersDrain()
+    public async Task WriterReceivesReply_AfterReadersDrainAsync()
     {
         var (coord, startReader, startWriter, readerDone, writerDone) = Compile();
         using var system = new TestActorSystem("rw-mixed");
@@ -237,4 +238,63 @@ public sealed class ReaderConcurrencyTests
 
         await Task.CompletedTask;
     }
+    /// <summary>
+    /// Regression (perf r8): reply routing under CONCURRENT reader asks.
+    /// The emitted reply plumbing used the shared _currentSender field,
+    /// which overlapping readers overwrite — replies cross-routed to one
+    /// asker (dup-dropped) while the rest hung forever. Replies must use
+    /// the dispatch-local sender.
+    /// </summary>
+    [Fact]
+    public async Task ConcurrentReaderAsks_EachAskerGetsItsOwnReplyAsync()
+    {
+        const string source = """
+            namespace ReaderFlood;
+
+            message Lookup(int key);
+            message LookupReply(int value);
+
+            actor Board
+            {
+                behavior Default
+                {
+                    public reader on Lookup l => { return new LookupReply(l.key * 2); }
+                }
+            }
+            """;
+        var parse = SpekCompiler.Parse(source);
+        Assert.True(parse.Success,
+            string.Join("\n", parse.Diagnostics.Select(d => $"{d.Code} {d.Message}")));
+        var assembly = RoslynCompileHelper.CompileAndLoad(
+            new FileEmitter().Emit(parse.Tree!), "ReaderFloodFixture");
+        var boardType  = assembly.GetType("ReaderFlood.Board")!;
+        var lookupCtor = assembly.GetType("ReaderFlood.Lookup")!.GetConstructor([typeof(int)])!;
+        var replyType  = assembly.GetType("ReaderFlood.LookupReply")!;
+        var valueProp  = replyType.GetProperty("value")!;
+
+        using var system = new ActorSystem("reader-flood");
+        var board = system.Spawn(boardType);
+
+        var askMethod = typeof(ActorRef).GetMethods()
+            .Single(m => m.Name == nameof(ActorRef.AskAsync) && m.GetParameters().Length == 1)
+            .MakeGenericMethod(typeof(object));
+
+        // Many rounds of overlapping asks: every asker must get ITS reply.
+        for (var round = 0; round < 50; round++)
+        {
+            var pending = new Task<object>[16];
+            for (var i = 0; i < 16; i++)
+            {
+                var vt = (ValueTask<object>)askMethod.Invoke(
+                    board, [lookupCtor.Invoke([round * 16 + i])])!;
+                pending[i] = vt.AsTask();
+            }
+            var all = Task.WhenAll(pending);
+            var done = await Task.WhenAny(all, Task.Delay(TimeSpan.FromSeconds(10)));
+            Assert.True(done == all, $"round {round}: {pending.Count(t => t.IsCompleted)}/16 completed");
+            for (var i = 0; i < 16; i++)
+                Assert.Equal((round * 16 + i) * 2, (int)valueProp.GetValue(await pending[i])!);
+        }
+    }
+
 }

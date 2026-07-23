@@ -17,8 +17,9 @@ namespace Spek.Compiler.Semantic;
 /// </code>
 ///
 /// The underline width comes from <see cref="Diagnostic.Span"/> when present
-/// (start → last-token start, per the parser's span construction); diagnostics
-/// that only know a point (e.g. ANTLR syntax errors) get a single caret.
+/// (EndColumn is 1-based exclusive, so width = End - Start); diagnostics
+/// that only know a point (e.g. ANTLR syntax errors) get a single caret,
+/// widened to the identifier under it.
 /// </summary>
 public static class DiagnosticRenderer
 {

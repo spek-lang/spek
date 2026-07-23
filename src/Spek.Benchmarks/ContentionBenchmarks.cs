@@ -40,7 +40,7 @@ public class ContentionBenchmarks
         for (int i = 0; i < ActorCount; i++)
         {
             var actor = system.Spawn<AsyncWaitActor>();
-            tasks[i] = actor.AskAsync<Pong>(new Ping());
+            tasks[i] = actor.AskAsync<Pong>(new Ping()).AsTask();
         }
         await Task.WhenAll(tasks);
     }
@@ -53,7 +53,7 @@ public class ContentionBenchmarks
         for (int i = 0; i < ActorCount; i++)
         {
             var actor = system.Spawn<BlockingActor>();
-            tasks[i] = actor.AskAsync<Pong>(new Ping());
+            tasks[i] = actor.AskAsync<Pong>(new Ping()).AsTask();
         }
         await Task.WhenAll(tasks);
     }

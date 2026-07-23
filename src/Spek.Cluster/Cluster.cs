@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Spek.Runtime;
 
 namespace Spek.Cluster;
@@ -25,6 +26,17 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     private readonly Dictionary<string, LocatedActorRegistration> _locatedActorTypes =
         new(StringComparer.Ordinal);
     private readonly Lock _peersLock = new();
+
+    // Remote-sender refs, one per (origin node, sender path), reused across
+    // inbound envelopes (perf r16) — the receive path used to allocate a fresh
+    // RemoteEndpoint + ActorRef for every envelope that carried a sender.
+    // Keyed by the node's wire-canonical UUID; the label plays no part in
+    // routing. Unbounded by design: sender paths are named roots, explicitly
+    // registered on the origin node via SpawnNamed, so the population is one
+    // entry per (peer, named root actually used as a sender) — small and
+    // fixed for any real topology, and entries are ~100 B each.
+    private readonly ConcurrentDictionary<(Guid NodeId, string Path), ActorRef>
+        _remoteSenderRefs = new();
 
     private Cluster(ActorSystem system, ISpekTransport transport,
                     IClusterMembership membership, IPlacementStrategy placement)
@@ -257,15 +269,29 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
 
     private Task OnReceiveAsync(RemoteEnvelope envelope)
     {
-        // If the envelope carries sender info, build a remote-sender ref
+        // If the envelope carries sender info, resolve a remote-sender ref
         // that round-trips back to the originator. Otherwise the
         // recipient's `_currentSender` will be NoSender and any
         // `sender.Tell(reply)` dead-letters — same semantics as a Tell
         // from outside the actor system locally.
+        //
+        // Resolution is cached per (node id, path): repeated envelopes from
+        // the same originator hand the recipient the SAME ActorRef instance
+        // (reference identity — pinned by ClusterMemoryTransportTests
+        // .RepeatedEnvelopesFromSameSender_ReceiverSeesOneCachedRef), so
+        // per-message traffic doesn't allocate an endpoint + ref pair,
+        // and recipients that stash senders in sets/dictionaries see one
+        // logical sender as one ref. The static factory keeps the miss path
+        // closure-free.
         ActorRef? sender = null;
         if (envelope.SenderNode is { } sn && envelope.SenderPath is { } sp)
         {
-            sender = new ActorRef(new RemoteEndpoint(_transport, sn, sp, this));
+            sender = _remoteSenderRefs.GetOrAdd(
+                (sn.Id, sp),
+                static ((Guid, string) _, (Cluster Cluster, NodeIdentity Node, string Path) a) =>
+                    new ActorRef(new RemoteEndpoint(
+                        a.Cluster._transport, a.Node, a.Path, a.Cluster)),
+                (this, sn, sp));
         }
 
         // Located-actor auto-activation. If the target path
@@ -295,17 +321,10 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     /// are local-only.
     /// </summary>
     internal string? LocalPathOfNamedRoot(ActorRef? actor) =>
-        actor is null ? null : ReverseLookup(actor);
-
-    private string? ReverseLookup(ActorRef target)
-    {
-        // ActorSystem doesn't expose its named-root map publicly — we'd
-        // either need a public reverse-lookup API or scan known names.
-        // Punt for now: callers should pass remote-already-paths through
-        // RemoteEndpoint, and named-root senders are picked up from the
-        // ActorSystem via PathOfNamedRoot below.
-        return _system.PathOfNamedRoot(target);
-    }
+        // On the send path for every Tell-with-sender. The runtime keeps a
+        // ref → path map alongside its named-root registry (perf r16), so
+        // this is a dictionary hit under the system lock, not a scan.
+        actor is null ? null : _system.PathOfNamedRoot(actor);
 
     public async ValueTask DisposeAsync()
     {

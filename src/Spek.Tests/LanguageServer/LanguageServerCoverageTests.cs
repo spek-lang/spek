@@ -22,7 +22,7 @@ namespace Spek.Tests.LanguageServer;
 ///         drives. This is where the quick-fix range math meets the spans
 ///         the analyzer actually emits.</item>
 ///   <item><b>Completion handler request→response</b> — existing tests only
-///         exercise <see cref="CompletionContext.Collect"/>; here we drive
+///         exercise <see cref="Spek.LanguageServer.CompletionContext.Collect"/>; here we drive
 ///         <see cref="SpekCompletionHandler.Handle(CompletionParams,
 ///         System.Threading.CancellationToken)"/> end to end.</item>
 ///   <item><b>CodeAction handler edge cases</b> — empty / null diagnostics,
@@ -56,7 +56,7 @@ public class LanguageServerCoverageTests
         return entry!.Diagnostics.Select(DiagnosticMapper.ToLsp).ToList();
     }
 
-    private static async Task<List<CodeAction>> RequestActions(
+    private static async Task<List<CodeAction>> RequestActionsAsync(
         SpekCodeActionHandler handler, DocumentUri uri,
         IEnumerable<Diagnostic> diagnostics, LspRange range)
     {
@@ -138,7 +138,7 @@ public class LanguageServerCoverageTests
     // ======================================================================
 
     [Fact]
-    public async Task LivePipeline_Ce0011_OffersClosestBehaviorRename()
+    public async Task LivePipeline_Ce0011_OffersClosestBehaviorRenameAsync()
     {
         // `become Bsy;` is a typo for `Busy`. Running the *real* analyzer
         // (which positions CE0011 on the BecomeStmt span) and feeding that
@@ -157,7 +157,7 @@ public class LanguageServerCoverageTests
         var ce0011 = Assert.Single(lspDiags, d => d.Code?.String == "CE0011");
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0011 }, ce0011.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0011 }, ce0011.Range);
 
         Assert.Contains(actions, a =>
             a.Title is not null && a.Title.Contains("Busy", StringComparison.Ordinal));
@@ -168,7 +168,7 @@ public class LanguageServerCoverageTests
     }
 
     [Fact]
-    public async Task LivePipeline_Ce0091_DeclaresTheActuallyMissingChannel()
+    public async Task LivePipeline_Ce0091_DeclaresTheActuallyMissingChannelAsync()
     {
         // CE0091's message quotes the missing name FIRST
         // ("Unknown channel or base actor 'NoSuchChannel' …"), so the
@@ -183,7 +183,7 @@ public class LanguageServerCoverageTests
         var ce0091 = Assert.Single(lspDiags, d => d.Code?.String == "CE0091");
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0091 }, ce0091.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0091 }, ce0091.Range);
 
         var fix = Assert.Single(actions);
         Assert.Equal("Declare 'channel NoSuchChannel'", fix.Title);
@@ -194,7 +194,7 @@ public class LanguageServerCoverageTests
     // Fixed: BuildMissingChannelFixes now extracts the LAST quoted token (the
     // missing base channel), not the first (the inheriting channel).
     [Fact]
-    public async Task LivePipeline_Ce0093_DeclaresMissingBaseChannel()
+    public async Task LivePipeline_Ce0093_DeclaresMissingBaseChannelAsync()
     {
         const string src = """
             message Ping();
@@ -206,7 +206,7 @@ public class LanguageServerCoverageTests
         var ce0093 = Assert.Single(lspDiags, d => d.Code?.String == "CE0093");
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0093 }, ce0093.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0093 }, ce0093.Range);
 
         // The fix must declare the MISSING base channel, NoSuchBase —
         // not the already-declared inheriting channel ServerHost.
@@ -219,7 +219,7 @@ public class LanguageServerCoverageTests
     // Fixed: CE0083 now spans from the call receiver (Thread), not the '.', so the
     // quick-fix replaces exactly "Thread.Sleep".
     [Fact]
-    public async Task LivePipeline_Ce0083_ThreadSleep_ReplacesExactlyTheCall()
+    public async Task LivePipeline_Ce0083_ThreadSleep_ReplacesExactlyTheCallAsync()
     {
         const string src = """
             message Tick();
@@ -230,7 +230,7 @@ public class LanguageServerCoverageTests
         var ce0083 = Assert.Single(lspDiags, d => d.Code?.String == "CE0083");
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0083 }, ce0083.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0083 }, ce0083.Range);
 
         var fix = Assert.Single(actions, a =>
             a.Title is not null && a.Title.Contains("Task.Delay", StringComparison.Ordinal));
@@ -248,7 +248,7 @@ public class LanguageServerCoverageTests
     // Fixed: CE0115 now spans from the call receiver (File), so the quick-fix
     // inserts 'Async' right after "File.ReadAllText".
     [Fact]
-    public async Task LivePipeline_Ce0115_FileRead_InsertsAsyncAfterMethodName()
+    public async Task LivePipeline_Ce0115_FileRead_InsertsAsyncAfterMethodNameAsync()
     {
         const string src = """
             message Load(string path);
@@ -259,7 +259,7 @@ public class LanguageServerCoverageTests
         var ce0115 = Assert.Single(lspDiags, d => d.Code?.String == "CE0115");
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0115 }, ce0115.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0115 }, ce0115.Range);
 
         var fix = Assert.Single(actions);
         var edit = fix.Edit!.Changes!.Values.First().First();
@@ -278,7 +278,7 @@ public class LanguageServerCoverageTests
     // ======================================================================
 
     [Fact]
-    public async Task CodeAction_InstanceShapedCe0083_OffersNoFix()
+    public async Task CodeAction_InstanceShapedCe0083_OffersNoFixAsync()
     {
         // The instance-shaped blocking call `tasks.WaitAny()` produces a
         // CE0083 whose message starts with '.WaitAny()' (leading dot). The
@@ -295,13 +295,13 @@ public class LanguageServerCoverageTests
         Assert.StartsWith("'.WaitAny()'", ce0083.Message, StringComparison.Ordinal);
 
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { ce0083 }, ce0083.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { ce0083 }, ce0083.Range);
 
         Assert.Empty(actions);
     }
 
     [Fact]
-    public async Task CodeAction_UnknownCeCode_ProducesNoActions()
+    public async Task CodeAction_UnknownCeCode_ProducesNoActionsAsync()
     {
         const string src = """
             message Ping();
@@ -319,13 +319,13 @@ public class LanguageServerCoverageTests
             Severity = DiagnosticSeverity.Warning,
         };
         var handler = new SpekCodeActionHandler(cache);
-        var actions = await RequestActions(handler, uri, new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, uri, new[] { diag }, diag.Range);
 
         Assert.Empty(actions);
     }
 
     [Fact]
-    public async Task CodeAction_EmptyDiagnostics_ReturnsEmptyNonNullContainer()
+    public async Task CodeAction_EmptyDiagnostics_ReturnsEmptyNonNullContainerAsync()
     {
         const string src = "message Ping();\nactor A { behavior Idle { on Ping => { } } }";
         var (cache, uri) = Live("file:///empty-diags.spek", src);
@@ -343,7 +343,7 @@ public class LanguageServerCoverageTests
     }
 
     [Fact]
-    public async Task CodeAction_UnknownDocument_ReturnsNull()
+    public async Task CodeAction_UnknownDocument_ReturnsNullAsync()
     {
         // No document was cached for this URI → the handler bails out with
         // null (nothing to resolve a fix against).
@@ -372,7 +372,7 @@ public class LanguageServerCoverageTests
     // ======================================================================
 
     [Fact]
-    public async Task Completion_MergesKeywordsAndScopedSymbols()
+    public async Task Completion_MergesKeywordsAndScopedSymbolsAsync()
     {
         // Cursor inside the `on Ping p => { }` handler body. The response
         // must blend the static keyword set with the in-scope symbols the
@@ -402,7 +402,7 @@ public class LanguageServerCoverageTests
     }
 
     [Fact]
-    public async Task Completion_OnUnparseableDocument_StillReturnsKeywords()
+    public async Task Completion_OnUnparseableDocument_StillReturnsKeywordsAsync()
     {
         // A document that fails to parse has a null Tree, so no scoped
         // symbols are collected — but the static keyword list must still be
@@ -425,7 +425,7 @@ public class LanguageServerCoverageTests
     }
 
     [Fact]
-    public async Task Completion_OnUnknownDocument_ReturnsKeywordsOnly()
+    public async Task Completion_OnUnknownDocument_ReturnsKeywordsOnlyAsync()
     {
         // No cached document at all → fall back to the keyword list only,
         // no exception.

@@ -17,6 +17,20 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+    <!-- Persistence + resilience surfaces under benchmark. Deliberately no
+         reference to Spek.Compiler or Spek.Testing — benchmark actors are
+         plain C# (see BenchActors.cs). -->
+    <ProjectReference Include="..\Spek.Persistence.File\Spek.Persistence.File.csproj" />
+    <ProjectReference Include="..\Spek.Persistence.Sqlite\Spek.Persistence.Sqlite.csproj" />
+    <ProjectReference Include="..\Spek.Resilience.RateLimiting\Spek.Resilience.RateLimiting.csproj" />
+    <!-- Boundary-cost surfaces (ClusterBenchmarks.cs): the cluster wiring,
+         the in-memory transport, and the TCP loopback transport + its JSON
+         wire serializer. Spek.Cluster.Abstractions arrives transitively. -->
+    <ProjectReference Include="..\Spek.Cluster\Spek.Cluster.csproj" />
+    <ProjectReference Include="..\Spek.Cluster.Memory\Spek.Cluster.Memory.csproj" />
+    <ProjectReference Include="..\Spek.Cluster.Tcp\Spek.Cluster.Tcp.csproj" />
+    <!-- Raw stream-operator hot path (StreamOperatorBenchmarks.cs). -->
+    <ProjectReference Include="..\Spek.Streams\Spek.Streams.csproj" />
   </ItemGroup>
 
 </Project>

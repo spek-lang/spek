@@ -30,11 +30,11 @@ namespace Spek.Tests.Semantic;
 ///         control-flow branches of <c>SymbolTable.FindFirstReturnType</c> that
 ///         are otherwise untested (a <c>return</c> inside an <c>if</c> and
 ///         inside a <c>foreach</c>), plus a <i>generic</i> reply type
-///         (<c>Box<int></c>) flowing through inference into
-///         <c>AskAsync<Box<int>></c> and running end-to-end.</item>
+///         (<c>Box&lt;int&gt;</c>) flowing through inference into
+///         <c>AskAsync&lt;Box&lt;int&gt;&gt;</c> and running end-to-end.</item>
 /// </list>
 /// </summary>
-public sealed class CompilerCoverageTests(ITestOutputHelper output)
+public sealed class CompilerCoverageTests
 {
     // ── helpers (mirror SealedEnumTests / OptionDAskTests) ──────────────────
 

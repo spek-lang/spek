@@ -227,4 +227,28 @@ public sealed class StreamOperatorTests
         Assert.True(success,
             "Emitted C# did not compile:\n" + errors + "\n--- emitted ---\n" + code);
     }
+
+    [Fact]
+    public void ExplicitlyTypedFactoryCall_Compiles_AndIsNotDoubleInjected()
+    {
+        // `debounce<Reading>(500)` is the explicitly-annotated form of the
+        // documented `debounce(500)` — the shape the chain emitter itself
+        // generates. It used to crash the compiler with a raw .NET stack
+        // trace (InvocationExpr had nowhere to carry type args, so
+        // VisitTypedCallExpr threw). It must parse, and the chain emitter
+        // must respect the author's annotation rather than appending its own.
+        const string src = """
+            using Spek.Streams;
+            message Reading(int v);
+            actor Mon
+            {
+                on Reading r
+                    => debounce<Reading>(500)
+                    => { }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.Contains("debounce<Reading>(500)", code);
+        Assert.DoesNotContain("debounce<Reading><Reading>", code);
+    }
 }

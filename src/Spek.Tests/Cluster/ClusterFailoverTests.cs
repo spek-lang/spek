@@ -81,7 +81,7 @@ public class ClusterFailoverTests
     /// fabric. Locate must re-resolve the key to the surviving Up node.
     /// </summary>
     [Fact]
-    public void Locate_OwnerGoesUnreachable_ReplacesOntoSurvivingNode()
+    public async Task Locate_OwnerGoesUnreachable_ReplacesOntoSurvivingNodeAsync()
     {
         using var fabric = new InMemoryClusterFabric();
         using var systemA = new ActorSystem("a");
@@ -143,9 +143,10 @@ public class ClusterFailoverTests
         refAfterFailover.Tell(new Increment());
         refAfterFailover.Tell(new GetCount(), sender: collector);
 
-        Assert.True(probe.Completion.Wait(TimeSpan.FromSeconds(3)),
+        var winner = await Task.WhenAny(probe.Completion, Task.Delay(TimeSpan.FromSeconds(3)));
+        Assert.True(ReferenceEquals(winner, probe.Completion),
             "GetCount reply did not arrive within 3s after re-placement.");
-        var reply = Assert.IsType<CountReply>(probe.Completion.Result);
+        var reply = Assert.IsType<CountReply>(await probe.Completion);
         Assert.Equal(key, reply.Key);
         Assert.Equal(2, reply.Count);
     }

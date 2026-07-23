@@ -59,7 +59,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Exception_WithDefaultStop_TerminatesActor()
+    public async Task Exception_WithDefaultStop_TerminatesActorAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -67,7 +67,7 @@ public class SupervisionTests
         var actor = system.Spawn<DefaultStopActor>();
         actor.Tell(new Boom());
 
-        await WaitUntil(() => sink.Records.Any(r => r.Cause is not null));
+        await WaitUntilAsync(() => sink.Records.Any(r => r.Cause is not null));
 
         var failure = sink.Records.Single(r => r.Cause is not null);
         Assert.IsType<Boom>(failure.Message);
@@ -76,20 +76,20 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task AfterStop_FurtherMessagesGoToDeadLetter()
+    public async Task AfterStop_FurtherMessagesGoToDeadLetterAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
 
         var actor = system.Spawn<DefaultStopActor>();
         actor.Tell(new Boom());
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
         // Any message from here on should hit the sink.
         actor.Tell(new Ping());
         actor.Tell(new Ping());
 
-        await WaitUntil(() => sink.Records.Count(r => r.Message is Ping) >= 2);
+        await WaitUntilAsync(() => sink.Records.Count(r => r.Message is Ping) >= 2);
 
         var pings = sink.Records.Where(r => r.Message is Ping).ToList();
         Assert.Equal(2, pings.Count);
@@ -98,7 +98,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Resume_SkipsBadMessage_ContinuesProcessing()
+    public async Task Resume_SkipsBadMessage_ContinuesProcessingAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -167,7 +167,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Restart_NonPersistent_ResetsInstanceState()
+    public async Task Restart_NonPersistent_ResetsInstanceStateAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -189,7 +189,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Restart_Persistent_PreservesStateViaSnapshot()
+    public async Task Restart_Persistent_PreservesStateViaSnapshotAsync()
     {
         var store = new InMemorySnapshotStore();
         var sink = new RecordingDeadLetterSink();
@@ -211,7 +211,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Restart_PreservesPendingMailboxMessages()
+    public async Task Restart_PreservesPendingMailboxMessagesAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -230,7 +230,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Resume_ActorStaysAliveForFurtherMessages()
+    public async Task Resume_ActorStaysAliveForFurtherMessagesAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -238,7 +238,7 @@ public class SupervisionTests
         var actor = system.Spawn<ResumeActor>();
         actor.Tell(new Boom());
 
-        await WaitUntil(() => sink.Records.Any(r => r.Cause is not null));
+        await WaitUntilAsync(() => sink.Records.Any(r => r.Cause is not null));
 
         Assert.False(actor.IsStopped);
     }
@@ -266,7 +266,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task RestartBudget_ExceededBudget_DegradesToStop()
+    public async Task RestartBudget_ExceededBudget_DegradesToStopAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -279,14 +279,14 @@ public class SupervisionTests
         actor.Tell(new Boom());
         actor.Tell(new Boom());
 
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
         Assert.Contains(sink.Records, r =>
             r.Reason.Contains("restart budget exceeded", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public async Task RestartBudget_UnderBudget_KeepsRestarting()
+    public async Task RestartBudget_UnderBudget_KeepsRestartingAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -298,7 +298,7 @@ public class SupervisionTests
         actor.Tell(new Boom());
         actor.Tell(new Boom());
 
-        await WaitUntil(() => sink.Records.Count(r => r.Cause is not null) >= 3);
+        await WaitUntilAsync(() => sink.Records.Count(r => r.Cause is not null) >= 3);
         Assert.False(actor.IsStopped);
     }
 
@@ -347,7 +347,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Escalate_ChildFailure_FlowsToParentOnChildFailure_AndStopsChild()
+    public async Task Escalate_ChildFailure_FlowsToParentOnChildFailure_AndStopsChildAsync()
     {
         using var system = new TestActorSystem("t");
         var probe = system.CreateProbe();
@@ -356,7 +356,7 @@ public class SupervisionTests
         parent.Tell(new SpawnChild());
         parent.Tell(new TellChild(new Boom()));
 
-        await WaitUntil(async () =>
+        await WaitUntilAsync(async () =>
         {
             probe.Send(parent, new GetChildStatus());
             var s = probe.ExpectMsg<ChildStatus>();
@@ -378,7 +378,7 @@ public class SupervisionTests
     }
 
     [Fact]
-    public async Task Escalate_AtRoot_DegradesToStop_WithDeadLetterExplanation()
+    public async Task Escalate_AtRoot_DegradesToStop_WithDeadLetterExplanationAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("t", deadLetterSink: sink);
@@ -386,7 +386,7 @@ public class SupervisionTests
         var actor = system.Spawn<RootEscalatingActor>();
         actor.Tell(new Boom());
 
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
         Assert.Contains(sink.Records, r =>
             r.Reason.Contains("escalate at root", StringComparison.OrdinalIgnoreCase));
     }
@@ -397,7 +397,7 @@ public class SupervisionTests
     // (the emit tests run Roslyn compilations that can saturate CPU and
     // delay these wall-clock waits). A genuinely stuck condition still fails,
     // just after the longer budget rather than racing a tight 2s window.
-    private static async Task WaitUntil(Func<Task<bool>> predicate, int timeoutMs = 60_000)
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate, int timeoutMs = 60_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)
@@ -408,7 +408,7 @@ public class SupervisionTests
         throw new TimeoutException($"Condition not met within {timeoutMs}ms.");
     }
 
-    private static async Task WaitUntil(Func<bool> predicate, int timeoutMs = 60_000)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = 60_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

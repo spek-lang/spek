@@ -30,10 +30,21 @@ actor UiBackend
 | `distinct<T, TKey>(Func<T, TKey> by)` | predicate   | Emit only when the key extracted by the selector differs from the previous emit's key.                                  |
 | `compose(params StreamOperator<T>[])` | composer    | Combine several operators into one merged operator with shared state.                                                   |
 
+## Time and testing
+
+The timer-based operators (`debounce`, `throttle`) take their time
+source from the owning actor's clock: the generated wiring passes it
+through `Configure`, so under `TestActorSystem(virtualTime: true)` or
+the simulator a debounce window elapses when the test advances the
+clock, not when the wall does. Hand-configured operators default to
+the system clock.
+
 ## Custom operators
 
 Derive from `Spek.Streams.StreamOperator<T>` and expose a lowercase
-factory function:
+factory function. Read time through the inherited `Clock` property
+(and create timers with `Clock.CreateTimer`) so your operator stays
+controllable under virtual time, the same way the built-ins are:
 
 ```csharp
 namespace MyApp.Streams;
@@ -43,15 +54,15 @@ using Spek.Streams;
 public sealed class FrameRateLimiter<T> : StreamOperator<T>
 {
     private readonly TimeSpan _interval;
-    private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
+    private long _lastEmit;   // Clock.GetTimestamp units; 0 = never
 
     public FrameRateLimiter(int maxFps)
         => _interval = TimeSpan.FromSeconds(1.0 / maxFps);
 
     public override async Task OfferAsync(T message)
     {
-        var now = DateTimeOffset.UtcNow;
-        if (now - _lastEmit >= _interval)
+        var now = Clock.GetTimestamp();
+        if (_lastEmit == 0 || Clock.GetElapsedTime(_lastEmit, now) >= _interval)
         {
             _lastEmit = now;
             await Dispatch(message).ConfigureAwait(false);

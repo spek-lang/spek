@@ -39,6 +39,9 @@ internal static class RoslynCompileHelper
         refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Testing.TestActorSystem).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Testing.SpekTestAttribute).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(Xunit.FactAttribute).Assembly.Location));
+        // Stream-shaped handlers (`on X => debounce(..) => { }`) emit against
+        // the operator library.
+        refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Streams.StreamOperator<>).Assembly.Location));
 
         return refs.ToArray();
     });

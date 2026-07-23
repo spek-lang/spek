@@ -5,6 +5,8 @@
 // dispatch to the subclass is the only polymorphism the "reuse + abstract only"
 // model needs — everything swappable-at-runtime goes through an `interface`.
 
+using Xunit;
+
 abstract class Greeter
 {
     string audience;
@@ -53,10 +55,10 @@ class ClassInheritanceFeatureTests
         var host  = sys.Spawn<GreetHost>();
 
         probe.Send(host, new DoGreet());
-        Greeting g = probe.ExpectMsg<Greeting>(System.TimeSpan.FromSeconds(10));
+        Greeting g = probe.ExpectMsg<Greeting>(TimeSpan.FromSeconds(10));
 
         // Base `Greet()` reused verbatim; the `Salutation()` hook resolved to
         // FormalGreeter's implementation.
-        Xunit.Assert.Equal("Good day, world", g.text);
+        Assert.Equal("Good day, world", g.text);
     }
 }

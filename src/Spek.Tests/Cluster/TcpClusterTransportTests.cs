@@ -49,7 +49,7 @@ public class TcpClusterTransportTests
     /// Greet → GreetReply across the wire.
     /// </summary>
     [Fact]
-    public async Task TwoTransports_LoopbackTcp_RoundtripsSenderReply()
+    public async Task TwoTransports_LoopbackTcp_RoundtripsSenderReplyAsync()
     {
         // Port 0 → OS picks a free port. Bound endpoint exposed via
         // BoundEndpoint so the peer can connect to the right port.
@@ -99,7 +99,7 @@ public class TcpClusterTransportTests
     }
 
     [Fact]
-    public async Task ConnectToPeer_IdentityMismatch_ThrowsAndDisconnects()
+    public async Task ConnectToPeer_IdentityMismatch_ThrowsAndDisconnectsAsync()
     {
         // Stand up B with a real identity; tell A to connect expecting a
         // different identity. The handshake should detect mismatch and

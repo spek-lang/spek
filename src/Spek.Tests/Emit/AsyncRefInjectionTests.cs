@@ -67,7 +67,7 @@ public sealed class AsyncRefInjectionTests
     }
 
     [Fact]
-    public void WithRef_TaskCall_IsAwaited_AndMethodMadeAsync()
+    public void WithRef_MethodMadeAsync_TaskCallIsAwaited()
     {
         var dll = CompileTaskHelperDll();
         try

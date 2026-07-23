@@ -45,7 +45,7 @@ public class TcpTransportFailureTests
     // peer authentication. When mTLS / shared-secret enforcement ships,
     // this test flips to assert the key is actually validated at handshake.
     [Fact]
-    public async Task ClusterSharedKey_IsNotYetEnforced_AndWarnsLoudlyWhenSet()
+    public async Task ClusterSharedKey_IsNotYetEnforced_AndWarnsLoudlyWhenSetAsync()
     {
         var opts = LoopbackOpts("with-key");
         opts.ClusterSharedKey = "a-secret-that-does-nothing-yet";
@@ -74,7 +74,7 @@ public class TcpTransportFailureTests
     // ----------------------------------------------------------------
 
     [Fact]
-    public async Task SendAsync_ToNeverConnectedPeer_RaisesDeliveryFailed_AndDoesNotThrow()
+    public async Task SendAsync_ToNeverConnectedPeer_RaisesDeliveryFailed_AndDoesNotThrowAsync()
     {
         var transport = new TcpClusterTransport(LoopbackOpts("lonely"));
         try
@@ -104,8 +104,10 @@ public class TcpTransportFailureTests
 
             // ...and DeliveryFailed must have fired synchronously inside it.
             var raised = await Task.WhenAny(fired.Task, Task.Delay(TimeSpan.FromSeconds(5)));
-            Assert.True(ReferenceEquals(raised, fired.Task) && fired.Task.Result,
+            Assert.True(ReferenceEquals(raised, fired.Task),
                 "DeliveryFailed did not fire for a send to an unconnected peer.");
+            Assert.True(await fired.Task,
+                "DeliveryFailed fired but signalled failure for the unconnected-peer send.");
 
             Assert.Equal(ghost.Id, failedTarget!.Id);
             Assert.Same(envelope, failedEnvelope);
@@ -129,11 +131,12 @@ public class TcpTransportFailureTests
     /// pulling the buffered bytes back out — exactly the bytes a peer
     /// socket would receive.
     /// </summary>
-    private static byte[] FrameBytes(RemoteEnvelope envelope)
+    private static async Task<byte[]> FrameBytesAsync(RemoteEnvelope envelope)
     {
         var pipe = new Pipe();
-        TcpFrame.Write(pipe.Writer, envelope, envelope.Message.GetType().FullName!, new JsonSpekSerializer());
-        pipe.Writer.FlushAsync().AsTask().GetAwaiter().GetResult();
+        TcpFrame.Write(pipe.Writer, envelope, envelope.Message.GetType().FullName!, new JsonSpekSerializer(),
+            new System.Buffers.ArrayBufferWriter<byte>());
+        await pipe.Writer.FlushAsync();
         pipe.Writer.Complete();
 
         if (!pipe.Reader.TryRead(out var result))
@@ -169,11 +172,11 @@ public class TcpTransportFailureTests
     }
 
     [Fact]
-    public void TryRead_FragmentedFrame_OneByteShort_ReturnsFalseAndConsumesNothing_ThenSucceeds()
+    public async Task TryRead_FragmentedFrame_OneByteShort_ReturnsFalseAndConsumesNothing_ThenSucceedsAsync()
     {
         var sender   = new NodeIdentity(Guid.NewGuid(), "sender-label");
         var envelope = new RemoteEnvelope("target/path", new Ping("fragment-me"), "sender/path", sender);
-        var full     = FrameBytes(envelope);
+        var full     = await FrameBytesAsync(envelope);
         Assert.True(full.Length > 1);
 
         // Feed all but the final byte: a partial frame.
@@ -207,10 +210,10 @@ public class TcpTransportFailureTests
     }
 
     [Fact]
-    public void TryRead_VersionMismatch_ThrowsInvalidDataException()
+    public async Task TryRead_VersionMismatch_ThrowsInvalidDataExceptionAsync()
     {
         var envelope = new RemoteEnvelope("t", new Ping("v"));
-        var full     = FrameBytes(envelope);
+        var full     = await FrameBytesAsync(envelope);
 
         // The frame layout is [4-byte BE inner length][1-byte version]...
         // so the version byte sits at index 4. Corrupt it to an
@@ -228,12 +231,12 @@ public class TcpTransportFailureTests
     }
 
     [Fact]
-    public void TryRead_NullSenderNode_RoundTripsToGuidEmpty()
+    public async Task TryRead_NullSenderNode_RoundTripsToGuidEmptyAsync()
     {
         // No SenderNode => Write stamps an all-zero 16-byte UUID; TryRead
         // must surface that as Guid.Empty (and senderLabel as null).
         var envelope = new RemoteEnvelope("target", new Ping("anon"), SenderPath: null, SenderNode: null);
-        var full     = FrameBytes(envelope);
+        var full     = await FrameBytesAsync(envelope);
 
         var seq = new ReadOnlySequence<byte>(full);
         var ok = TryReadFrame(seq, out _, out var typeName, out var targetPath,
@@ -260,7 +263,7 @@ public class TcpTransportFailureTests
     // ----------------------------------------------------------------
 
     [Fact]
-    public async Task TruncatedInboundHandshake_IsSwallowed_AndLaterValidConnectStillSucceeds()
+    public async Task TruncatedInboundHandshake_IsSwallowed_AndLaterValidConnectStillSucceedsAsync()
     {
         // The receiving transport whose accept loop we are stressing.
         var receiver = new TcpClusterTransport(LoopbackOpts("receiver"));
@@ -306,9 +309,9 @@ public class TcpTransportFailureTests
             // If DeliveryFailed fires within a short window the connection
             // was not actually healthy. Bounded wait, then assert clean.
             var settled = await Task.WhenAny(failed.Task, Task.Delay(TimeSpan.FromMilliseconds(500)));
-            Assert.False(ReferenceEquals(settled, failed.Task),
-                "A send over the recovered connection raised DeliveryFailed: " +
-                (failed.Task.IsCompleted ? failed.Task.Result.ToString() : "<none>"));
+            if (ReferenceEquals(settled, failed.Task))
+                Assert.Fail("A send over the recovered connection raised DeliveryFailed: "
+                    + await failed.Task);
         }
         finally
         {

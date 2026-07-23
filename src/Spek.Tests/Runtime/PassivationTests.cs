@@ -68,7 +68,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task Passivates_AfterIdleTimeout()
+    public async Task Passivates_AfterIdleTimeoutAsync()
     {
         using var system = new TestActorSystem("t");
         var actor = system.SpawnPersistent<CounterActor>("c-1");
@@ -76,7 +76,7 @@ public class PassivationTests
         actor.Tell(new Increment());
         actor.Tell(new Increment());
 
-        await WaitUntil(() => !actor.IsMaterialized,
+        await WaitUntilAsync(() => !actor.IsMaterialized,
             timeoutMs: 60_000,
             label: "actor should unload after idle window");
 
@@ -85,7 +85,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task WakesOnNextMessage_AndRestoresState()
+    public async Task WakesOnNextMessage_AndRestoresStateAsync()
     {
         using var system = new TestActorSystem("t");
         var probe = system.CreateProbe();
@@ -95,7 +95,7 @@ public class PassivationTests
         actor.Tell(new Increment());
         actor.Tell(new Increment());
 
-        await WaitUntil(() => !actor.IsMaterialized, 60_000, "passivated");
+        await WaitUntilAsync(() => !actor.IsMaterialized, 60_000, "passivated");
 
         // Wake — state reloads from snapshot, counter is 3.
         actor.Tell(new Increment());
@@ -107,7 +107,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task DoesNotPassivate_WhilePersistentlyBusy()
+    public async Task DoesNotPassivate_WhilePersistentlyBusyAsync()
     {
         using var system = new TestActorSystem("t");
         var probe = system.CreateProbe();
@@ -128,7 +128,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task NonPersistent_PassivatesForMemoryRelease_StateIsLost()
+    public async Task NonPersistent_PassivatesForMemoryRelease_StateIsLostAsync()
     {
         // Non-persistent actors that declare a passivation
         // timeout get the memory-release benefit. State is not
@@ -141,7 +141,7 @@ public class PassivationTests
         actor.Tell(new Increment());
         actor.Tell(new Increment());
 
-        await WaitUntil(() => !actor.IsMaterialized,
+        await WaitUntilAsync(() => !actor.IsMaterialized,
             timeoutMs: 60_000,
             label: "non-persistent actor should still unload after idle window");
 
@@ -177,7 +177,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task OnPassivate_Fires_BeforeUnload()
+    public async Task OnPassivate_Fires_BeforeUnloadAsync()
     {
         using var system = new TestActorSystem("t");
         var @ref = system.SpawnPersistent<CounterWithPassivateHook>("cp-1");
@@ -185,7 +185,7 @@ public class PassivationTests
         @ref.Tell(new Increment());
 
         // Wait for passivation to happen.
-        await WaitUntil(() => !@ref.IsMaterialized, 60_000, "passivated");
+        await WaitUntilAsync(() => !@ref.IsMaterialized, 60_000, "passivated");
 
         // Wake the actor again to grab a reference to the NEW instance so
         // we can verify OnPassivate was called on the OLD one. Simplest
@@ -199,7 +199,7 @@ public class PassivationTests
     }
 
     [Fact]
-    public async Task MultiplePassivationCycles_WorkCorrectly()
+    public async Task MultiplePassivationCycles_WorkCorrectlyAsync()
     {
         using var system = new TestActorSystem("t");
         var probe = system.CreateProbe();
@@ -208,7 +208,7 @@ public class PassivationTests
         for (int cycle = 1; cycle <= 3; cycle++)
         {
             actor.Tell(new Increment());
-            await WaitUntil(() => !actor.IsMaterialized, 60_000, $"cycle {cycle} passivate");
+            await WaitUntilAsync(() => !actor.IsMaterialized, 60_000, $"cycle {cycle} passivate");
         }
 
         probe.Send(actor, new Get());
@@ -218,7 +218,7 @@ public class PassivationTests
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private static async Task WaitUntil(Func<bool> predicate, int timeoutMs, string label)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs, string label)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

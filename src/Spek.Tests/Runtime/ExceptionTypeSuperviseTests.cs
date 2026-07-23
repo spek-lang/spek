@@ -41,7 +41,7 @@ public class ExceptionTypeSuperviseTests
         """;
 
     [Fact]
-    public async Task TypedArms_RouteByExceptionType()
+    public async Task TypedArms_RouteByExceptionTypeAsync()
     {
         // Strategy:
         //   on Failure(System.IO.IOException): Restart

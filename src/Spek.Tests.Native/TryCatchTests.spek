@@ -4,6 +4,8 @@
 // by exception type. Dead-letters are observed via a RecordingDeadLetterSink passed
 // to the TestActorSystem.
 
+using Xunit;
+
 message DoCaught();
 message Recovered();
 message HowManyCaught();
@@ -26,9 +28,9 @@ actor Catcher
         {
             try
             {
-                throw new System.InvalidOperationException("inner");
+                throw new InvalidOperationException("inner");
             }
-            catch (System.InvalidOperationException ex)
+            catch (InvalidOperationException)
             {
                 caughtCount = caughtCount + 1;
                 sender.Tell(new Recovered());
@@ -42,7 +44,7 @@ actor Catcher
 actor Bomb
 {
     init() { become Idle; }
-    behavior Idle { on Boom => { throw new System.InvalidOperationException("kaboom"); } }
+    behavior Idle { on Boom => { throw new InvalidOperationException("kaboom"); } }
 }
 
 actor Typed
@@ -55,11 +57,11 @@ actor Typed
         {
             try
             {
-                if (k.kind == 1) { throw new System.InvalidOperationException("invalid-op"); }
+                if (k.kind == 1) { throw new InvalidOperationException("invalid-op"); }
                 else            { throw new System.ArgumentException("argument"); }
             }
-            catch (System.InvalidOperationException ex) { sender.Tell(new Caught("invalid-op")); }
-            catch (System.ArgumentException ex)         { sender.Tell(new Caught("argument")); }
+            catch (InvalidOperationException) { sender.Tell(new Caught("invalid-op")); }
+            catch (System.ArgumentException)         { sender.Tell(new Caught("argument")); }
         }
     }
 }
@@ -81,14 +83,14 @@ class TryCatchTests
         var catcher = sys.Spawn<Catcher>();
 
         probe.Send(catcher, new DoCaught());
-        probe.ExpectMsg<Recovered>(System.TimeSpan.FromSeconds(2));
+        probe.ExpectMsg<Recovered>(TimeSpan.FromSeconds(2));
 
         probe.Send(catcher, new HowManyCaught());
-        CaughtCount c = probe.ExpectMsg<CaughtCount>(System.TimeSpan.FromSeconds(2));
-        Xunit.Assert.Equal(1, c.v);
+        CaughtCount c = probe.ExpectMsg<CaughtCount>(TimeSpan.FromSeconds(2));
+        Assert.Equal(1, c.v);
 
         // The catch swallowed the exception locally — nothing dead-lettered.
-        Xunit.Assert.Empty(sink.Records);
+        Assert.Empty(sink.Records);
     }
 
     public void UncaughtThrowEscalatesAndDeadLetters()
@@ -98,10 +100,10 @@ class TryCatchTests
 
         probe.Send(bomb, new Boom());
 
-        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, System.TimeSpan.FromSeconds(2), "dead-letter");
+        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, TimeSpan.FromSeconds(2), "dead-letter");
 
-        Xunit.Assert.NotEmpty(sink.Records);
-        Xunit.Assert.Contains(sink.Records, r => r.Cause is System.InvalidOperationException);
+        Assert.NotEmpty(sink.Records);
+        Assert.Contains(sink.Records, r => r.Cause is InvalidOperationException);
     }
 
     public void TypedCatchRoutesByExceptionType()
@@ -110,11 +112,11 @@ class TryCatchTests
         var typed = sys.Spawn<Typed>();
 
         probe.Send(typed, new ThrowKind(1));
-        Caught a1 = probe.ExpectMsg<Caught>(System.TimeSpan.FromSeconds(2));
-        Xunit.Assert.Equal("invalid-op", a1.which);
+        Caught a1 = probe.ExpectMsg<Caught>(TimeSpan.FromSeconds(2));
+        Assert.Equal("invalid-op", a1.which);
 
         probe.Send(typed, new ThrowKind(2));
-        Caught a2 = probe.ExpectMsg<Caught>(System.TimeSpan.FromSeconds(2));
-        Xunit.Assert.Equal("argument", a2.which);
+        Caught a2 = probe.ExpectMsg<Caught>(TimeSpan.FromSeconds(2));
+        Assert.Equal("argument", a2.which);
     }
 }

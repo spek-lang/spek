@@ -1,7 +1,10 @@
 // Ask-with-timeout, in Spek. Converted from the ask half of the C#
 // RuntimeErgonomicsTests: an ask with a deadline returns the reply when it arrives
-// in time, and faults with TimeoutException against a reply-less target instead of
-// hanging. (The GracefulShutdown tests there are system-level and stay in C#.)
+// in time, and — under the "fail fast on all" ask semantics — faults immediately
+// with an AskException against a reply-less target instead of hanging out the
+// deadline. (The GracefulShutdown tests there are system-level and stay in C#.)
+
+using Xunit;
 
 message Req();
 message Resp();
@@ -28,15 +31,17 @@ class AskTimeoutTests
     {
         var replier = sys.Spawn<Replier>();
 
-        Resp reply = replier.AskAsync<Resp>(new Req(), System.TimeSpan.FromSeconds(3));
-        Xunit.Assert.NotNull(reply);
+        Resp reply = replier.AskAsync<Resp>(new Req(), TimeSpan.FromSeconds(3));
+        Assert.NotNull(reply);
     }
 
-    public void AskWithTimeoutNoReplyFaultsWithTimeout()
+    public void AskWithTimeoutNoReplyFailsFastWithAskException()
     {
         var blackHole = sys.Spawn<BlackHole>();
 
-        Xunit.Assert.ThrowsAsync<System.TimeoutException>(
-            () => blackHole.AskAsync<Resp>(new Req(), System.TimeSpan.FromMilliseconds(100)));
+        // The handler returns without replying, so the ask fails fast with an
+        // AskException — no wait for the deadline. The generous window proves it.
+        Assert.ThrowsAsync<AskException>(
+            () => blackHole.AskAsync<Resp>(new Req(), TimeSpan.FromSeconds(3)).AsTask());
     }
 }

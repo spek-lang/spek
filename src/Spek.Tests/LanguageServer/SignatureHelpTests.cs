@@ -18,7 +18,7 @@ public class SignatureHelpTests
     // Resolve the '|'-marked caret to a Position and return the handler's result.
     // A non-null `seed` is applied first, so the live source can be half-typed
     // (unparseable) while the message declarations still come from a last good tree.
-    private static async Task<SignatureHelp?> HelpAt(string withCaret, string? seed = null)
+    private static async Task<SignatureHelp?> HelpAtAsync(string withCaret, string? seed = null)
     {
         withCaret = withCaret.Replace("\r\n", "\n");
         int idx   = withCaret.IndexOf('|');
@@ -58,9 +58,9 @@ public class SignatureHelpTests
         """;
 
     [Fact]
-    public async Task ShowsMessageFields_WithFirstParamActive()
+    public async Task ShowsMessageFields_WithFirstParamActiveAsync()
     {
-        var help = await HelpAt(Wallet.Replace("new Deposit(1m", "new Deposit(|1m"));
+        var help = await HelpAtAsync(Wallet.Replace("new Deposit(1m", "new Deposit(|1m"));
 
         Assert.NotNull(help);
         var sig = Assert.Single(help!.Signatures);
@@ -70,24 +70,24 @@ public class SignatureHelpTests
     }
 
     [Fact]
-    public async Task SecondArgument_HighlightsSecondParam()
+    public async Task SecondArgument_HighlightsSecondParamAsync()
     {
-        var help = await HelpAt(Wallet.Replace("1m, \"x\"", "1m, |\"x\""));
+        var help = await HelpAtAsync(Wallet.Replace("1m, \"x\"", "1m, |\"x\""));
 
         Assert.NotNull(help);
         Assert.Equal(1, help!.ActiveParameter);
     }
 
     [Fact]
-    public async Task NonConstructorCall_ReturnsNothing()
+    public async Task NonConstructorCall_ReturnsNothingAsync()
     {
         // Caret sits in the outer `.Tell( … )` call, which is not a `new Msg(`.
-        var help = await HelpAt(Wallet.Replace("self.Tell(new", "self.Tell(|new"));
+        var help = await HelpAtAsync(Wallet.Replace("self.Tell(new", "self.Tell(|new"));
         Assert.Null(help);
     }
 
     [Fact]
-    public async Task UnclosedCall_StillHelpsFromLastGoodTree()
+    public async Task UnclosedCall_StillHelpsFromLastGoodTreeAsync()
     {
         // The live source is truncated mid-argument, so the parser rejects it and
         // the live tree is null — but a prior good parse (the seed) still carries
@@ -97,7 +97,7 @@ public class SignatureHelpTests
             {
                 init() { self.Tell(new Deposit(|
             """;
-        var help = await HelpAt(half, seed: Wallet);
+        var help = await HelpAtAsync(half, seed: Wallet);
 
         Assert.NotNull(help);
         Assert.Equal("Deposit(decimal amount, string note)", Assert.Single(help!.Signatures).Label);

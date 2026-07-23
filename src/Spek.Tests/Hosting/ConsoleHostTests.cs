@@ -42,7 +42,7 @@ public class ConsoleHostTests
     }
 
     [Fact]
-    public async Task ShutdownPath_RoutesReplyAsExitCode()
+    public async Task ShutdownPath_RoutesReplyAsExitCodeAsync()
     {
         // Drive shutdown through the public RunAsync surface: bring our
         // own system + entry, kick off RunAsync, then trigger shutdown
@@ -75,7 +75,7 @@ public class ConsoleHostTests
     }
 
     [Fact]
-    public async Task ExitCodeReceiver_CapturesOptionDReply_ViaTellWithSender()
+    public async Task ExitCodeReceiver_CapturesOptionDReply_ViaTellWithSenderAsync()
     {
         // Direct test of the inner machinery: spawn the receiver,
         // give it a Tell-with-sender of an int, verify the holder
@@ -95,7 +95,7 @@ public class ConsoleHostTests
     }
 
     [Fact]
-    public async Task TellWithSender_RoutesReplyToSender_EndToEnd()
+    public async Task TellWithSender_RoutesReplyToSender_EndToEndAsync()
     {
         // Verifies the new public Tell(message, sender) overload on
         // ActorRef does what we need: when an actor in the middle

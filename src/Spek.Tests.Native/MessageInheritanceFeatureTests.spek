@@ -8,6 +8,8 @@
 // (Names carry an `Mih` prefix: the native suite compiles as one unit, so
 // message names must be unique across every *.spek file.)
 
+using Xunit;
+
 abstract message MihEvent();
 message MihTick(int n) : MihEvent;
 message MihTock(int n) : MihEvent;
@@ -49,10 +51,10 @@ class MessageInheritanceFeatureTests
         probe.Send(acc, new MihTick(3));   // matches `on MihTick`
 
         probe.Send(acc, new MihTotalReq());
-        MihTotalReply r = probe.ExpectMsg<MihTotalReply>(System.TimeSpan.FromSeconds(10));
+        MihTotalReply r = probe.ExpectMsg<MihTotalReply>(TimeSpan.FromSeconds(10));
 
         // All three counted by the family; two of them were ticks.
-        Xunit.Assert.Equal(3, r.events);
-        Xunit.Assert.Equal(2, r.ticks);
+        Assert.Equal(3, r.events);
+        Assert.Equal(2, r.ticks);
     }
 }

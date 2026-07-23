@@ -1,7 +1,11 @@
 {
   "$schema": "http://json.schemastore.org/template",
   "author": "The Spek contributors",
-  "classifications": ["Console", "Spek", "Actor"],
+  "classifications": [
+    "Console",
+    "Spek",
+    "Actor"
+  ],
   "identity": "Spek.Templates.Console",
   "name": "Spek console application",
   "shortName": "spek-console",
@@ -19,11 +23,32 @@
       "defaultValue": "net10.0",
       "description": "Target framework.",
       "choices": [
-        { "choice": "net10.0", "description": ".NET 10" },
-        { "choice": "net9.0",  "description": ".NET 9" },
-        { "choice": "net8.0",  "description": ".NET 8" }
+        {
+          "choice": "net10.0",
+          "description": ".NET 10"
+        },
+        {
+          "choice": "net9.0",
+          "description": ".NET 9"
+        },
+        {
+          "choice": "net8.0",
+          "description": ".NET 8"
+        }
       ],
       "replaces": "net10.0"
     }
-  }
+  },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "exclude": [
+            "**/bin/**",
+            "**/obj/**"
+          ]
+        }
+      ]
+    }
+  ]
 }

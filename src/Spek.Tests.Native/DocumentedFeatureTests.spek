@@ -10,6 +10,7 @@
 // names must be unique across every *.spek file.)
 
 using Spek.Streams;
+using Xunit;
 
 // ── 1. abstract/override behavior ────────────────────────────────────────
 
@@ -83,12 +84,12 @@ class DocumentedFeatureTests
 
         probe.Send(worker, new DfRun());
         probe.Send(worker, new DfRun());
-        DfCount second = probe.ExpectMsg<DfCount>(System.TimeSpan.FromSeconds(10));
-        second = probe.ExpectMsg<DfCount>(System.TimeSpan.FromSeconds(10));
+        DfCount second = probe.ExpectMsg<DfCount>(TimeSpan.FromSeconds(10));
+        second = probe.ExpectMsg<DfCount>(TimeSpan.FromSeconds(10));
 
         // Both messages ran through the derived actor's override of the base's
         // abstract behavior, mutating derived state.
-        Xunit.Assert.Equal(2, second.n);
+        Assert.Equal(2, second.n);
     }
 
     public void CatchAllReceivesUnmatched_SpecificArmStillWins()
@@ -97,14 +98,14 @@ class DocumentedFeatureTests
         var sorter = sys.Spawn<DfSorter>();
 
         probe.Send(sorter, new DfKnown());
-        DfSeen known = probe.ExpectMsg<DfSeen>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal("known", known.kind);
+        DfSeen known = probe.ExpectMsg<DfSeen>(TimeSpan.FromSeconds(10));
+        Assert.Equal("known", known.kind);
 
         // DfStray has no dedicated arm — the catch-all takes it (instead of
         // the dead-letter sink).
         probe.Send(sorter, new DfStray("x"));
-        DfSeen other = probe.ExpectMsg<DfSeen>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal("other", other.kind);
+        DfSeen other = probe.ExpectMsg<DfSeen>(TimeSpan.FromSeconds(10));
+        Assert.Equal("other", other.kind);
     }
 
     public void DistinctEmitsOnlyWhenKeyChanges()
@@ -119,10 +120,10 @@ class DocumentedFeatureTests
         probe.Send(searcher, new DfSearch("b"));
         probe.Send(searcher, new DfSearch("b"));
         probe.Send(searcher, new DfSearch("a"));
-        sys.WaitForIdle(System.TimeSpan.FromSeconds(10));
+        sys.WaitForIdle(TimeSpan.FromSeconds(10));
 
         probe.Send(searcher, new DfTally());
-        DfTallied t = probe.ExpectMsg<DfTallied>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal(3, t.n);
+        DfTallied t = probe.ExpectMsg<DfTallied>(TimeSpan.FromSeconds(10));
+        Assert.Equal(3, t.n);
     }
 }

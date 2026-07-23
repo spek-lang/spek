@@ -52,7 +52,7 @@ public sealed class AsyncLambdaTests
         AsyncRewriter.Rewrite(caller, extraReferencePaths: [dll]);
 
     [Fact]
-    public void AfterNext_StatementPositionCall_IsAwaited_AndLambdaMadeAsync()
+    public void AfterNext_LambdaMadeAsync_StatementPositionCallIsAwaited()
     {
         var dll = CompilePipeDll();
         try
@@ -77,7 +77,7 @@ public sealed class AsyncLambdaTests
     }
 
     [Fact]
-    public void BeforeNext_ReturnPositionCall_IsForwarded_NotAsync()
+    public void BeforeNext_NotMadeAsync_ReturnPositionCallIsForwarded()
     {
         var dll = CompilePipeDll();
         try

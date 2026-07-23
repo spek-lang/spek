@@ -75,7 +75,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task SchemaEvolution_MissingFieldKeepsDefault_ExtraKeyIgnored()
+    public async Task SchemaEvolution_MissingFieldKeepsDefault_ExtraKeyIgnoredAsync()
     {
         var asm = Compile(SchemaSrc, "SchemaEvo");
         var viewerType = asm.GetType("SchemaEvo.Viewer")!;
@@ -156,7 +156,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task TransientField_NotCaptured_ResetsToDefaultOnRestore()
+    public async Task TransientField_NotCaptured_ResetsToDefaultOnRestoreAsync()
     {
         var asm = Compile(TransientSrc, "TransientEvo");
         var workerType = asm.GetType("TransientEvo.Worker")!;
@@ -242,7 +242,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task StoreFailure_OnSave_RecordsDeadLetter_RegionStaysUsable()
+    public async Task StoreFailure_OnSave_RecordsDeadLetter_RegionStaysUsableAsync()
     {
         var asm = Compile(StoreFailureSrc, "StoreFail");
         var tellerType  = asm.GetType("StoreFail.Teller")!;

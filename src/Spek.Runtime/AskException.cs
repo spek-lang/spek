@@ -42,6 +42,20 @@ public sealed class AskException : Exception
         MessageTypeName = messageTypeName;
     }
 
+    /// <summary>
+    /// Creates an <see cref="AskException"/> for a terminal delivery failure
+    /// with no wrapped handler exception — the target was stopped, the message
+    /// was unhandled, or the handler returned without replying. Fails an
+    /// asker's reply cell so a no-timeout <c>AskAsync</c> faults with a
+    /// diagnostic instead of hanging (the "fail fast on all" ask semantics).
+    /// </summary>
+    public AskException(string targetActorPath, string messageTypeName, string reason)
+        : base($"Ask of '{messageTypeName}' to '{targetActorPath}' failed: {reason}")
+    {
+        TargetActorPath = targetActorPath;
+        MessageTypeName = messageTypeName;
+    }
+
     private static string BuildMessage(string path, string msgType, Exception inner)
         => $"Ask of '{msgType}' to '{path}' failed: {inner.GetType().Name}: {inner.Message}";
 }

@@ -39,15 +39,24 @@ declaration
 // types (CE0010 whitelists them). Emitted as a plain C# enum in the
 // generated code.
 enumDecl
-    : visibility? ENUM IDENTIFIER LBRACE enumMembers? RBRACE
+    : visibility? FLAGS? ENUM IDENTIFIER LBRACE enumMembers? RBRACE
     ;
 
 enumMembers
     : enumMember (COMMA enumMember)* COMMA?
     ;
 
+// A member may carry an explicit value: an integer literal (hex/binary/
+// separators allowed) or, in a flags enum, a union of earlier members
+// (`ReadWrite = Read | Write`). Value-less members auto-number (0,1,2… for
+// plain enums; the next unused power of two for flags enums).
 enumMember
-    : IDENTIFIER
+    : IDENTIFIER (ASSIGN enumMemberValue)?
+    ;
+
+enumMemberValue
+    : MINUS? INTEGER_LITERAL
+    | IDENTIFIER (PIPE IDENTIFIER)*
     ;
 
 usingDecl
@@ -665,7 +674,7 @@ memberName
     : IDENTIFIER
     | RESTART | STOP | ESCALATE | RESUME
     | ACTOR | MESSAGE | EVENT | READER | WRITER
-    | STRATEGY | CHANNEL | INTERFACE | AFTER | SHARED | USE
+    | STRATEGY | CHANNEL | INTERFACE | AFTER | SHARED | USE | FLAGS
     ;
 
 // Soft keywords usable as ordinary identifiers in name positions (variable / parameter /
@@ -676,7 +685,7 @@ memberName
 // out to avoid ambiguity with `on event` / `reader on` / `writer on`.
 softName
     : IDENTIFIER
-    | ACTOR | MESSAGE | CHANNEL | INTERFACE | AFTER | STRATEGY | RESUME
+    | ACTOR | MESSAGE | CHANNEL | INTERFACE | AFTER | STRATEGY | RESUME | FLAGS
     ;
 
 switchArm
@@ -715,11 +724,22 @@ propertySubpattern
     : qualifiedName COLON pattern
     ;
 
+// Expression-side names are a single `softName` atom; dotted chains
+// (`a.b.c`, `a.b.c(x)`, `a.b.Foo<T>(x)`) assemble exclusively in
+// `postfixExpr` via `DOT`-consuming postfix ops. Only ONE loop may compete
+// for `DOT` in expression position — when `qualifiedName` (with its own
+// greedy `(DOT softName)*` loop) sat here, deciding where the name stopped
+// and the postfix chain began required full-context prediction, which made
+// SLL prediction bail on ordinary source like `Pricing.Stamp(x)`.
+// `qualifiedName` remains the rule for type positions and declarations,
+// where nothing else consumes `DOT`. AstBuilder.VisitPostfixExpr collapses
+// the leading member-access run back into a single NameExpr/QualifiedName,
+// so the AST shape is unchanged.
 primaryExpr
     : newExpr
     | spawnExpr
-    | typedCallExpr   // must precede plain qualifiedName so `foo.Bar<T>(x)` matches
-    | bareCallExpr    // single-identifier function call — must precede qualifiedName
+    | typedCallExpr   // single-name generic call — must precede softName
+    | bareCallExpr    // single-identifier function call — must precede softName
     | DECIMAL_LITERAL
     | INTEGER_LITERAL
     | CHAR_LITERAL
@@ -733,18 +753,19 @@ primaryExpr
     | NULL
     | SELF
     | SENDER
-    | qualifiedName
+    | softName
     | DEFAULT LPAREN type_ RPAREN                     // default(T)
     | DEFAULT                                          // bare default literal
     | LPAREN expression (COMMA expression)+ RPAREN   // tuple literal: (a, b) — needs a comma
     | LPAREN expression RPAREN
     ;
 
-// Generic method call at the start of an expression: `a.b.Foo<T>(args)`.
-// Without this, qualifiedName greedily consumes `a.b.Foo`, leaving `<T>(args)`
-// to be misparsed as chained relational operators.
+// Generic call on a single bare name: `Foo<T>(args)`. Without this alt the
+// tokens would silently parse as chained relational operators
+// (`Foo < T > (args)`). Qualified generic calls (`a.b.Foo<T>(args)`) parse
+// as a softName primary plus postfix ops ending in `typedMethodCallOp`.
 typedCallExpr
-    : qualifiedName typeArgs LPAREN argList? RPAREN
+    : softName typeArgs LPAREN argList? RPAREN
     ;
 
 // bare function call: `f(args)` with a single, unqualified callee.
@@ -796,6 +817,7 @@ argList
 arg
     : (IDENTIFIER COLON)? paramModifier? expression
     | OUT_KW VAR IDENTIFIER
+    | OUT_KW type_ IDENTIFIER
     ;
 
 // ─── 7. Types ────────────────────────────────────────────────────────────────

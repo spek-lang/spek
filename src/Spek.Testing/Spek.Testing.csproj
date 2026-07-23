@@ -19,6 +19,12 @@
     <PackageReference Include="xunit.assert" Version="2.6.2" />
   </ItemGroup>
 
+  <!-- The schedule-exploration surface (ISchedulePolicy, PCT, ExploreAll) is
+       internal while it bakes; the test suite exercises it directly. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
   </ItemGroup>

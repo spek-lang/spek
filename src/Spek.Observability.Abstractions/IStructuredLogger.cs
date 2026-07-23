@@ -43,7 +43,7 @@ public interface IStructuredLogger
 
 /// <summary>
 /// Log severity levels. Mirrors
-/// <see cref="Microsoft.Extensions.Logging.LogLevel"/> values
+/// <c>Microsoft.Extensions.Logging.LogLevel</c> values
 /// (without taking the dependency at the abstractions layer).
 /// </summary>
 public enum StructuredLogLevel

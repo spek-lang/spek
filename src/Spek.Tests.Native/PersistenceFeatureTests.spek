@@ -4,6 +4,8 @@
 // re-spawn pattern; one test inspects the snapshot store directly to prove which fields
 // CaptureFields emits; the passivate test uses a short idle timeout + IsMaterialized.
 
+using Xunit;
+
 message Post(decimal amount, string memo);
 message ReadLedger();
 message LedgerState(decimal balance, int calls, string note, int legacy);
@@ -55,7 +57,7 @@ actor PassCounter
         on PassRead => return new PassCount(n);
     }
 
-    passivate after System.TimeSpan.FromMilliseconds(150);
+    passivate after TimeSpan.FromMilliseconds(150);
 
     on Restore(Snapshot s) =>
     {
@@ -79,8 +81,8 @@ class PersistenceFeatureTests
         var sys2 = new TestActorSystem("ledger-2", store);
         var L2   = sys2.SpawnPersistent<Ledger>("ledger-A");
         LedgerState st = L2.Ask(new ReadLedger());
-        Xunit.Assert.Equal(100.00m, st.balance);   // persisted (default)
-        Xunit.Assert.Equal("opening", st.note);     // deprecated — round-trips
+        Assert.Equal(100.00m, st.balance);   // persisted (default)
+        Assert.Equal("opening", st.note);     // deprecated — round-trips
         sys2.Dispose();
     }
 
@@ -97,8 +99,8 @@ class PersistenceFeatureTests
         var sys2 = new TestActorSystem("ledger-4", store);
         var L2   = sys2.SpawnPersistent<Ledger>("ledger-B");
         LedgerState st = L2.Ask(new ReadLedger());
-        Xunit.Assert.Equal(0, st.calls);    // transient — reset
-        Xunit.Assert.Equal(0, st.legacy);   // retired — reset (was never persisted)
+        Assert.Equal(0, st.calls);    // transient — reset
+        Assert.Equal(0, st.legacy);   // retired — reset (was never persisted)
         sys2.Dispose();
     }
 
@@ -110,11 +112,12 @@ class PersistenceFeatureTests
         L.Tell(new Post(10.00m, "memo"));
         sys.WhenIdleAsync();
 
-        Snapshot snap = store.LoadAsync("ledger-C");
-        Xunit.Assert.True(snap.Fields.ContainsKey("balance"));         // persisted
-        Xunit.Assert.True(snap.Fields.ContainsKey("note"));            // deprecated — kept
-        Xunit.Assert.False(snap.Fields.ContainsKey("callsThisLife"));  // transient — absent
-        Xunit.Assert.False(snap.Fields.ContainsKey("legacy"));         // retired — absent
+        Snapshot? snap = store.LoadAsync("ledger-C");
+        Assert.NotNull(snap);                                    // persisted at least once
+        Assert.True(snap.Fields.ContainsKey("balance"));         // persisted
+        Assert.True(snap.Fields.ContainsKey("note"));            // deprecated — kept
+        Assert.False(snap.Fields.ContainsKey("callsThisLife"));  // transient — absent
+        Assert.False(snap.Fields.ContainsKey("legacy"));         // retired — absent
         sys.Dispose();
     }
 
@@ -128,14 +131,14 @@ class PersistenceFeatureTests
         w.Tell(new PassBump());   // n=2, persisted
 
         // The 150ms idle timeout unloads it from memory (passivation is not termination).
-        TestActorSystem.WaitUntilAsync(() => !w.IsMaterialized, System.TimeSpan.FromSeconds(60), "passivated");
-        Xunit.Assert.False(w.IsMaterialized);
-        Xunit.Assert.False(w.IsStopped);
+        TestActorSystem.WaitUntilAsync(() => !w.IsMaterialized, TimeSpan.FromSeconds(60), "passivated");
+        Assert.False(w.IsMaterialized);
+        Assert.False(w.IsStopped);
 
         // A new message wakes it → on Restore rehydrates n to 2.
         PassCount c = w.Ask(new PassRead());
-        Xunit.Assert.Equal(2, c.n);
-        Xunit.Assert.True(w.IsMaterialized);
+        Assert.Equal(2, c.n);
+        Assert.True(w.IsMaterialized);
         sys.Dispose();
     }
 }

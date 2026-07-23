@@ -39,7 +39,7 @@ public sealed class RateLimitDeferTests
     /// policy must surface that as Defer.
     /// </summary>
     [Fact]
-    public async Task FixedWindow_with_queue_surfaces_Defer_with_positive_RetryAfter()
+    public async Task FixedWindow_with_queue_surfaces_Defer_with_positive_RetryAfterAsync()
     {
         // Build the limiter directly so we control QueueLimit > 0, which
         // is what makes the denied lease carry a RetryAfter hint. The
@@ -109,7 +109,7 @@ public sealed class RateLimitDeferTests
     /// actually behave.
     /// </summary>
     [Fact]
-    public async Task Windowed_limiters_Defer_saturated_concurrency_Rejects()
+    public async Task Windowed_limiters_Defer_saturated_concurrency_RejectsAsync()
     {
         // FixedWindow, no queue: denial still carries RetryAfter -> Defer.
         await using var noQueue = RateLimitIngressPolicy.FixedWindow(
@@ -180,7 +180,7 @@ public sealed class RateLimitDeferTests
     /// pinning the documented flat-gate behavior.
     /// </summary>
     [Fact]
-    public async Task Concurrency_ReleasesLeasePerCall_SoRepeatedEvaluationsNeverSaturate()
+    public async Task Concurrency_ReleasesLeasePerCall_SoRepeatedEvaluationsNeverSaturateAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 2);
 
@@ -209,7 +209,7 @@ public sealed class RateLimitDeferTests
     /// permit is ever held past the end of EvaluateAsync.
     /// </summary>
     [Fact]
-    public async Task Concurrency_single_permit_gate_admits_every_serial_call()
+    public async Task Concurrency_single_permit_gate_admits_every_serial_callAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 1);
 

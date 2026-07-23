@@ -25,7 +25,7 @@ internal sealed class SpekCompletionHandler : CompletionHandlerBase
     public static readonly string[] Keywords =
     [
         // Declaration-level
-        "actor", "abstract", "behavior", "channel", "class", "emits", "enum",
+        "actor", "abstract", "behavior", "channel", "class", "emits", "enum", "flags",
         "interface", "message", "module", "namespace", "shared", "using", "init",
         "program", "where",
 

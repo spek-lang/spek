@@ -25,7 +25,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
         new(new Dictionary<string, object?> { ["v"] = v });
 
     [Fact]
-    public async Task Save_then_Load_returns_latest_segment()
+    public async Task Save_then_Load_returns_latest_segmentAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
         await store.SaveAsync("k", SnapshotOf(1));
@@ -38,7 +38,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Load_returns_null_for_unknown_key()
+    public async Task Load_returns_null_for_unknown_keyAsync()
     {
         var store  = new LogSnapshotStore(_tempDir);
         var loaded = await store.LoadAsync("never-saved");
@@ -46,7 +46,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task SaveAsync_appends_a_new_segment_each_time()
+    public async Task SaveAsync_appends_a_new_segment_each_timeAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
         for (int i = 1; i <= 5; i++)
@@ -56,7 +56,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task ReadHistory_yields_segments_in_chronological_order()
+    public async Task ReadHistory_yields_segments_in_chronological_orderAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
         for (int i = 1; i <= 4; i++)
@@ -70,7 +70,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task ReadHistory_yields_empty_for_unknown_key()
+    public async Task ReadHistory_yields_empty_for_unknown_keyAsync()
     {
         var store  = new LogSnapshotStore(_tempDir);
         var count  = 0;
@@ -79,7 +79,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task MaxSegments_caps_retention_per_key()
+    public async Task MaxSegments_caps_retention_per_keyAsync()
     {
         var store = new LogSnapshotStore(_tempDir, maxSegments: 3);
         for (int i = 1; i <= 7; i++)
@@ -95,7 +95,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task CompactAsync_trims_oldest_segments()
+    public async Task CompactAsync_trims_oldest_segmentsAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
         for (int i = 1; i <= 10; i++)
@@ -111,7 +111,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task SequenceNumbers_keep_incrementing_after_compaction()
+    public async Task SequenceNumbers_keep_incrementing_after_compactionAsync()
     {
         // Compaction trims oldest; the next append must still get a
         // sequence > the highest remaining one (not restart at 1).
@@ -128,7 +128,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Concurrent_appends_to_same_key_produce_distinct_segments()
+    public async Task Concurrent_appends_to_same_key_produce_distinct_segmentsAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
 
@@ -142,7 +142,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Concurrent_appends_to_different_keys_are_independent()
+    public async Task Concurrent_appends_to_different_keys_are_independentAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
 
@@ -168,7 +168,7 @@ public sealed class LogSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task SlashKey_creates_subdirectory_layout()
+    public async Task SlashKey_creates_subdirectory_layoutAsync()
     {
         var store = new LogSnapshotStore(_tempDir);
         await store.SaveAsync("Account/user-42", SnapshotOf(7));

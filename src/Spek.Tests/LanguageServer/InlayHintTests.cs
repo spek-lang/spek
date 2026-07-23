@@ -12,7 +12,7 @@ namespace Spek.Tests.LanguageServer;
 /// </summary>
 public class InlayHintTests
 {
-    private static async Task<List<InlayHint>> Hints(string src)
+    private static async Task<List<InlayHint>> HintsAsync(string src)
     {
         src = src.Replace("\r\n", "\n");
         var cache = new DocumentCache();
@@ -51,10 +51,10 @@ public class InlayHintTests
         """;
 
     [Fact]
-    public async Task Ask_ShowsInferredReplyType()
+    public async Task Ask_ShowsInferredReplyTypeAsync()
     {
         var src   = CounterAndReader.Replace("\r\n", "\n");
-        var hints = await Hints(src);
+        var hints = await HintsAsync(src);
 
         var hint = Assert.Single(hints);
         Assert.Equal(": Count", hint.Label.String);
@@ -70,19 +70,19 @@ public class InlayHintTests
     }
 
     [Fact]
-    public async Task ExplicitReplyType_GetsNoHint()
+    public async Task ExplicitReplyType_GetsNoHintAsync()
     {
         // `.Ask<Count>(…)` already names the type in source, so nothing to add.
-        var hints = await Hints(CounterAndReader.Replace(
+        var hints = await HintsAsync(CounterAndReader.Replace(
             "peer.Ask(new GetCount())", "peer.Ask<Count>(new GetCount())"));
         Assert.Empty(hints);
     }
 
     [Fact]
-    public async Task UninferableAsk_GetsNoHint()
+    public async Task UninferableAsk_GetsNoHintAsync()
     {
         // No handler replies to Mystery, so there is no reply type to surface.
-        var hints = await Hints(CounterAndReader.Replace(
+        var hints = await HintsAsync(CounterAndReader.Replace(
             "peer.Ask(new GetCount())", "peer.Ask(new Mystery())"));
         Assert.Empty(hints);
     }

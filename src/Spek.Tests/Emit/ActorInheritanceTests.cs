@@ -77,6 +77,43 @@ public sealed class ActorInheritanceTests(ITestOutputHelper output)
         AssertCompiles(code, "ActorInheritance");
     }
 
+    // ── Red-team emit-E: an abstract actor with a parameterized `init` and NO
+    //    behaviors must still emit its constructor, or a derived actor's
+    //    `init(...) : base(args)` fails to resolve (was CS1729 — the emitter
+    //    skipped the constructor whenever there were no behaviors). ──
+    [Fact]
+    public void AbstractActor_WithInitButNoBehaviors_EmitsConstructor_AndCompiles()
+    {
+        const string src = """
+            message Ping();
+
+            abstract actor Base
+            {
+                protected int seed;
+                init(int s) { seed = s; }
+            }
+
+            actor Derived : Base
+            {
+                init(int s) : base(s) { become Active; }
+                behavior Active { on Ping => { } }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.Contains("public Base(int s)", code);       // the dropped constructor
+        Assert.DoesNotContain("_behavior =", SecondHalf(code, "class Base"));  // no behavior default in Base
+        AssertCompiles(code, "AbstractActorInit");
+    }
+
+    // Text of `code` from the first occurrence of `marker` onward — used to
+    // scope a DoesNotContain to the Base class only.
+    private static string SecondHalf(string code, string marker)
+    {
+        var i = code.IndexOf(marker, System.StringComparison.Ordinal);
+        var end = code.IndexOf("class Derived", System.StringComparison.Ordinal);
+        return i < 0 ? code : code[i..(end < 0 ? code.Length : end)];
+    }
+
     // ─── CE0123 / CE0122 ────────────────────────────────────────────────
 
     [Fact]

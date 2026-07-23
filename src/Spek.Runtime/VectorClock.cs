@@ -20,10 +20,10 @@ namespace Spek;
 /// </list>
 ///
 /// <para>Pairs naturally with the cluster's
-/// <see cref="Spek.Cluster.NodeIdentity"/> for the per-node key.
+/// <c>Spek.Cluster.NodeIdentity</c> for the per-node key.
 /// (We use <see cref="Guid"/> as the key directly here so this type
 /// stays in <see cref="Spek.Runtime"/> without depending on
-/// <see cref="Spek.Cluster"/>.)</para>
+/// <c>Spek.Cluster</c>.)</para>
 ///
 /// <para>Immutable — every operation returns a new clock. Wire-safe
 /// (passes CE0010 as an immutable record).</para>

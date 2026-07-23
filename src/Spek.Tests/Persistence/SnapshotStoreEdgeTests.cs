@@ -17,7 +17,7 @@ namespace Spek.Tests.Persistence;
 ///
 ///   • round-trip fidelity of mixed field types (int / long / double / bool /
 ///     string / null) through the JSON-backed stores, where the only path
-///     back is <c>JsonElement.Deserialize<T></c>;
+///     back is <c>JsonElement.Deserialize&lt;T&gt;</c>;
 ///   • the <see cref="Snapshot"/> contract itself (null-field default,
 ///     missing-key throw, empty-snapshot is distinct from never-saved);
 ///   • per-store divergences the abstraction deliberately allows — InMemory
@@ -79,14 +79,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── InMemory store ─────────────────────────
 
     [Fact]
-    public async Task InMemory_Load_returns_null_for_unknown_key()
+    public async Task InMemory_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new InMemorySnapshotStore();
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task InMemory_second_Save_overwrites_latest_wins()
+    public async Task InMemory_second_Save_overwrites_latest_winsAsync()
     {
         var store = new InMemorySnapshotStore();
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
@@ -98,7 +98,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task InMemory_round_trips_mixed_types_and_null()
+    public async Task InMemory_round_trips_mixed_types_and_nullAsync()
     {
         var store = new InMemorySnapshotStore();
         await store.SaveAsync("k", Mixed());
@@ -106,7 +106,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task InMemory_returns_the_same_live_Snapshot_instance()
+    public async Task InMemory_returns_the_same_live_Snapshot_instanceAsync()
     {
         // Divergence vs the JSON-backed stores: InMemory keeps the live object,
         // so Get<int> sees the *boxed int* directly (the `value is T` fast path),
@@ -124,14 +124,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── File store ─────────────────────────
 
     [Fact]
-    public async Task File_Load_returns_null_for_unknown_key()
+    public async Task File_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new FileSnapshotStore(FileDir);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task File_round_trips_mixed_types_and_null()
+    public async Task File_round_trips_mixed_types_and_nullAsync()
     {
         var store = new FileSnapshotStore(FileDir);
         await store.SaveAsync("acct/1", Mixed());
@@ -139,7 +139,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_overwrite_with_different_shape_only_keeps_latest()
+    public async Task File_overwrite_with_different_shape_only_keeps_latestAsync()
     {
         // Latest-wins also means the *shape* is replaced: a key the first
         // snapshot carried but the second omits must be gone after overwrite
@@ -161,7 +161,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_empty_snapshot_round_trips_to_empty_not_null()
+    public async Task File_empty_snapshot_round_trips_to_empty_not_nullAsync()
     {
         // A saved-but-empty snapshot must be distinguishable from a key that
         // was never written: LoadAsync returns a non-null Snapshot with zero
@@ -175,7 +175,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_load_throws_on_empty_key()
+    public async Task File_load_throws_on_empty_keyAsync()
     {
         // File resolves the path eagerly (ArgumentException.ThrowIfNullOrEmpty
         // inside ResolvePath), so an empty key is rejected on Load too — not
@@ -187,14 +187,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── Sqlite store ─────────────────────────
 
     [Fact]
-    public async Task Sqlite_Load_returns_null_for_unknown_key()
+    public async Task Sqlite_Load_returns_null_for_unknown_keyAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task Sqlite_round_trips_mixed_types_and_null()
+    public async Task Sqlite_round_trips_mixed_types_and_nullAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await store.SaveAsync("acct/1", Mixed());
@@ -202,7 +202,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Sqlite_upsert_with_different_shape_only_keeps_latest()
+    public async Task Sqlite_upsert_with_different_shape_only_keeps_latestAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?>
@@ -221,7 +221,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Sqlite_save_and_load_reject_empty_key()
+    public async Task Sqlite_save_and_load_reject_empty_keyAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -232,14 +232,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── Log store ─────────────────────────
 
     [Fact]
-    public async Task Log_Load_returns_null_for_unknown_key()
+    public async Task Log_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task Log_round_trips_mixed_types_and_null()
+    public async Task Log_round_trips_mixed_types_and_nullAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("acct/1", Mixed());
@@ -247,7 +247,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_appends_history_while_Load_returns_latest()
+    public async Task Log_appends_history_while_Load_returns_latestAsync()
     {
         // Divergence vs the latest-wins stores: the same two saves that
         // *replace* in File/Sqlite are both *retained* in the Log. LoadAsync
@@ -267,7 +267,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_NextSequence_appends_past_a_garbage_segment_file()
+    public async Task Log_NextSequence_appends_past_a_garbage_segment_fileAsync()
     {
         // Append-side robustness: NextSequence has an explicit fallback for a
         // non-numeric file sorting to the end of the key directory — it walks
@@ -302,7 +302,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // Fixed: EnumerateSegments now filters to numbered segments + orders numerically,
     // so a stray non-numeric *.snapshot.json is skipped instead of JSON-parsed.
     [Fact]
-    public async Task Log_Load_should_skip_a_garbage_segment_file()
+    public async Task Log_Load_should_skip_a_garbage_segment_fileAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
@@ -320,7 +320,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_CompactAsync_to_zero_clears_all_history()
+    public async Task Log_CompactAsync_to_zero_clears_all_historyAsync()
     {
         // keepLast: 0 is explicitly allowed (only < 0 throws). It must drop
         // every segment, after which Load returns null again.
@@ -335,7 +335,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_CompactAsync_rejects_negative_keepLast()
+    public async Task Log_CompactAsync_rejects_negative_keepLastAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));

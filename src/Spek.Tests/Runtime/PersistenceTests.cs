@@ -47,7 +47,7 @@ public class PersistenceTests
     }
 
     [Fact]
-    public async Task Persist_WritesSnapshotToStore()
+    public async Task Persist_WritesSnapshotToStoreAsync()
     {
         var store = new InMemorySnapshotStore();
         using var system = new TestActorSystem("t", store);
@@ -55,7 +55,7 @@ public class PersistenceTests
         var wallet = system.SpawnPersistent<Wallet>("wallet-1");
         wallet.Tell(new Deposit(50m));
 
-        await WaitUntil(async () =>
+        await WaitUntilAsync(async () =>
             await store.LoadAsync("wallet-1") is { } s && s.Get<decimal>("balance") == 50m);
 
         var persisted = await store.LoadAsync("wallet-1");
@@ -64,7 +64,7 @@ public class PersistenceTests
     }
 
     [Fact]
-    public async Task Respawn_WithSameKey_RestoresState()
+    public async Task Respawn_WithSameKey_RestoresStateAsync()
     {
         var store = new InMemorySnapshotStore();
 
@@ -74,7 +74,7 @@ public class PersistenceTests
             var wallet = sys1.SpawnPersistent<Wallet>("wallet-42");
             wallet.Tell(new Deposit(100m));
             wallet.Tell(new Deposit(25m));
-            await WaitUntil(async () =>
+            await WaitUntilAsync(async () =>
                 await store.LoadAsync("wallet-42") is { } s && s.Get<decimal>("balance") == 125m);
         }
 
@@ -90,14 +90,14 @@ public class PersistenceTests
     }
 
     [Fact]
-    public async Task Respawn_WithDifferentKey_StartsFresh()
+    public async Task Respawn_WithDifferentKey_StartsFreshAsync()
     {
         var store = new InMemorySnapshotStore();
         using var system = new TestActorSystem("t", store);
 
         var a = system.SpawnPersistent<Wallet>("wallet-A");
         a.Tell(new Deposit(999m));
-        await WaitUntil(async () =>
+        await WaitUntilAsync(async () =>
             await store.LoadAsync("wallet-A") is { } s && s.Get<decimal>("balance") == 999m);
 
         var probe = system.CreateProbe();
@@ -109,7 +109,7 @@ public class PersistenceTests
     }
 
     [Fact]
-    public async Task NonPersistentSpawn_DoesNotWriteToStore()
+    public async Task NonPersistentSpawn_DoesNotWriteToStoreAsync()
     {
         var store = new InMemorySnapshotStore();
         using var system = new TestActorSystem("t", store);
@@ -124,7 +124,7 @@ public class PersistenceTests
     }
 
     [Fact]
-    public async Task MultipleDeposits_SnapshotReflectsLatest()
+    public async Task MultipleDeposits_SnapshotReflectsLatestAsync()
     {
         var store = new InMemorySnapshotStore();
         using var system = new TestActorSystem("t", store);
@@ -134,7 +134,7 @@ public class PersistenceTests
         wallet.Tell(new Deposit(2m));
         wallet.Tell(new Deposit(3m));
 
-        await WaitUntil(async () =>
+        await WaitUntilAsync(async () =>
             await store.LoadAsync("wallet-multi") is { } s && s.Get<decimal>("balance") == 6m);
 
         var snapshot = await store.LoadAsync("wallet-multi");
@@ -143,7 +143,11 @@ public class PersistenceTests
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private static async Task WaitUntil(Func<Task<bool>> predicate, int timeoutMs = 2000)
+    // Generous window on purpose: under full-parallel suite load the
+    // persist write can starve for seconds (see the timing-tests lesson in
+    // the test-kit work — widen windows, don't throttle the runner). The
+    // happy path returns the instant the condition holds.
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate, int timeoutMs = 60_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

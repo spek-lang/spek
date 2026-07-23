@@ -88,6 +88,7 @@ FOREACH     : 'foreach';
 IS          : 'is';
 AS          : 'as';
 AFTER       : 'after';
+FLAGS       : 'flags';
 STRATEGY    : 'strategy';
 FAILURE     : 'Failure';
 RESTART     : 'Restart';

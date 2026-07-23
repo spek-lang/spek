@@ -925,6 +925,41 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
+    // ─── CE0139 — a generic message can't be handled yet (red-team emit-D) ────
+
+    [Fact]
+    public void CE0139_GenericMessageHandler_Reported()
+    {
+        const string src = """
+            message Envelope<T>(T payload);
+            actor A { init() { become Idle; } behavior Idle { on Envelope e => { } } }
+            """;
+        var d = Analyze(src);
+        Assert.Contains(d, x => x.Code == "CE0139");
+    }
+
+    [Fact]
+    public void CE0139_PrivateGenericMessageHandler_AlsoReported()
+    {
+        // Private handlers escape CE0096 but NOT CE0139 — a private handler on
+        // a generic message emits the same open-generic `case` (CS0305).
+        const string src = """
+            message Envelope<T>(T payload);
+            actor A { init() { become Idle; } behavior Idle { private on Envelope e => { } } }
+            """;
+        Assert.Contains(Analyze(src), x => x.Code == "CE0139");
+    }
+
+    [Fact]
+    public void CE0139_NonGenericMessageHandler_NoDiagnostic()
+    {
+        const string src = """
+            message Plain(int n);
+            actor A { init() { become Idle; } behavior Idle { on Plain p => { } } }
+            """;
+        Assert.DoesNotContain(Analyze(src), x => x.Code == "CE0139");
+    }
+
     [Fact]
     public void CE0096_PublicHandler_OnDeclaredMessage_NoDiagnostic()
     {
@@ -2213,25 +2248,10 @@ public class SemanticAnalyzerTests
     {
         // Base channel uses `emits any;` as the advisory escape hatch.
         // Derived channel inherits — strict enforcement should be off
-        // for actors implementing the derived channel.
+        // for actors implementing the derived channel. (`channel Loose : { … }`
+        // with an empty colon list isn't valid grammar, so the base declares
+        // no bases.)
         const string src = """
-            message Ping();
-            message Whatever();
-
-            channel Loose : { on Ping; emits any; }
-            channel StillLoose : Loose { }
-
-            actor Loosey : StillLoose
-            {
-                behavior Idle
-                {
-                    on Ping => { sender.Tell(new Whatever()); }
-                }
-            }
-            """;
-        // Note: `channel Loose : { ... }` with an empty colon list isn't
-        // valid grammar — fix the source to be just `channel Loose { ... }`.
-        const string fixedSrc = """
             message Ping();
             message Whatever();
 
@@ -2246,7 +2266,7 @@ public class SemanticAnalyzerTests
                 }
             }
             """;
-        AssertNoDiagnostics(fixedSrc);
+        AssertNoDiagnostics(src);
     }
 
     // ─── CE0093 — unknown base channel ──────────────────────────────────────

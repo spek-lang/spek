@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Spek.Benchmarks.Toolchain</RootNamespace>
+    <AssemblyName>Spek.Benchmarks.Toolchain</AssemblyName>
+    <!-- BenchmarkDotNet requires a Release build to produce meaningful numbers. -->
+    <IsPackable>false</IsPackable>
+    <!-- VSTHRD200 (Async method-name suffix) rides in with OmniSharp's
+         threading analyzers; benchmark method names ARE the report row
+         names, so the suffix would pollute every results table. -->
+    <NoWarn>$(NoWarn);VSTHRD200</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <!-- Pinned to the same version Spek.Compiler uses: the emit path's
+         invisible-async pass (AsyncRewriter) is a Roslyn parse + compile of
+         the emitted C#, so a version skew here would silently benchmark a
+         different Roslyn than a real build pays for. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The two toolchain surfaces under benchmark. Deliberately no
+         reference to Spek.Runtime — nothing here spawns an actor; the
+         synthetic sources are compiled, never executed. -->
+    <ProjectReference Include="..\Spek.Compiler\Spek.Compiler.csproj" />
+    <ProjectReference Include="..\Spek.LanguageServer\Spek.LanguageServer.csproj" />
+  </ItemGroup>
+
+</Project>

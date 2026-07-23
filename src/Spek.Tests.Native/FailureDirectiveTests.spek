@@ -6,6 +6,8 @@
 // Restart and Escalate via OnFailure work too, now that
 // `FailureDirective.Restart`/`.Escalate`/`.Stop` parse in member-access position.
 
+using Xunit;
+
 message Detonate();
 message Bump();
 message ReadBump();
@@ -19,7 +21,7 @@ actor DefaultStop
 
     behavior Active
     {
-        on Detonate => { throw new System.InvalidOperationException("boom"); }
+        on Detonate => { throw new InvalidOperationException("boom"); }
         on Bump     => { count = count + 1; }
         on ReadBump => return new BumpValue(count);
     }
@@ -33,12 +35,12 @@ actor Resumer
 
     behavior Active
     {
-        on Detonate => { throw new System.InvalidOperationException("boom"); }
+        on Detonate => { throw new InvalidOperationException("boom"); }
         on Bump     => { count = count + 1; }
         on ReadBump => return new BumpValue(count);
     }
 
-    FailureDirective OnFailure(System.Exception ex, object msg) { return FailureDirective.Resume; }
+    FailureDirective OnFailure(Exception ex, object msg) { return FailureDirective.Resume; }
 }
 
 actor Restarter
@@ -49,21 +51,21 @@ actor Restarter
 
     behavior Active
     {
-        on Detonate => { throw new System.InvalidOperationException("boom"); }
+        on Detonate => { throw new InvalidOperationException("boom"); }
         on Bump     => { count = count + 1; }
         on ReadBump => return new BumpValue(count);
     }
 
-    FailureDirective OnFailure(System.Exception ex, object msg) { return FailureDirective.Restart; }
+    FailureDirective OnFailure(Exception ex, object msg) { return FailureDirective.Restart; }
 }
 
 actor Escalator
 {
     init() { become Active; }
 
-    behavior Active { on Detonate => { throw new System.InvalidOperationException("boom"); } }
+    behavior Active { on Detonate => { throw new InvalidOperationException("boom"); } }
 
-    FailureDirective OnFailure(System.Exception ex, object msg) { return FailureDirective.Escalate; }
+    FailureDirective OnFailure(Exception ex, object msg) { return FailureDirective.Escalate; }
 }
 
 class FailureDirectiveTests
@@ -82,12 +84,13 @@ class FailureDirectiveTests
         var worker = sys.Spawn<DefaultStop>();
         worker.Tell(new Detonate());
 
-        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, System.TimeSpan.FromSeconds(2), "failure dead-letter");
+        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, TimeSpan.FromSeconds(2), "failure dead-letter");
 
-        Xunit.Assert.IsType<Detonate>(sink.Records[0].Message);
-        Xunit.Assert.IsType<System.InvalidOperationException>(sink.Records[0].Cause);
-        Xunit.Assert.Contains("stopping", sink.Records[0].Reason);
-        Xunit.Assert.True(sink.Records.Any(r => r.Cause != null));   // LINQ over records (needs System.Linq)
+        Assert.IsType<Detonate>(sink.Records[0].Message);
+        Assert.IsType<InvalidOperationException>(sink.Records[0].Cause);
+        Assert.Contains("stopping", sink.Records[0].Reason);
+        var failures = sink.Records.Where(r => r.Cause != null).ToList();   // LINQ over records (needs System.Linq)
+        Assert.NotEmpty(failures);
     }
 
     public void MessagesToAStoppedActorDeadLetter()
@@ -99,9 +102,9 @@ class FailureDirectiveTests
         worker.Tell(new Bump());
         worker.Tell(new Bump());
 
-        TestActorSystem.WaitUntilAsync(() => sink.Records.Count >= 3, System.TimeSpan.FromSeconds(2), "post-stop dead-letters");
+        TestActorSystem.WaitUntilAsync(() => sink.Records.Count >= 3, TimeSpan.FromSeconds(2), "post-stop dead-letters");
 
-        Xunit.Assert.Contains(sink.Records, r => r.Message is Bump && r.Cause == null && r.Reason.Contains("stopped"));
+        Assert.Contains(sink.Records, r => r.Message is Bump && r.Cause == null && r.Reason.Contains("stopped"));
     }
 
     public void ResumeSkipsBadMessageAndKeepsProcessing()
@@ -115,10 +118,10 @@ class FailureDirectiveTests
 
         probe.Send(worker, new ReadBump());
         BumpValue v = probe.ExpectMsg<BumpValue>();
-        Xunit.Assert.Equal(2, v.n);
+        Assert.Equal(2, v.n);
 
-        Xunit.Assert.False(worker.IsStopped);
-        Xunit.Assert.Contains("resuming", sink.Records[0].Reason);
+        Assert.False(worker.IsStopped);
+        Assert.Contains("resuming", sink.Records[0].Reason);
     }
 
     public void RestartViaOnFailureResetsInstanceState()
@@ -133,9 +136,9 @@ class FailureDirectiveTests
 
         probe.Send(worker, new ReadBump());
         BumpValue v = probe.ExpectMsg<BumpValue>();
-        Xunit.Assert.Equal(1, v.n);
-        Xunit.Assert.False(worker.IsStopped);
-        Xunit.Assert.Contains(sink.Records, r => r.Reason.Contains("restarting"));
+        Assert.Equal(1, v.n);
+        Assert.False(worker.IsStopped);
+        Assert.Contains(sink.Records, r => r.Reason.Contains("restarting"));
     }
 
     public void EscalateAtRootDegradesToStop()
@@ -144,6 +147,6 @@ class FailureDirectiveTests
         worker.Tell(new Detonate());
 
         sys.ExpectStop(worker);
-        Xunit.Assert.Contains(sink.Records, r => r.Reason.Contains("escalate at root"));
+        Assert.Contains(sink.Records, r => r.Reason.Contains("escalate at root"));
     }
 }

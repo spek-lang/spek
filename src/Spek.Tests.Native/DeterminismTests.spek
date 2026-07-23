@@ -4,6 +4,8 @@
 // mutable statics and a test can't reach an actor instance, so the worker stops
 // itself and we observe `worker.IsStopped` — a cleaner Spek-native signal.
 
+using Xunit;
+
 message Work(int msDelay);
 
 actor SlowWorker
@@ -27,7 +29,7 @@ class DeterminismTests
         var worker = sys.Spawn<SlowWorker>();
         worker.Tell(new Work(120));
 
-        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
+        Assert.True(sys.WaitForIdle(TimeSpan.FromSeconds(3)));
     }
 
     public void WaitForIdleReturnsFalseWhenWorkOutlastsTimeout()
@@ -35,7 +37,7 @@ class DeterminismTests
         var worker = sys.Spawn<SlowWorker>();
         worker.Tell(new Work(1500));
 
-        Xunit.Assert.False(sys.WaitForIdle(System.TimeSpan.FromMilliseconds(100)));
+        Assert.False(sys.WaitForIdle(TimeSpan.FromMilliseconds(100)));
     }
 
     public void WaitUntilAsyncReturnsOnceConditionHolds()
@@ -43,15 +45,15 @@ class DeterminismTests
         var worker = sys.Spawn<SlowWorker>();
         worker.Tell(new Work(80));
 
-        TestActorSystem.WaitUntilAsync(() => worker.IsStopped, System.TimeSpan.FromSeconds(3), "worker stopped");
-        Xunit.Assert.True(worker.IsStopped);
+        TestActorSystem.WaitUntilAsync(() => worker.IsStopped, TimeSpan.FromSeconds(3), "worker stopped");
+        Assert.True(worker.IsStopped);
     }
 
     public void WaitUntilAsyncThrowsDescriptiveTimeout()
     {
-        System.TimeoutException ex = Xunit.Assert.ThrowsAsync<System.TimeoutException>(
-            () => TestActorSystem.WaitUntilAsync(() => false, System.TimeSpan.FromMilliseconds(50), "never happens"));
+        TimeoutException ex = Assert.ThrowsAsync<TimeoutException>(
+            () => TestActorSystem.WaitUntilAsync(() => false, TimeSpan.FromMilliseconds(50), "never happens"));
 
-        Xunit.Assert.Contains("never happens", ex.Message);
+        Assert.Contains("never happens", ex.Message);
     }
 }

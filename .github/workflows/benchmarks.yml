@@ -44,6 +44,46 @@ jobs:
           --filter '${{ github.event.inputs.filter || ''*'' }}'
           --job short
 
+      - name: Build language benchmarks (Release)
+        run: dotnet build src/Spek.Benchmarks.Language/Spek.Benchmarks.Language.csproj -c Release --nologo
+
+      - name: Run language benchmarks
+        # Emitted-shape suite: each class compiles a .spek source in
+        # GlobalSetup and measures the emitted output — behaviors, reader
+        # arms, regions, guards, stream chains. What Spek-authored code
+        # costs, as opposed to Spek.Benchmarks' raw-runtime numbers.
+        run: >
+          dotnet run -c Release --project src/Spek.Benchmarks.Language --no-build --
+          --filter '${{ github.event.inputs.filter || ''*'' }}'
+          --job short
+
+      - name: Build toolchain benchmarks (Release)
+        run: dotnet build src/Spek.Benchmarks.Toolchain/Spek.Benchmarks.Toolchain.csproj -c Release --nologo
+
+      - name: Run toolchain benchmarks
+        # Compile and editor latency: parse/analyze/emit at 100/1k/5k lines,
+        # the LSP didChange reparse, and large-document handler queries.
+        # Build latency compounds across large projects like runtime latency
+        # compounds across requests — track it the same way.
+        run: >
+          dotnet run -c Release --project src/Spek.Benchmarks.Toolchain --no-build --
+          --filter '${{ github.event.inputs.filter || ''*'' }}'
+          --job short
+
+      - name: Build demo benchmarks (Release)
+        run: dotnet build demos/benchmarks/Demo.Benchmarks/Demo.Benchmarks.csproj -c Release --nologo
+
+      - name: Run demo benchmarks
+        # The paired demo panes (Spek vs C# twin) under the same JIT-warmed,
+        # steady-state measurement: CPU per pass/check plus allocated bytes.
+        # The C# twin is the BenchmarkDotNet baseline, so the Ratio column is
+        # the number to track across releases. No --job flag: the project
+        # bakes in ShortRun + the in-process toolchain (its panes compile
+        # .spek sources, which BDN's generated child project can't rebuild).
+        run: >
+          dotnet run -c Release --project demos/benchmarks/Demo.Benchmarks --no-build --
+          --filter '${{ github.event.inputs.filter || ''*'' }}'
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4

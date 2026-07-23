@@ -46,8 +46,27 @@ public class ClusterMemoryTransportTests
         }
     }
 
+    /// <summary>Captures the sender ref of every message it receives and
+    /// replies through it — observes remote-sender ref identity across
+    /// envelopes while proving the ref still routes.</summary>
+    private sealed class SenderCapturingActor : ActorBase
+    {
+        private readonly BlockingCollection<ActorRef> _senders;
+
+        public SenderCapturingActor(BlockingCollection<ActorRef> senders) => _senders = senders;
+
+        protected override Task DispatchAsync(object message, ActorRef sender)
+        {
+            _currentSender = sender;
+            _senders.Add(sender);
+            if (message is Greet g)
+                _currentSender.Tell(new GreetReply($"hello {g.Name}"));
+            return Task.CompletedTask;
+        }
+    }
+
     [Fact]
-    public async Task TwoSystems_TellAcrossWire_DeliversMessage()
+    public async Task TwoSystems_TellAcrossWire_DeliversMessageAsync()
     {
         // Spawn the greeter on B; from A, get a remote ref to it; Tell.
         // Greeter's reply Tell uses NoSender (no round-trip required for
@@ -80,7 +99,7 @@ public class ClusterMemoryTransportTests
     }
 
     [Fact]
-    public async Task TwoSystems_SenderRoundTrip_ReplyArrivesAtOriginator()
+    public async Task TwoSystems_SenderRoundTrip_ReplyArrivesAtOriginatorAsync()
     {
         // Full location-transparency test. A named-root collector on A
         // Tells the greeter on B with itself as the sender; the greeter's
@@ -116,6 +135,104 @@ public class ClusterMemoryTransportTests
         Assert.Equal("hello location-transparency", reply.Greeting);
 
         await Task.CompletedTask;
+    }
+
+    [Fact]
+    public void RepeatedEnvelopesFromSameSender_ReceiverSeesOneCachedRef()
+    {
+        // Pins the perf-r16 receive-side contract: every inbound envelope
+        // carrying the same (origin node, sender path) resolves to the SAME
+        // ActorRef instance — reference identity, since ActorRef has no value
+        // equality — instead of a fresh RemoteEndpoint + ref per message.
+        // Recipients that stash senders (dedupe sets, per-sender state keyed
+        // by ref) therefore see one logical remote sender as one ref. The
+        // replies assert the cached ref still routes on every use, not just
+        // the first.
+        using var fabric = new InMemoryClusterFabric();
+        using var systemA = new ActorSystem("a");
+        using var systemB = new ActorSystem("b");
+
+        var transportA = fabric.CreateTransport("node-a");
+        var transportB = fabric.CreateTransport("node-b");
+
+        var clusterA = SpekClusterNs.Cluster.Bind(systemA, transportA);
+        var clusterB = SpekClusterNs.Cluster.Bind(systemB, transportB);
+
+        clusterA.RegisterPeer("node-b", transportB.LocalNode);
+        clusterB.RegisterPeer("node-a", transportA.LocalNode);
+
+        var senders = new BlockingCollection<ActorRef>();
+        systemB.SpawnNamed<SenderCapturingActor>("capturer", senders);
+
+        var replies = new BlockingCollection<object>();
+        var collector = systemA.SpawnNamed<CollectingActor>("collector", replies);
+
+        var remoteCapturer = clusterA.ResolveRemote("node-b", "capturer");
+        remoteCapturer.Tell(new Greet("first"), sender: collector);
+        remoteCapturer.Tell(new Greet("second"), sender: collector);
+
+        Assert.True(senders.TryTake(out var seen1, TimeSpan.FromSeconds(2)),
+            "First envelope did not arrive within 2s.");
+        Assert.True(senders.TryTake(out var seen2, TimeSpan.FromSeconds(2)),
+            "Second envelope did not arrive within 2s.");
+
+        Assert.NotNull(seen1);
+        Assert.Same(seen1, seen2);
+        Assert.True(seen1!.IsRemote);
+
+        // The shared ref keeps working per message — both replies land.
+        Assert.True(replies.TryTake(out _, TimeSpan.FromSeconds(2)),
+            "First reply did not route back through the cached sender ref.");
+        Assert.True(replies.TryTake(out _, TimeSpan.FromSeconds(2)),
+            "Second reply did not route back through the cached sender ref.");
+    }
+
+    [Fact]
+    public void EnvelopesFromDistinctSenders_ReceiverSeesDistinctRefs()
+    {
+        // Companion to the caching test: the cache key is (node, path), so
+        // two different named-root senders on the same node must NOT collapse
+        // into one ref.
+        using var fabric = new InMemoryClusterFabric();
+        using var systemA = new ActorSystem("a");
+        using var systemB = new ActorSystem("b");
+
+        var transportA = fabric.CreateTransport("node-a");
+        var transportB = fabric.CreateTransport("node-b");
+
+        var clusterA = SpekClusterNs.Cluster.Bind(systemA, transportA);
+        var clusterB = SpekClusterNs.Cluster.Bind(systemB, transportB);
+
+        clusterA.RegisterPeer("node-b", transportB.LocalNode);
+        clusterB.RegisterPeer("node-a", transportA.LocalNode);
+
+        var senders = new BlockingCollection<ActorRef>();
+        systemB.SpawnNamed<SenderCapturingActor>("capturer", senders);
+
+        var sinkOne = new BlockingCollection<object>();
+        var sinkTwo = new BlockingCollection<object>();
+        var collectorOne = systemA.SpawnNamed<CollectingActor>("collector-one", sinkOne);
+        var collectorTwo = systemA.SpawnNamed<CollectingActor>("collector-two", sinkTwo);
+
+        var remoteCapturer = clusterA.ResolveRemote("node-b", "capturer");
+        remoteCapturer.Tell(new Greet("one"), sender: collectorOne);
+
+        Assert.True(senders.TryTake(out var seenOne, TimeSpan.FromSeconds(2)),
+            "Envelope from collector-one did not arrive within 2s.");
+        Assert.True(sinkOne.TryTake(out _, TimeSpan.FromSeconds(2)),
+            "Reply to collector-one did not arrive within 2s.");
+
+        remoteCapturer.Tell(new Greet("two"), sender: collectorTwo);
+
+        Assert.True(senders.TryTake(out var seenTwo, TimeSpan.FromSeconds(2)),
+            "Envelope from collector-two did not arrive within 2s.");
+        Assert.NotSame(seenOne, seenTwo);
+
+        // And each reply reached its own originator, so the two cached refs
+        // route independently.
+        Assert.True(sinkTwo.TryTake(out _, TimeSpan.FromSeconds(2)),
+            "Reply to collector-two did not arrive within 2s.");
+        Assert.Empty(sinkOne);
     }
 
     [Fact]

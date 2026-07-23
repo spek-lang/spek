@@ -98,6 +98,14 @@ public abstract class ActorBase
         new Dictionary<string, object?>();
 
     /// <summary>
+    /// The name of the behavior currently active, for live introspection.
+    /// Generated actors override this to read the `become` delegate; a
+    /// hand-written actor may override it or leave the default (null,
+    /// rendered as "-" by tooling).
+    /// </summary>
+    protected internal virtual string? CurrentBehaviorName => null;
+
+    /// <summary>
     /// Lifecycle hook fired once when the actor instance starts — after its
     /// fields are wired up but before the first message is dispatched. Also
     /// fires when a passivated actor is re-materialised. Default is a no-op;
@@ -160,6 +168,15 @@ public abstract class ActorBase
     /// resolves to this property.
     /// </summary>
     protected IStructuredLogger Log => _system?.Logger ?? NullStructuredLogger.Instance;
+
+    /// <summary>
+    /// The actor's time source (<c>self.Clock</c> in Spek). Read wall time
+    /// with <c>Clock.GetUtcNow()</c> and measure with
+    /// <c>Clock.GetTimestamp()</c>/<c>GetElapsedTime</c> — under the test
+    /// kit's manual clock these are deterministic, where <c>DateTime.UtcNow</c>
+    /// would silently diverge from virtual time (CE0134 lints it).
+    /// </summary>
+    protected TimeProvider Clock => _system?.Clock ?? TimeProvider.System;
 
     /// <summary>
     /// The node-lifecycle handle. <c>self.System</c> in Spek source
@@ -394,7 +411,7 @@ public abstract class ActorBase
                 log = new List<DateTime>();
                 _childRestartLog[child] = log;
             }
-            var now = DateTime.UtcNow;
+            var now = (_system?.Clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
             if (window is { } w) log.RemoveAll(t => now - t > w);
             if (log.Count >= maxRetries.Value) return FailureDirective.Stop;
             log.Add(now);
@@ -441,7 +458,7 @@ public abstract class ActorBase
     /// <typeparam name="TActor">The child actor class to instantiate.</typeparam>
     /// <param name="args">Constructor arguments for the child.</param>
     /// <returns>A reference to the newly spawned child actor.</returns>
-    protected ActorRef SpawnChildAsync<TActor>(params object[] args)
+    protected ActorRef SpawnChildAsync<TActor>(params object?[] args)
         where TActor : ActorBase
     {
         // Children currently spawn non-persistent — persistent-identity for
@@ -493,41 +510,6 @@ public abstract class ActorBase
         }
     }
 
-    // ─── Dead-letter sink (singleton used for the NoSender ref) ─────────────
-
-    internal static readonly ActorBase DeadLetter = new DeadLetterActor();
-
-    private sealed class DeadLetterActor : ActorBase
-    {
-        protected override Task DispatchAsync(object message, ActorRef sender) =>
-            Task.CompletedTask;
-    }
-
-    // ─── Reply plumbing for ask ─────────────────────────────────────────────
-
-    internal sealed class ReplyActor<T> : ActorBase
-    {
-        private readonly TaskCompletionSource<T> _tcs;
-        public ReplyActor(TaskCompletionSource<T> tcs) => _tcs = tcs;
-
-        /// <summary>
-        /// When the recipient's reader handler throws and the
-        /// asker is awaiting a reply, the slot routes the failure
-        /// here so the caller's <c>await target.AskAsync(...)</c>
-        /// throws (with <see cref="AskException"/>) rather than
-        /// hanging forever.
-        /// </summary>
-        internal override void FailReplyWith(Exception ex) =>
-            _tcs.TrySetException(ex);
-
-        protected override Task DispatchAsync(object message, ActorRef sender)
-        {
-            if (message is T result)
-                _tcs.TrySetResult(result);
-            else
-                _tcs.TrySetException(new InvalidCastException(
-                    $"Expected {typeof(T).Name} but got {message.GetType().Name}"));
-            return Task.CompletedTask;
-        }
-    }
+    // Reply plumbing for ask lives in ReplyCell (Spek.Runtime/ReplyCell.cs):
+    // an ask's sender ref wraps a slotless completion cell, not an actor.
 }

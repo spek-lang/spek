@@ -69,17 +69,19 @@ public sealed class TupleLiteralTests(ITestOutputHelper output)
     [Fact]
     public void Cast_StillParses_AfterTupleAddition()
     {
-        // Regression guard: `(Type)x` must still be a cast, not mis-parsed now
-        // that `( ... )` can also begin a tuple.
+        // Regression guard: `(Type)x` must still PARSE as a cast, not
+        // mis-parse as a tuple, now that `( ... )` can begin one. The proof
+        // is CE0129 firing — the cast-retirement diagnostic only exists on
+        // the cast parse shape (a tuple mis-parse would be CE0001).
         const string src = """
             module M
             {
                 public object Box(int x) { return (object)x; }
             }
             """;
-        var code = EmitCSharp(src);
-        Assert.Contains("(object)", code);
-        AssertCompiles(code, "Cast");
+        var parsed = Spek.Compiler.Parser.SpekCompiler.Parse(src);
+        Assert.False(parsed.Success);
+        Assert.Single(parsed.Diagnostics, d => d.Code == "CE0129");
     }
 
     [Fact]

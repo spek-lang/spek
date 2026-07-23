@@ -30,39 +30,41 @@ internal static class TcpFrame
 
     /// <summary>
     /// Serialize an envelope into the frame format and write it to the pipe.
+    /// <paramref name="payloadScratch"/> stages the payload so its length is
+    /// known before the prefix is written; the caller owns it (per
+    /// connection, reused under the connection's send gate — perf r15: a
+    /// fresh buffer per frame was a large slice of the boundary's
+    /// allocation). Strings encode straight into the frame span via
+    /// GetByteCount/GetBytes(Span) — no intermediate arrays; the wire bytes
+    /// are unchanged.
     /// </summary>
     public static void Write(
         PipeWriter writer,
         RemoteEnvelope envelope,
         string messageTypeName,
-        ISpekSerializer serializer)
+        ISpekSerializer serializer,
+        ArrayBufferWriter<byte> payloadScratch)
     {
-        // Serialize payload to its own buffer first so we know its length.
-        var payloadBuf = new ArrayBufferWriter<byte>();
-        serializer.Serialize(envelope.Message, payloadBuf);
-        var payload = payloadBuf.WrittenSpan;
+        payloadScratch.ResetWrittenCount();
+        serializer.Serialize(envelope.Message, payloadScratch);
+        var payload = payloadScratch.WrittenSpan;
 
-        var typeBytes        = Encoding.UTF8.GetBytes(messageTypeName);
-        var targetPathBytes  = Encoding.UTF8.GetBytes(envelope.TargetPath);
-        var senderPathBytes  = envelope.SenderPath is null
-            ? Array.Empty<byte>()
-            : Encoding.UTF8.GetBytes(envelope.SenderPath);
-        var senderLabelBytes = envelope.SenderNode?.Label is null
-            ? Array.Empty<byte>()
-            : Encoding.UTF8.GetBytes(envelope.SenderNode.Label);
+        var senderPath  = envelope.SenderPath;
+        var senderLabel = envelope.SenderNode?.Label;
 
-        var senderUuidBytes = envelope.SenderNode is null
-            ? new byte[16]                          // all zeros
-            : envelope.SenderNode.Id.ToByteArray();
+        int typeLen        = Encoding.UTF8.GetByteCount(messageTypeName);
+        int targetPathLen  = Encoding.UTF8.GetByteCount(envelope.TargetPath);
+        int senderPathLen  = senderPath is null ? 0 : Encoding.UTF8.GetByteCount(senderPath);
+        int senderLabelLen = senderLabel is null ? 0 : Encoding.UTF8.GetByteCount(senderLabel);
 
         // Calculate total length (excluding the 4-byte length prefix).
         int innerLength =
             1                                       // version
-            + 4 + typeBytes.Length
-            + 4 + targetPathBytes.Length
-            + 4 + senderPathBytes.Length
+            + 4 + typeLen
+            + 4 + targetPathLen
+            + 4 + senderPathLen
             + 16
-            + 4 + senderLabelBytes.Length
+            + 4 + senderLabelLen
             + 4 + payload.Length;
 
         var span = writer.GetSpan(4 + innerLength);
@@ -70,28 +72,32 @@ internal static class TcpFrame
         int o = 4;
         span[o++] = Version;
 
-        WriteLenString(span, ref o, typeBytes);
-        WriteLenString(span, ref o, targetPathBytes);
-        WriteLenString(span, ref o, senderPathBytes);
+        WriteLenString(span, ref o, messageTypeName, typeLen);
+        WriteLenString(span, ref o, envelope.TargetPath, targetPathLen);
+        WriteLenString(span, ref o, senderPath, senderPathLen);
 
-        senderUuidBytes.AsSpan().CopyTo(span[o..]);
+        if (envelope.SenderNode is { } node)
+            node.Id.TryWriteBytes(span.Slice(o, 16));   // same layout as ToByteArray
+        else
+            span.Slice(o, 16).Clear();                  // all zeros = no sender node
         o += 16;
 
-        WriteLenString(span, ref o, senderLabelBytes);
-        WriteLenString(span, ref o, payload);
+        WriteLenString(span, ref o, senderLabel, senderLabelLen);
+
+        BinaryPrimitives.WriteInt32BigEndian(span[o..], payload.Length);
+        o += 4;
+        payload.CopyTo(span[o..]);
+        o += payload.Length;
 
         writer.Advance(4 + innerLength);
     }
 
-    private static void WriteLenString(Span<byte> dest, ref int offset, ReadOnlySpan<byte> data)
+    private static void WriteLenString(Span<byte> dest, ref int offset, string? text, int byteLen)
     {
-        BinaryPrimitives.WriteInt32BigEndian(dest[offset..], data.Length);
+        BinaryPrimitives.WriteInt32BigEndian(dest[offset..], byteLen);
         offset += 4;
-        if (data.Length > 0)
-        {
-            data.CopyTo(dest[offset..]);
-            offset += data.Length;
-        }
+        if (byteLen > 0)
+            offset += Encoding.UTF8.GetBytes(text!, dest[offset..]);
     }
 
     /// <summary>

@@ -28,7 +28,7 @@ public class AllForOneSupervisionTests
         """;
 
     [Fact]
-    public async Task AllForOne_RestartsSiblings_WhenOneChildFails()
+    public async Task AllForOne_RestartsSiblings_WhenOneChildFailsAsync()
     {
         // Parent has two children, A (incrementing counter) and B (badChild).
         // B throws → parent's AllForOne strategy restarts BOTH (A loses its
@@ -140,7 +140,7 @@ public class AllForOneSupervisionTests
     }
 
     [Fact]
-    public async Task OneForOne_DoesNotRestartSiblings()
+    public async Task OneForOne_DoesNotRestartSiblingsAsync()
     {
         // Same shape as AllForOne, but strategy is OneForOne — A's count
         // should survive B's crash.

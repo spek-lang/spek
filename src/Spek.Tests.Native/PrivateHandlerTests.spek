@@ -4,6 +4,8 @@
 // self.Tell remedy); and the private arm IS reachable via self.Tell from a public
 // handler. Dead-letters observed via a RecordingDeadLetterSink.
 
+using Xunit;
+
 message PublicTick();
 message PrivateTick();
 message Poke();
@@ -45,7 +47,7 @@ class PrivateHandlerTests
         probe.Send(visible, new PublicTick());
         probe.ExpectMsg<Acknowledged>();
 
-        Xunit.Assert.Empty(sink.Records);
+        Assert.Empty(sink.Records);
     }
 
     public void PrivateHandlerDeadLettersWhenSenderIsNotSelf()
@@ -55,11 +57,11 @@ class PrivateHandlerTests
 
         probe.Send(visible, new PrivateTick());
 
-        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, System.TimeSpan.FromSeconds(2), "dead-letter");
+        TestActorSystem.WaitUntilAsync(() => sink.Records.Count > 0, TimeSpan.FromSeconds(2), "dead-letter");
 
-        Xunit.Assert.Single(sink.Records);
-        Xunit.Assert.Contains("private handler 'PrivateTick'", sink.Records[0].Reason);
-        Xunit.Assert.Contains("self.Tell", sink.Records[0].Reason);
+        Assert.Single(sink.Records);
+        Assert.Contains("private handler 'PrivateTick'", sink.Records[0].Reason);
+        Assert.Contains("self.Tell", sink.Records[0].Reason);
     }
 
     public void PrivateHandlerIsReachableViaSelfTell()
@@ -73,7 +75,7 @@ class PrivateHandlerTests
         probe.Send(visible, new HowManyCalls());
         Calls c = probe.ExpectMsg<Calls>();
 
-        Xunit.Assert.Equal(1, c.value);
-        Xunit.Assert.Empty(sink.Records);
+        Assert.Equal(1, c.value);
+        Assert.Empty(sink.Records);
     }
 }

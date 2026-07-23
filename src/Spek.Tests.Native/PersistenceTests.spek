@@ -4,6 +4,8 @@
 // C# variants). `persist` snapshots; Spek auto-captures the actor's fields and
 // restores them when the second system rehydrates the same key.
 
+using Xunit;
+
 message Increment();
 message Get();
 message Reply(int n);
@@ -45,7 +47,7 @@ class PersistenceTests
         var c2   = sys2.SpawnPersistent<Counter>("counter-A");
 
         Reply r = c2.Ask(new Get());
-        Xunit.Assert.Equal(3, r.n);
+        Assert.Equal(3, r.n);
 
         sys2.Dispose();
     }
@@ -67,7 +69,7 @@ class PersistenceTests
         var a2   = sysB.SpawnPersistent<Counter>("counter-B");
 
         Reply r2 = a2.Ask(new Get());
-        Xunit.Assert.Equal(2, r2.n);
+        Assert.Equal(2, r2.n);
 
         sysB.Dispose();
     }

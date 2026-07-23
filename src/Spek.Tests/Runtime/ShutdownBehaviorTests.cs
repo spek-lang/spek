@@ -175,7 +175,7 @@ public sealed class ShutdownBehaviorTests
     }
 
     [Fact]
-    public async Task StopHooks_FireExactlyOnce_AcrossSupervisionStopAndDispose()
+    public async Task StopHooks_FireExactlyOnce_AcrossSupervisionStopAndDisposeAsync()
     {
         var postStops = new StrongBox<int>(0);
         var terms = new StrongBox<int>(0);
@@ -252,7 +252,7 @@ public sealed class ShutdownBehaviorTests
         """;
 
     [Fact]
-    public async Task MultiplePersistedRegions_AreAllFlushed_OnShutdown()
+    public async Task MultiplePersistedRegions_AreAllFlushed_OnShutdownAsync()
     {
         var parsed = SpekCompiler.Parse(MultiPersistSrc);
         Assert.True(parsed.Success,

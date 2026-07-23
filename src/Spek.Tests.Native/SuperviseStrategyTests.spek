@@ -11,6 +11,8 @@
 // restart is counted). We therefore observe the sibling restart via a tally reset, the
 // same way the C# AllForOneSupervisionTests does.
 
+using Xunit;
+
 message Blast();
 
 message TallyTick();
@@ -37,7 +39,7 @@ actor BlastChild
 {
     init() { become Live; }
 
-    behavior Live { on Blast => { throw new System.InvalidOperationException("boom"); } }
+    behavior Live { on Blast => { throw new InvalidOperationException("boom"); } }
 }
 
 actor TallyChild
@@ -99,7 +101,7 @@ actor ArmChild
     behavior Live
     {
         on FailIo      => { throw new System.IO.IOException("io"); }
-        on FailInvalid => { throw new System.InvalidOperationException("invalid"); }
+        on FailInvalid => { throw new InvalidOperationException("invalid"); }
     }
 }
 
@@ -121,7 +123,7 @@ actor TypedArmParent
 
     supervise OneForOne(
         on Failure(System.IO.IOException): Restart,
-        on Failure(System.InvalidOperationException): Stop,
+        on Failure(InvalidOperationException): Stop,
         on Failure: Escalate);
 }
 
@@ -138,22 +140,22 @@ class SuperviseStrategyTests
         parent.Tell(new SpawnSiblings());
 
         probe.Send(parent, new GetSiblings());
-        SiblingRefs refs = probe.ExpectMsg<SiblingRefs>(System.TimeSpan.FromSeconds(10));
+        SiblingRefs refs = probe.ExpectMsg<SiblingRefs>(TimeSpan.FromSeconds(10));
 
         probe.Send(refs.tally, new TallyTick());
         probe.Send(refs.tally, new TallyTick());
         probe.Send(refs.tally, new TallyTick());
         probe.Send(refs.tally, new ReadTally());
-        TallyValue before = probe.ExpectMsg<TallyValue>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal(3, before.n);
+        TallyValue before = probe.ExpectMsg<TallyValue>(TimeSpan.FromSeconds(10));
+        Assert.Equal(3, before.n);
 
         parent.Tell(new Blast());                            // crash 'bad' → AllForOne restarts the tally sibling too
-        sys.WhenIdleAsync(System.TimeSpan.FromSeconds(10));  // drain the broadcast restart
+        sys.WhenIdleAsync(TimeSpan.FromSeconds(10));  // drain the broadcast restart
 
         probe.Send(refs.tally, new ReadTally());
-        TallyValue after = probe.ExpectMsg<TallyValue>(System.TimeSpan.FromSeconds(10));
-        Xunit.Assert.Equal(0, after.n);                      // the restart reset the sibling's state
-        Xunit.Assert.False(refs.tally.IsStopped);
+        TallyValue after = probe.ExpectMsg<TallyValue>(TimeSpan.FromSeconds(10));
+        Assert.Equal(0, after.n);                      // the restart reset the sibling's state
+        Assert.False(refs.tally.IsStopped);
     }
 
     public void PerChildOverrideStopsHotButRestartsCold()
@@ -163,15 +165,15 @@ class SuperviseStrategyTests
         parent.Tell(new SpawnHotCold());
 
         probe.Send(parent, new GetHotCold());
-        HotColdRefs refs = probe.ExpectMsg<HotColdRefs>(System.TimeSpan.FromSeconds(10));
+        HotColdRefs refs = probe.ExpectMsg<HotColdRefs>(TimeSpan.FromSeconds(10));
 
         parent.Tell(new BlastHot());         // hot → per-child Stop override
         sys.ExpectStop(refs.hot);
-        Xunit.Assert.True(refs.hot.IsStopped);
+        Assert.True(refs.hot.IsStopped);
 
         parent.Tell(new BlastCold());        // cold → default Restart
         sys.ExpectRestart(refs.cold);
-        Xunit.Assert.False(refs.cold.IsStopped);
+        Assert.False(refs.cold.IsStopped);
     }
 
     public void TypedArmRestartsOnFirstMatchingException()
@@ -181,11 +183,11 @@ class SuperviseStrategyTests
         parent.Tell(new SpawnArmChild());
 
         probe.Send(parent, new GetArmChild());
-        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(System.TimeSpan.FromSeconds(10));
+        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(TimeSpan.FromSeconds(10));
 
         parent.Tell(new FailIo());           // IOException → first arm → Restart
         sys.ExpectRestart(r.child);
-        Xunit.Assert.False(r.child.IsStopped);
+        Assert.False(r.child.IsStopped);
     }
 
     public void TypedArmStopsOnSecondMatchingException()
@@ -195,10 +197,10 @@ class SuperviseStrategyTests
         parent.Tell(new SpawnArmChild());
 
         probe.Send(parent, new GetArmChild());
-        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(System.TimeSpan.FromSeconds(10));
+        ArmChildRef r = probe.ExpectMsg<ArmChildRef>(TimeSpan.FromSeconds(10));
 
         parent.Tell(new FailInvalid());      // InvalidOperationException → second arm → Stop
         sys.ExpectStop(r.child);
-        Xunit.Assert.True(r.child.IsStopped);
+        Assert.True(r.child.IsStopped);
     }
 }

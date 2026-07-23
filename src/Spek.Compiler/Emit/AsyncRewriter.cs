@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -956,9 +957,35 @@ public static class AsyncRewriter
             TypeSyntax result =
                 ret is PredefinedTypeSyntax p && p.Keyword.IsKind(SyntaxKind.VoidKeyword)
                     ? ParseTypeName("System.Threading.Tasks.Task")
+                // A method the author already declared Task/ValueTask-returning
+                // (Task, Task<T>, ValueTask, ValueTask<T>) is ALREADY async-shaped:
+                // adding `async` keeps the same return type. Wrapping it again gave
+                // `Task<Task<int>>` and broke the body's `return` (red-team emit-C).
+                : IsTaskLikeSyntax(ret)
+                    ? ret.WithoutTrivia()
                     : ParseTypeName($"System.Threading.Tasks.Task<{ret.WithoutTrivia()}>");
 
             return result.WithLeadingTrivia(lead).WithTrailingTrivia(trail);
+        }
+
+        // Syntactic Task/ValueTask test for the DECLARED return type (no
+        // semantic model here). Matches `Task`, `Task<…>`, `ValueTask`,
+        // `ValueTask<…>`, bare or namespace-qualified.
+        private static bool IsTaskLikeSyntax(TypeSyntax ret)
+        {
+            var name = ret switch
+            {
+                QualifiedNameSyntax q => (NameSyntax)q.Right,
+                NameSyntax n => n,
+                _ => null,
+            };
+            var id = name switch
+            {
+                GenericNameSyntax g => g.Identifier.ValueText,
+                IdentifierNameSyntax i => i.Identifier.ValueText,
+                _ => null,
+            };
+            return id is "Task" or "ValueTask";
         }
 
         private static bool ContainsDirectAwait(SyntaxNode body) =>
@@ -970,7 +997,7 @@ public static class AsyncRewriter
                         LocalFunctionStatementSyntax))
                 .Any(n => n is AwaitExpressionSyntax);
 
-        private static bool IsAwaitable(ITypeSymbol? type)
+        private static bool IsAwaitable([NotNullWhen(true)] ITypeSymbol? type)
         {
             if (type is not INamedTypeSymbol named) return false;
             var def = named.OriginalDefinition;

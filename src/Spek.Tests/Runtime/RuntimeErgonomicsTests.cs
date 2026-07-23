@@ -40,7 +40,7 @@ public class RuntimeErgonomicsTests
     }
 
     [Fact]
-    public async Task AskWithTimeout_RepliesInTime_ReturnsReply()
+    public async Task AskWithTimeout_RepliesInTime_ReturnsReplyAsync()
     {
         using var system = new ActorSystem("t");
         var actor = system.Spawn<Replier>();
@@ -51,13 +51,18 @@ public class RuntimeErgonomicsTests
     }
 
     [Fact]
-    public async Task AskWithTimeout_NoReply_FaultsWithTimeoutException()
+    public async Task AskWithTimeout_NoReply_FaultsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("t");
         var actor = system.Spawn<BlackHole>();
 
-        await Assert.ThrowsAsync<TimeoutException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(100)));
+        // The handler runs to completion without ever replying. Under the
+        // "fail fast on all" ask semantics that resolves the asker at once —
+        // an AskException naming the missing reply — rather than waiting out
+        // the deadline. A generous timeout proves the failure is fast: the
+        // test returns immediately, nowhere near the 5s window.
+        await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]

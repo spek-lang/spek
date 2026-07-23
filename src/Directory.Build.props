@@ -15,7 +15,7 @@
   <PropertyGroup>
     <Version>0.1.0</Version>
     <Authors>The Spek contributors</Authors>
-    <Company>speklang</Company>
+    <Company>spek-lang</Company>
     <Product>Spek</Product>
     <Copyright>Copyright (c) 2026 William Holroyd</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

@@ -1,0 +1,94 @@
+name: docs
+
+# Builds and deploys the documentation site to GitHub Pages. Unlike Pages'
+# default build (which runs Jekyll in --safe mode and ignores _plugins/), this
+# workflow runs `bundle exec jekyll build`, so the custom Spek Rouge lexer in
+# docs/_plugins/spek_lexer.rb is loaded and ```spek blocks get highlighted.
+#
+# The docs/ tree is maintained separately and only lands in this repo when the
+# site ships, so every job is gated on a `guard` step that checks for docs/:
+# when the directory is absent the workflow succeeds as a no-op instead of
+# failing at the Ruby/Jekyll steps.
+#
+# To use it, set the repository's Pages source to "GitHub Actions"
+# (Settings -> Pages -> Build and deployment -> Source).
+
+on:
+  push:
+    branches: ["develop"]
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment; don't cancel an in-progress one.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Gracefully no-op when docs/ isn't present (it's maintained separately until
+  # the site ships). build/deploy run only when the directory exists.
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      has_docs: ${{ steps.check.outputs.has_docs }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check for docs/
+        id: check
+        run: |
+          if [ -d docs ]; then
+            echo "has_docs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_docs=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=docs skipped::No docs/ directory in this repository — nothing to build."
+          fi
+
+  build:
+    needs: guard
+    if: needs.guard.outputs.has_docs == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: "docs"
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site (loads docs/_plugins, incl. the Spek Rouge lexer)
+        run: bundle exec jekyll build --source . --destination _site --baseurl "${{ steps.pages.outputs.base_path }}"
+        working-directory: "docs"
+        env:
+          JEKYLL_ENV: production
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "docs/_site"
+
+  deploy:
+    needs: [guard, build]
+    if: needs.guard.outputs.has_docs == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

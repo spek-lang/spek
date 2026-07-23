@@ -149,7 +149,7 @@
         {
           "comment": "Top-level and member declaration forms.",
           "name": "keyword.other.declaration.spek",
-          "match": "\\b(actor|behavior|channel|class|enum|interface|message|module|namespace|program|shared|init|term|use|using|interop)\\b"
+          "match": "\\b(actor|behavior|channel|class|enum|flags|interface|message|module|namespace|program|shared|init|term|use|using|interop)\\b"
         },
         {
           "comment": "Generic constraint clause.",

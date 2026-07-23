@@ -8,6 +8,8 @@
 // (Names carry a `Wrk` prefix: the native suite compiles as one unit, so type
 // names must be unique across every *.spek file.)
 
+using Xunit;
+
 message WrkJob(int value);
 message WrkDone(int result, int handled);
 
@@ -50,11 +52,11 @@ class ActorInheritanceFeatureTests
         var d     = sys.Spawn<WrkDoubler>();
 
         probe.Send(d, new WrkJob(21));
-        WrkDone r = probe.ExpectMsg<WrkDone>(System.TimeSpan.FromSeconds(10));
+        WrkDone r = probe.ExpectMsg<WrkDone>(TimeSpan.FromSeconds(10));
 
         // Transform (the subclass override) doubled 21; Bump (inherited) ran
         // once against the inherited `handled` field.
-        Xunit.Assert.Equal(42, r.result);
-        Xunit.Assert.Equal(1, r.handled);
+        Assert.Equal(42, r.result);
+        Assert.Equal(1, r.handled);
     }
 }

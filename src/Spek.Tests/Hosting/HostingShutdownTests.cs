@@ -45,7 +45,7 @@ public class HostingShutdownTests
     }
 
     [Fact]
-    public async Task StopAsync_HonorsExternalCancellationToken_ShortCircuitsLongGrace()
+    public async Task StopAsync_HonorsExternalCancellationToken_ShortCircuitsLongGraceAsync()
     {
         // Adapter grace is huge (the host's ShutdownTimeout bridge is the
         // *real* bound here). We construct the hosted service directly so we
@@ -77,7 +77,7 @@ public class HostingShutdownTests
     }
 
     [Fact]
-    public async Task StopAsync_NoneToken_StillBoundedByGrace_ForContrast()
+    public async Task StopAsync_NoneToken_StillBoundedByGrace_ForContrastAsync()
     {
         // Contrast case: same unstoppable actor, NO external cancellation,
         // a short grace. Proves the loop's grace deadline is the bound when
@@ -120,7 +120,7 @@ public class HostingShutdownTests
     }
 
     [Fact]
-    public async Task ConsoleHost_ExitCodeRoundTrip_ViaOnShutdownRequestedPath()
+    public async Task ConsoleHost_ExitCodeRoundTrip_ViaOnShutdownRequestedPathAsync()
     {
         // Drive the FULL signal flow without OS signals: RunAsync wires
         // system.OnShutdownRequested(RequestShutdown) internally; calling

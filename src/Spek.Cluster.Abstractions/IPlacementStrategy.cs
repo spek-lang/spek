@@ -7,7 +7,7 @@ namespace Spek.Cluster;
 ///
 /// Concrete implementations:
 /// <list type="bullet">
-///   <item><see cref="ConsistentHashPlacement"/> (default) — rendezvous
+///   <item><c>ConsistentHashPlacement</c> (default; in <c>Spek.Cluster</c>) — rendezvous
 ///         hashing across the cluster's <c>Up</c> members. Stable as
 ///         long as membership doesn't change; minimal disruption when
 ///         it does.</item>

@@ -42,7 +42,7 @@ public class ActorInitiatedShutdownTests
     }
 
     [Fact]
-    public async Task SelfSystemShutdown_FromHandler_TriggersRegisteredShutdown()
+    public async Task SelfSystemShutdown_FromHandler_TriggersRegisteredShutdownAsync()
     {
         using var system = new ActorSystem("t");
         var fired = new TaskCompletionSource();
@@ -79,7 +79,7 @@ public class ActorInitiatedShutdownTests
     }
 
     [Fact]
-    public async Task SelfSystemShutdown_Hostless_LetsAwaitTerminationReturn()
+    public async Task SelfSystemShutdown_Hostless_LetsAwaitTerminationReturnAsync()
     {
         // End-to-end of the footgun: a handler calls self.System.Shutdown() with
         // no host registered, while the "main thread" is parked in the no-arg
@@ -95,7 +95,7 @@ public class ActorInitiatedShutdownTests
 
         Assert.True(winner == termination,
             "no-arg AwaitTermination() must return after a handler-initiated shutdown, not hang");
-        Assert.True(termination.Result, "AwaitTermination() should report clean termination");
+        Assert.True(await termination, "AwaitTermination() should report clean termination");
     }
 
     /// One link in a 10-deep stack. A message propagates *down* the stack
@@ -124,7 +124,7 @@ public class ActorInitiatedShutdownTests
     }
 
     [Fact]
-    public async Task TenStackedActors_LeafInitiatesShutdown_AllStopGracefully()
+    public async Task TenStackedActors_LeafInitiatesShutdown_AllStopGracefullyAsync()
     {
         // 10 actors stacked in a chain. A Boom propagates root → leaf; the leaf
         // calls self.System.Shutdown(). Every one of the 10 must (a) stop —

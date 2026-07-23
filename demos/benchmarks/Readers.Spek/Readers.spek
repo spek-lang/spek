@@ -1,0 +1,30 @@
+namespace Readers;
+
+// The reader-path benchmark pane: one actor, state read by many
+// concurrent lookups. `reader on` is the whole concurrency story — the
+// runtime overlaps reader dispatches and serializes them against the
+// writer. Compare RwLockBoard in Demo.Benchmarks: its
+// ReaderWriterLockSlim, lock ordering, and dispose discipline are what
+// these lines replace.
+
+message Post(int key, int value);
+message Lookup(int key);
+message LookupReply(int value);
+
+public actor Board
+{
+    System.Collections.Generic.Dictionary<int, int> scores =
+        new System.Collections.Generic.Dictionary<int, int>();
+
+    behavior Default
+    {
+        on Post p => { scores[p.key] = p.value; }
+
+        reader on Lookup l =>
+        {
+            var v = 0;
+            if (scores.ContainsKey(l.key)) { v = scores[l.key]; }
+            return new LookupReply(v);
+        }
+    }
+}

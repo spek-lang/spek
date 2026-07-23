@@ -22,7 +22,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Save_then_Load_roundtrips_a_single_field()
+    public async Task Save_then_Load_roundtrips_a_single_fieldAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
         var snap  = new Snapshot(new Dictionary<string, object?>
@@ -38,7 +38,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Load_returns_null_for_unknown_key()
+    public async Task Load_returns_null_for_unknown_keyAsync()
     {
         var store  = new FileSnapshotStore(_tempDir);
         var loaded = await store.LoadAsync("never-saved");
@@ -46,7 +46,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Save_overwrites_prior_snapshot_for_same_key()
+    public async Task Save_overwrites_prior_snapshot_for_same_keyAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1L }));
@@ -58,7 +58,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Slash_in_key_creates_subdirectory()
+    public async Task Slash_in_key_creates_subdirectoryAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
         await store.SaveAsync("Account/user-42", new Snapshot(new Dictionary<string, object?>
@@ -74,7 +74,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Unsafe_filename_chars_are_percent_encoded()
+    public async Task Unsafe_filename_chars_are_percent_encodedAsync()
     {
         // Keys may contain characters that aren't path-safe. The
         // store should encode them rather than refuse the write.
@@ -90,7 +90,7 @@ public sealed class FileSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Concurrent_saves_to_different_keys_do_not_corrupt_each_other()
+    public async Task Concurrent_saves_to_different_keys_do_not_corrupt_each_otherAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
 

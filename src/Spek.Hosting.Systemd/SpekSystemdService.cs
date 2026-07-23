@@ -14,7 +14,7 @@ namespace Spek.Hosting.Systemd;
 /// the corresponding output messages on its <c>LinuxServiceHost</c>
 /// channel.
 ///
-/// Composes with <see cref="HostingHostBuilderExtensions.UseSystemd"/>
+/// Composes with <see cref="SystemdHostBuilderExtensions.UseSystemd(IHostBuilder)"/>
 /// from <c>Microsoft.Extensions.Hosting.Systemd</c> for journald
 /// formatting + activation detection.
 /// </summary>
@@ -29,6 +29,7 @@ public sealed class SpekSystemdHostedService<TActor> : IHostedService, IAsyncDis
     private ActorRef? _entry;
     private ActorRef? _receiver;
     private PosixSignalRegistration? _sighup;
+    private readonly IHostApplicationLifetime? _lifetime;
 
     /// <summary>
     /// Creates the hosted service. <paramref name="shutdownFactory"/>
@@ -42,11 +43,13 @@ public sealed class SpekSystemdHostedService<TActor> : IHostedService, IAsyncDis
     public SpekSystemdHostedService(
         Func<object> shutdownFactory,
         Func<object>? reloadFactory = null,
-        TimeSpan? shutdownGrace = null)
+        TimeSpan? shutdownGrace = null,
+        IHostApplicationLifetime? lifetime = null)
     {
         _shutdownFactory = shutdownFactory ?? throw new ArgumentNullException(nameof(shutdownFactory));
         _reloadFactory   = reloadFactory;
         _shutdownGrace   = shutdownGrace ?? TimeSpan.FromSeconds(30);
+        _lifetime        = lifetime;
     }
 
     /// <summary>
@@ -75,10 +78,18 @@ public sealed class SpekSystemdHostedService<TActor> : IHostedService, IAsyncDis
             });
         }
 
-        // sd_notify READY=1 — tell systemd we've finished startup.
-        // Only fires when the process is actually running under
-        // systemd (env var INVOCATION_ID is set).
-        SdNotify.Send("READY=1");
+        // sd_notify READY=1 — but only when the WHOLE host is up.
+        // StartAsync runs per hosted service in registration order, so
+        // notifying here would mark the unit ready while sibling services
+        // (Kestrel, background workers) are still starting; Type=notify
+        // orchestration would route traffic too early. ApplicationStarted
+        // fires after every hosted service's StartAsync completes. The
+        // direct send remains as the fallback when no lifetime was
+        // available (hand-constructed service, no DI).
+        if (_lifetime is not null)
+            _lifetime.ApplicationStarted.Register(static () => SdNotify.Send("READY=1"));
+        else
+            SdNotify.Send("READY=1");
         return Task.CompletedTask;
     }
 
@@ -173,8 +184,10 @@ public static class SpekSystemdServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(shutdownFactory);
 
-        services.AddSingleton<IHostedService>(_ =>
-            new SpekSystemdHostedService<TActor>(shutdownFactory, reloadFactory, shutdownGrace));
+        services.AddSingleton<IHostedService>(sp =>
+            new SpekSystemdHostedService<TActor>(
+                shutdownFactory, reloadFactory, shutdownGrace,
+                sp.GetService<IHostApplicationLifetime>()));
         return services;
     }
 }

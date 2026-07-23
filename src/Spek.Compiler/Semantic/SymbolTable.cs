@@ -42,7 +42,7 @@ public sealed class SymbolTable
 
     /// <summary>
     /// Builds a symbol table spanning multiple parsed files — used by
-    /// <see cref="SpekCompilation"/> so a <c>message</c> declared in one
+    /// <see cref="Parser.SpekCompilation"/> so a <c>message</c> declared in one
     /// file is visible to an <c>ask</c> or <c>Tell</c> in another. Per-actor
     /// maps remain per-actor (no cross-file actor members).
     /// </summary>
@@ -110,6 +110,36 @@ public sealed class SymbolTable
                 }
             }
         }
+
+        // Second pass — merge inherited members down each actor's `: Base`
+        // chain, transitively. A derived actor's own symbols are computed above
+        // (own-only); this folds every ancestor's fields, methods, state slots
+        // and mutating methods into the derived actor's ActorSymbols so the
+        // capture-escape rules (CE0135/CE0136) recognise an inherited field as
+        // actor state and an inherited method as a sibling. Runs after the loop
+        // so a base declared *after* its derived actor still resolves.
+        var ownSymbols = new Dictionary<string, ActorSymbols>(table._actorSymbols);
+        foreach (var (name, decl) in table._actorsBySimpleName)
+        {
+            if (decl.BaseActor is null) continue;
+
+            var ancestors = new List<ActorSymbols>();
+            var visited = new HashSet<string>(StringComparer.Ordinal) { name };
+            var baseName = decl.BaseActor.Simple;
+            while (baseName is not null
+                   && visited.Add(baseName)
+                   && ownSymbols.TryGetValue(baseName, out var baseSym))
+            {
+                ancestors.Add(baseSym);
+                baseName = table._actorsBySimpleName.TryGetValue(baseName, out var bd)
+                    ? bd.BaseActor?.Simple
+                    : null;
+            }
+
+            if (ancestors.Count > 0)
+                table._actorSymbols[name] = ActorSymbols.MergeInherited(ownSymbols[name], ancestors);
+        }
+
         return table;
     }
 
@@ -352,7 +382,10 @@ public sealed class SymbolTable
     }
 }
 
-/// <summary>Per-actor symbol index — fields, behaviors, methods, init params.</summary>
+/// <summary>Per-actor symbol index — fields, behaviors, methods, init params.
+/// Like <see cref="ClassSymbols"/> it also pre-computes which of the actor's
+/// own methods mutate its state, which is what CE0135 consults to decide
+/// whether a lambda calling <c>Recount()</c> writes actor state.</summary>
 public sealed class ActorSymbols
 {
     public ActorDecl Declaration { get; }
@@ -361,18 +394,32 @@ public sealed class ActorSymbols
     public IReadOnlyDictionary<string, MethodDecl> Methods { get; }
     public IReadOnlyList<InitBlock> InitBlocks { get; }
 
+    /// <summary>Every mutable state slot the actor owns: its fields plus its
+    /// properties. An assignment rooting at one of these is a write to actor
+    /// state.</summary>
+    public IReadOnlySet<string> StateNames { get; }
+
+    /// <summary>Methods that write <see cref="StateNames"/> directly or by
+    /// calling a mutating sibling. Computed by <see cref="StateMutation"/>,
+    /// the same classifier <see cref="ClassSymbols"/> uses.</summary>
+    public IReadOnlySet<string> MutatingMethods { get; }
+
     private ActorSymbols(
         ActorDecl declaration,
         HashSet<string> behaviorNames,
         Dictionary<string, FieldDecl> fields,
         Dictionary<string, MethodDecl> methods,
-        List<InitBlock> initBlocks)
+        List<InitBlock> initBlocks,
+        HashSet<string> stateNames,
+        HashSet<string> mutatingMethods)
     {
         Declaration = declaration;
         BehaviorNames = behaviorNames;
         Fields = fields;
         Methods = methods;
         InitBlocks = initBlocks;
+        StateNames = stateNames;
+        MutatingMethods = mutatingMethods;
     }
 
     public static ActorSymbols Build(ActorDecl actor)
@@ -393,7 +440,51 @@ public sealed class ActorSymbols
             }
         }
 
-        return new ActorSymbols(actor, behaviors, fields, methods, inits);
+        // Mutable state is fields AND properties — same reasoning as
+        // ClassSymbols: `Version = …` on a property writes the actor exactly
+        // like a field write.
+        var stateNames = fields.Keys.ToHashSet(StringComparer.Ordinal);
+        foreach (var p in actor.Members.OfType<PropertyDecl>()) stateNames.Add(p.Name);
+
+        return new ActorSymbols(actor, behaviors, fields, methods, inits, stateNames,
+            StateMutation.ClassifyMutatingMethods(methods, stateNames));
+    }
+
+    /// <summary>
+    /// Folds the own-only symbols of every ancestor in <paramref name="ancestors"/>
+    /// (nearest base first) into <paramref name="derived"/>, producing the
+    /// derived actor's effective symbols. Fields, methods, behaviors, state
+    /// slots and mutating methods all union; on a name clash the derived
+    /// member wins (a derived field shadows an inherited one). The declaration
+    /// and init blocks stay the derived actor's own — inheritance of state
+    /// <em>membership</em> is what the capture-escape rules need, not a
+    /// re-parenting of the AST.
+    /// </summary>
+    internal static ActorSymbols MergeInherited(
+        ActorSymbols derived, IReadOnlyList<ActorSymbols> ancestors)
+    {
+        var fields = new Dictionary<string, FieldDecl>(StringComparer.Ordinal);
+        var methods = new Dictionary<string, MethodDecl>(StringComparer.Ordinal);
+        var stateNames = new HashSet<string>(StringComparer.Ordinal);
+        var mutating = new HashSet<string>(StringComparer.Ordinal);
+
+        // Base first, derived last, so the derived member overrides on a clash.
+        foreach (var s in ancestors.Reverse().Append(derived))
+        {
+            foreach (var kv in s.Fields) fields[kv.Key] = kv.Value;
+            foreach (var kv in s.Methods) methods[kv.Key] = kv.Value;
+            foreach (var n in s.StateNames) stateNames.Add(n);
+            foreach (var m in s.MutatingMethods) mutating.Add(m);
+        }
+
+        // BehaviorNames stay the derived actor's OWN: an inherited-but-unoverridden
+        // abstract behavior is NOT a valid `become` target, and CE0011 relies on
+        // that (a derived actor that omits an abstract override has no behavior of
+        // that name). Only the state/field/method membership the capture-escape
+        // rules read needs to flow down.
+        return new ActorSymbols(
+            derived.Declaration, derived.BehaviorNames.ToHashSet(StringComparer.Ordinal),
+            fields, methods, derived.InitBlocks.ToList(), stateNames, mutating);
     }
 }
 
@@ -431,65 +522,15 @@ public sealed class ClassSymbols
         var methods = new Dictionary<string, MethodDecl>(StringComparer.Ordinal);
         foreach (var m in cls.Methods) methods[m.Name] = m;
 
-        var fieldNames  = fields.Keys.ToHashSet(StringComparer.Ordinal);
-        var methodNames = methods.Keys.ToHashSet(StringComparer.Ordinal);
-
         // Mutable state is fields AND properties — a method that writes
         // `Version = …` (a property) mutates the object exactly like a
         // field write, and must classify as mutating for CE0087.
-        var stateNames = fieldNames.ToHashSet(StringComparer.Ordinal);
+        var stateNames = fields.Keys.ToHashSet(StringComparer.Ordinal);
         foreach (var p in cls.Properties) stateNames.Add(p.Name);
 
-        // Per method: does it write state directly, and which siblings does it call?
-        var directWrite = new Dictionary<string, bool>(StringComparer.Ordinal);
-        var calls       = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
-        foreach (var (name, m) in methods)
-        {
-            var all = ExprsIn(m.Body).ToList();
-            directWrite[name] = all.OfType<AssignExpr>().Any(a => RootsAtField(a.Left, stateNames));
-            var sib = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var e in all)
-            {
-                // `self.M(...)` or a bare `M(...)` resolving to a sibling method.
-                if (e is MethodCallExpr mc && mc.Target is SelfExpr && methodNames.Contains(mc.Method))
-                    sib.Add(mc.Method);
-                else if (e is InvocationExpr inv && methodNames.Contains(inv.Callee))
-                    sib.Add(inv.Callee);
-            }
-            calls[name] = sib;
-        }
-
-        // Fixpoint: a method mutates if it writes directly or calls a mutating sibling.
-        var mutating = new HashSet<string>(
-            directWrite.Where(kv => kv.Value).Select(kv => kv.Key), StringComparer.Ordinal);
-        var changed = true;
-        while (changed)
-        {
-            changed = false;
-            foreach (var name in methodNames)
-            {
-                if (mutating.Contains(name)) continue;
-                if (calls[name].Any(mutating.Contains)) { mutating.Add(name); changed = true; }
-            }
-        }
-
-        return new ClassSymbols(cls, fields, methods, mutating);
+        return new ClassSymbols(cls, fields, methods,
+            StateMutation.ClassifyMutatingMethods(methods, stateNames));
     }
-
-    /// <summary>True when an assignment target roots at one of the class's own
-    /// fields: a bare <c>field</c>, <c>self.field</c>, or a member/index access
-    /// rooted at either (<c>field.x = …</c>, <c>self.field[i] = …</c>).</summary>
-    private static bool RootsAtField(Expr lhs, HashSet<string> fields) => Root(lhs, fields) is not null;
-
-    private static string? Root(Expr e, HashSet<string> fields) => e switch
-    {
-        NameExpr n when n.Name.Parts.Count == 1 && fields.Contains(n.Name.Simple) => n.Name.Simple,
-        MemberAccessExpr ma when ma.Target is SelfExpr && fields.Contains(ma.Member) => ma.Member,
-        MemberAccessExpr ma => Root(ma.Target, fields),
-        IndexExpr ix        => Root(ix.Target, fields),
-        ParenExpr p         => Root(p.Inner, fields),
-        _                   => null,
-    };
 
     // Every Expr in a statement subtree (self + descendants), so callers can
     // filter by node type. Descends into nested blocks and lambda bodies.
@@ -547,5 +588,80 @@ public sealed class ClassSymbols
             _                  => [],   // NameExpr, literals, self, sender, out-var
         };
         foreach (var k in kids) yield return k;
+    }
+}
+
+/// <summary>
+/// The shared state-mutation classifier. Classes and actors both need the
+/// same two questions answered: does an assignment target root at one of this
+/// type's own state slots, and which of its methods write that state? CE0087
+/// asks it of a class (may a reader handler call this method?); CE0135 asks it
+/// of an actor (does this lambda write actor state?). One implementation
+/// answers both, so the two rules can never drift apart on what counts as a
+/// mutation.
+/// </summary>
+internal static class StateMutation
+{
+    /// <summary>The state slot an assignment target roots at, or <c>null</c>
+    /// when it roots somewhere else (a local, a parameter, an unrelated
+    /// object). Handles a bare <c>state</c>, <c>self.state</c>, and member or
+    /// index access rooted at either (<c>state.x = …</c>,
+    /// <c>self.state[i] = …</c>).</summary>
+    internal static string? Root(Expr e, IReadOnlySet<string> state) => e switch
+    {
+        NameExpr n when n.Name.Parts.Count == 1 && state.Contains(n.Name.Simple) => n.Name.Simple,
+        MemberAccessExpr ma when ma.Target is SelfExpr && state.Contains(ma.Member) => ma.Member,
+        MemberAccessExpr ma => Root(ma.Target, state),
+        IndexExpr ix        => Root(ix.Target, state),
+        ParenExpr p         => Root(p.Inner, state),
+        _                   => null,
+    };
+
+    /// <summary>True when an assignment target roots at one of the type's own
+    /// state slots. See <see cref="Root"/>.</summary>
+    internal static bool RootsAtField(Expr lhs, IReadOnlySet<string> state) => Root(lhs, state) is not null;
+
+    /// <summary>
+    /// Methods that mutate state, by fixpoint: a method mutates if it assigns
+    /// to a state slot directly, or calls a sibling method that mutates.
+    /// Sibling calls are matched as <c>self.M(...)</c> or a bare <c>M(...)</c>
+    /// resolving to a declared method.
+    /// </summary>
+    internal static HashSet<string> ClassifyMutatingMethods(
+        IReadOnlyDictionary<string, MethodDecl> methods, IReadOnlySet<string> state)
+    {
+        var methodNames = methods.Keys.ToHashSet(StringComparer.Ordinal);
+
+        // Per method: does it write state directly, and which siblings does it call?
+        var directWrite = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var calls       = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var (name, m) in methods)
+        {
+            var all = ClassSymbols.ExprsIn(m.Body).ToList();
+            directWrite[name] = all.OfType<AssignExpr>().Any(a => RootsAtField(a.Left, state));
+            var sib = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var e in all)
+            {
+                if (e is MethodCallExpr mc && mc.Target is SelfExpr && methodNames.Contains(mc.Method))
+                    sib.Add(mc.Method);
+                else if (e is InvocationExpr inv && methodNames.Contains(inv.Callee))
+                    sib.Add(inv.Callee);
+            }
+            calls[name] = sib;
+        }
+
+        var mutating = new HashSet<string>(
+            directWrite.Where(kv => kv.Value).Select(kv => kv.Key), StringComparer.Ordinal);
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            foreach (var name in methodNames)
+            {
+                if (mutating.Contains(name)) continue;
+                if (calls[name].Any(mutating.Contains)) { mutating.Add(name); changed = true; }
+            }
+        }
+        return mutating;
     }
 }

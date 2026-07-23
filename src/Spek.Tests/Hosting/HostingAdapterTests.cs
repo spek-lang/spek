@@ -47,7 +47,7 @@ public class HostingAdapterTests
 
     /// <summary>
     /// A spy entry actor. The hosted-service adapters spawn the entry
-    /// actor with <c>system.Spawn<TActor>()</c> (no constructor
+    /// actor with <c>system.Spawn&lt;TActor&gt;()</c> (no constructor
     /// args), so the spy can't be handed a recorder instance — instead it
     /// records into a per-subclass static queue. Tests within a single
     /// xUnit class run sequentially (one collection per class by default),
@@ -173,7 +173,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task ConsoleHost_HardDeadlineBreak_ReturnsDefaultWhenActorNeverStops()
+    public async Task ConsoleHost_HardDeadlineBreak_ReturnsDefaultWhenActorNeverStopsAsync()
     {
         // RunAsync must NOT hang on an actor that refuses to stop. Once
         // shutdown is requested, the bounded grace window expires and the
@@ -227,7 +227,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task ConsoleHost_ActorStopsWithoutReply_SurfacesDefaultExitCode()
+    public async Task ConsoleHost_ActorStopsWithoutReply_SurfacesDefaultExitCodeAsync()
     {
         // Drives the full OnShutdownRequested path: RequestShutdown Tells
         // the entry actor Shutdown with the host's internal receiver as the
@@ -258,7 +258,7 @@ public class HostingAdapterTests
     // ----------------------------------------------------------------
 
     [Fact]
-    public async Task ConsoleHost_RunAsync_NullArguments_Throw()
+    public async Task ConsoleHost_RunAsync_NullArguments_ThrowAsync()
     {
         using var system = new ActorSystem("console-null-guards");
         var entry        = system.Spawn<StubbornActor>();
@@ -292,7 +292,7 @@ public class HostingAdapterTests
         protected override ConcurrentQueue<object> Sink => Box;
     }
 
-    /// <summary>Reflection wrapper over SpekWindowsHostedService<WinSpy>.</summary>
+    /// <summary>Reflection wrapper over <c>SpekWindowsHostedService&lt;WinSpy&gt;</c>.</summary>
     private sealed class WinHost
     {
         private readonly object _svc;
@@ -337,7 +337,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Windows_PauseAndContinue_RouteMappedMessages()
+    public async Task Windows_PauseAndContinue_RouteMappedMessagesAsync()
     {
         WinSpy.Box.Clear();
         var host = WinHost.Create(
@@ -360,7 +360,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Windows_CustomCommand_ThreadsCodeThroughFactory()
+    public async Task Windows_CustomCommand_ThreadsCodeThroughFactoryAsync()
     {
         WinSpy.Box.Clear();
         var host = WinHost.Create(
@@ -380,7 +380,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Windows_NullFactoryHooks_AreSilentNoOps()
+    public async Task Windows_NullFactoryHooks_AreSilentNoOpsAsync()
     {
         WinSpy.Box.Clear();
         // Only ShutdownFactory supplied — Pause / PowerEvent have no factory.
@@ -400,7 +400,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Windows_StopAsync_RoutesShutdownToEntry()
+    public async Task Windows_StopAsync_RoutesShutdownToEntryAsync()
     {
         WinSpy.Box.Clear();
         var host = WinHost.Create(shutdown: () => new Shutdown(), grace: TimeSpan.FromSeconds(2));
@@ -437,7 +437,10 @@ public class HostingAdapterTests
             var asm    = LoadAdapter("Spek.Hosting.Systemd", "net10.0");
             var closed = asm.GetType("Spek.Hosting.Systemd.SpekSystemdHostedService`1")!
                             .MakeGenericType(typeof(SysSpy));
-            var svc    = Activator.CreateInstance(closed, shutdown, reload, grace)!;
+            // Fourth arg: IHostApplicationLifetime — null means the READY=1
+            // fallback path (no host lifetime to gate on), which is exactly
+            // the hand-constructed scenario this harness exercises.
+            var svc    = Activator.CreateInstance(closed, shutdown, reload, grace, null)!;
             return new SystemdHost(svc, closed);
         }
 
@@ -448,7 +451,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Systemd_StopAsync_RoutesShutdownAndDisposesCleanly()
+    public async Task Systemd_StopAsync_RoutesShutdownAndDisposesCleanlyAsync()
     {
         SysSpy.Box.Clear();
         var host = SystemdHost.Create(
@@ -510,7 +513,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Launchd_StopAsync_RoutesShutdownToEntry()
+    public async Task Launchd_StopAsync_RoutesShutdownToEntryAsync()
     {
         LaunchSpy.Box.Clear();
         var host = LaunchdHost.Create(typeof(LaunchSpy), () => new Shutdown(), TimeSpan.FromSeconds(2));
@@ -526,7 +529,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Launchd_StopAsync_HonorsExternalCancellationToken_OverLongGrace()
+    public async Task Launchd_StopAsync_HonorsExternalCancellationToken_OverLongGraceAsync()
     {
         // A deaf actor + a huge grace: only the external cancellation token
         // can end StopAsync's wait loop. This is the same contract the
@@ -551,7 +554,7 @@ public class HostingAdapterTests
     }
 
     [Fact]
-    public async Task Launchd_StopAsync_BoundedByGrace_WhenActorIgnoresShutdown()
+    public async Task Launchd_StopAsync_BoundedByGrace_WhenActorIgnoresShutdownAsync()
     {
         // Contrast case: no external cancellation, short grace, deaf actor.
         // Proves the grace deadline is the bound when the token never fires

@@ -1,0 +1,35 @@
+{
+  // Debug configurations for the demo suite. Each launches under the C#
+  // debugger with the .NET diagnostics port explicitly re-enabled — the
+  // debugger disables it by default, which would blind `spekc observe`
+  // and the Spek Actors panel. Breakpoints in .spek files work directly.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Spek: Elevators demo",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-elevators",
+      "program": "${workspaceFolder}/demos/elevators/Elevators.Harness/bin/Debug/net10.0/Elevators.Harness.dll",
+      "cwd": "${workspaceFolder}/demos/elevators/Elevators.Harness",
+      "console": "integratedTerminal",
+      "env": {
+        "COMPlus_EnableDiagnostics": "1",
+        "DOTNET_EnableDiagnostics": "1"
+      }
+    },
+    {
+      "name": "Spek: Fleet demo",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-fleet",
+      "program": "${workspaceFolder}/demos/fleet/Fleet.Harness/bin/Debug/net10.0/Fleet.Harness.dll",
+      "cwd": "${workspaceFolder}/demos/fleet/Fleet.Harness",
+      "console": "integratedTerminal",
+      "env": {
+        "COMPlus_EnableDiagnostics": "1",
+        "DOTNET_EnableDiagnostics": "1"
+      }
+    }
+  ]
+}

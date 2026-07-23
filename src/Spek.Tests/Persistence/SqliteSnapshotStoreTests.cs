@@ -31,7 +31,7 @@ public sealed class SqliteSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Save_then_Load_roundtrips_a_single_field()
+    public async Task Save_then_Load_roundtrips_a_single_fieldAsync()
     {
         using var store = new SqliteSnapshotStore(_dbPath);
         var snap = new Snapshot(new Dictionary<string, object?>
@@ -47,7 +47,7 @@ public sealed class SqliteSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Load_returns_null_for_unknown_key()
+    public async Task Load_returns_null_for_unknown_keyAsync()
     {
         using var store = new SqliteSnapshotStore(_dbPath);
         var loaded = await store.LoadAsync("never-saved");
@@ -55,7 +55,7 @@ public sealed class SqliteSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Upsert_replaces_prior_snapshot_for_same_key()
+    public async Task Upsert_replaces_prior_snapshot_for_same_keyAsync()
     {
         using var store = new SqliteSnapshotStore(_dbPath);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1L }));
@@ -67,7 +67,7 @@ public sealed class SqliteSnapshotStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Snapshot_survives_store_disposal_and_reopen()
+    public async Task Snapshot_survives_store_disposal_and_reopenAsync()
     {
         // The whole point of durable persistence — process-restart-style
         // cycle should round-trip the data via the on-disk file.

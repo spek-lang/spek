@@ -149,6 +149,52 @@ public class ReferenceFinderTests
         // Referenced once: as the StateChanged field type.
         Assert.Single(refs);
     }
+
+    [Fact]
+    public void Message_ClassifiedReferences_SplitSendersHandlersAndOther()
+    {
+        // One occurrence of each classification: a channel input (Other), an
+        // on-pattern arm (Handle), and a construction inside a Tell (Send).
+        const string src = """
+            message Ping();
+
+            channel Wire
+            {
+                on Ping;
+            }
+
+            actor Echo
+            {
+                behavior Idle
+                {
+                    on Ping => { self.Tell(new Ping()); }
+                }
+            }
+            """;
+        var tree = Parse(src);
+
+        var occurrences = ReferenceFinder.ClassifyMessageReferences(tree, "Ping");
+
+        Assert.Equal(3, occurrences.Count);
+        var send = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Send);
+        var handle = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Handle);
+        var other = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Other);
+
+        // Spans land where the source says: channel input line 5,
+        // handler arm and send both on line 12 (1-based).
+        Assert.Equal(5,  other.Span.StartLine);
+        Assert.Equal(12, handle.Span.StartLine);
+        Assert.Equal(12, send.Span.StartLine);
+
+        // The classified walk sees exactly the spans the plain walk sees —
+        // classification is a tag, never a filter.
+        var plain = ReferenceFinder.FindReferences(
+            tree, ReferenceFinder.Kind.Message, "Ping");
+        Assert.Equal(plain.Count, occurrences.Count);
+    }
 }
 
 /// <summary>

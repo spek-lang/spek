@@ -71,7 +71,7 @@ internal sealed class SpekSemanticTokensHandler : SemanticTokensHandlerBase
                 : channels.Contains(text)                       ? SemanticTokenType.Interface
                 : enums.Contains(text)                          ? SemanticTokenType.Enum
                 : modules.Contains(text)                        ? SemanticTokenType.Namespace
-                : null;
+                : (SemanticTokenType?)null;
             if (kind is null) continue;
 
             // ANTLR: Line is 1-based, Column (CharPositionInLine) is 0-based.

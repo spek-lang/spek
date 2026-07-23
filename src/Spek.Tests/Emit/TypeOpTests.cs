@@ -76,20 +76,25 @@ public sealed class TypeOpTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void Cast_NumericNarrowing_RoundTrips()
+    public void Cast_Numeric_IsRetired_WithConversionTeaching()
     {
+        // Casts parse (so the diagnostic can point at them) and are rejected:
+        // the conversion family owns this space now.
         const string src = """
             module T
             {
-                public long Widen(int x)    { return (long)x; }
-                public int  Narrow(double d) { return (int)d; }
+                public int Narrow(double d) { return (int)d; }
             }
             """;
-        AssertCompiles(src, "NumericCast", "((long)x)", "((int)d)");
+        var parsed = Spek.Compiler.Parser.SpekCompiler.Parse(src);
+        Assert.False(parsed.Success);
+        var diag = Assert.Single(parsed.Diagnostics, d => d.Code == "CE0129");
+        Assert.Contains("To<int>", diag.Message);
+        Assert.Contains("TryTo<int>", diag.Message);
     }
 
     [Fact]
-    public void Cast_ReferenceType_RoundTrips()
+    public void Cast_ExternalReferenceType_IsRetired_WithGenericTeaching()
     {
         const string src = """
             module T
@@ -97,6 +102,9 @@ public sealed class TypeOpTests(ITestOutputHelper output)
                 public string Describe(object o) { return (string)o; }
             }
             """;
-        AssertCompiles(src, "RefCast", "((string)o)");
+        var parsed = Spek.Compiler.Parser.SpekCompiler.Parse(src);
+        Assert.False(parsed.Success);
+        var diag = Assert.Single(parsed.Diagnostics, d => d.Code == "CE0129");
+        Assert.Contains("is T v", diag.Message);
     }
 }

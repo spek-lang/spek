@@ -39,6 +39,13 @@ a value is either shared-and-immutable or owned-and-mutable, never both. Message
 are immutable because the `message` keyword compiles to a C# `record`, and only
 declared messages can be sent.
 
+The same posture extends past concurrency. Spek has no cast operator:
+conversions are either proven lossless at compile time (`x.To<long>()`) or
+return nullable (`x.TryTo<byte>()`) — no silent overflow, no runtime cast
+exceptions. A `flags enum` assigns its bit values by construction, gates
+bitwise operators to enums that actually declare flag semantics, and rejects
+the always-empty `Read & Write` mistake at compile time.
+
 Async is invisible. You write no `async` or `await`; task-returning calls are
 auto-awaited where their value is used, independent work runs concurrently by
 default, and cancellation is threaded into the generated code for you rather than

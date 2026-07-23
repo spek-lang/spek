@@ -70,7 +70,7 @@
   <Target Name="SpekCompile"
           BeforeTargets="BeforeCompile;CoreCompile"
           DependsOnTargets="ResolveReferences;SpekResolveGeneratedDir"
-          Inputs="@(SpekCompile)"
+          Inputs="@(SpekCompile);$(SpekcDll)"
           Outputs="$(SpekGeneratedDir)spek.stamp"
           Condition="'@(SpekCompile)' != ''">
 

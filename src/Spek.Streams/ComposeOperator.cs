@@ -30,15 +30,17 @@ public sealed class ComposeOperator<T> : StreamOperator<T>
     public override Task OfferAsync(T message)
     {
         // Lazy-wire the inner chain on first message — by this point
-        // our own Dispatch has been Configure()'d by the runtime.
+        // our own Dispatch (and Clock) has been Configure()'d by the
+        // runtime, so the shared clock propagates to every inner
+        // operator here.
         if (!_wired)
         {
             for (int i = 0; i < _inner.Length - 1; i++)
             {
                 int next = i + 1;
-                _inner[i].Configure(msg => _inner[next].OfferAsync(msg));
+                _inner[i].Configure(msg => _inner[next].OfferAsync(msg), Clock);
             }
-            _inner[^1].Configure(msg => Dispatch(msg));
+            _inner[^1].Configure(msg => Dispatch(msg), Clock);
             _wired = true;
         }
         return _inner[0].OfferAsync(message);

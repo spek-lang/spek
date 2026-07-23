@@ -15,9 +15,12 @@ public enum PolicyDecisionKind
     /// </summary>
     Reject,
     /// <summary>
-    /// Reject for now; caller may retry after
-    /// <see cref="PolicyDecision.RetryAfter"/>. Used by rate limiters
-    /// that surface backoff hints.
+    /// Park the message for now: the runtime re-enqueues it after
+    /// <see cref="PolicyDecision.RetryAfter"/> — clock-driven, so
+    /// deterministic under virtual time — re-evaluating policies on
+    /// re-admission, up to a bounded attempt budget before it
+    /// dead-letters. Used by rate limiters to smooth bursts instead
+    /// of dropping them.
     /// </summary>
     Defer
 }
@@ -46,8 +49,8 @@ public readonly record struct PolicyDecision
     public string? Reason { get; init; }
 
     /// <summary>
-    /// How long the caller should wait before re-sending. Set for
-    /// Defer; null for Allow/Reject.
+    /// How long the runtime waits before re-admitting a deferred
+    /// message. Set for Defer; null for Allow/Reject.
     /// </summary>
     public TimeSpan? RetryAfter { get; init; }
 
@@ -64,9 +67,10 @@ public readonly record struct PolicyDecision
         new() { Kind = PolicyDecisionKind.Reject, Reason = reason };
 
     /// <summary>
-    /// Reject for now, with a backoff hint: the caller may retry after
-    /// <paramref name="retryAfter"/>. Rate limiters use this to
-    /// distinguish "over the limit right now" from a hard rejection.
+    /// Park the message: the runtime re-enqueues it after
+    /// <paramref name="retryAfter"/> — delayed re-admission, not
+    /// rejection. Rate limiters use this to distinguish "over the
+    /// limit right now" (smooth the burst) from a hard rejection.
     /// </summary>
     public static PolicyDecision Defer(TimeSpan retryAfter, string reason) =>
         new() { Kind = PolicyDecisionKind.Defer, RetryAfter = retryAfter, Reason = reason };

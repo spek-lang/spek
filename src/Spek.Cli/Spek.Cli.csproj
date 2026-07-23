@@ -20,11 +20,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Render helpers are internal; tests drive them directly. -->
+    <InternalsVisibleTo Include="Spek.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Spek.Compiler\Spek.Compiler.csproj" />
     <ProjectReference Include="..\Spek.Compiler.Proto\Spek.Compiler.Proto.csproj" />
     <!-- The check flag compiles the emitted C# in memory; Spek.Runtime
          supplies the metadata reference the generated code always needs. -->
     <ProjectReference Include="..\Spek.Runtime\Spek.Runtime.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- `spekc observe`: attach + decode an EventPipe session over the
+         .NET diagnostics IPC channel (the dotnet-counters transport). -->
+    <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.621003" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.16" />
   </ItemGroup>
 
 </Project>

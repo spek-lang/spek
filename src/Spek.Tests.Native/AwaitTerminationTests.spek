@@ -4,6 +4,8 @@
 // (The C# version also asserts the return is fast and checks IsMaterialized — a
 // perf detail and an internal property, both left in the C# suite.)
 
+using Xunit;
+
 message Tick();
 message Pause(int ms);
 
@@ -30,7 +32,7 @@ class AwaitTerminationTests
         var a = sys.Spawn<Idle>();
         a.Tell(new Tick());
 
-        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
+        Assert.True(sys.WaitForIdle(TimeSpan.FromSeconds(3)));
     }
 
     public void ReturnsFalseOnTimeoutWhileActorKeepsWorking()
@@ -38,7 +40,7 @@ class AwaitTerminationTests
         var a = sys.Spawn<Busy>();
         a.Tell(new Pause(1000));
 
-        Xunit.Assert.False(sys.WaitForIdle(System.TimeSpan.FromMilliseconds(100)));
+        Assert.False(sys.WaitForIdle(TimeSpan.FromMilliseconds(100)));
     }
 
     public void ReturnsAfterSlowWorkFinishes()
@@ -46,7 +48,7 @@ class AwaitTerminationTests
         var a = sys.Spawn<Busy>();
         a.Tell(new Pause(150));
 
-        Xunit.Assert.True(sys.WaitForIdle(System.TimeSpan.FromSeconds(3)));
-        Xunit.Assert.False(a.IsStopped);
+        Assert.True(sys.WaitForIdle(TimeSpan.FromSeconds(3)));
+        Assert.False(a.IsStopped);
     }
 }

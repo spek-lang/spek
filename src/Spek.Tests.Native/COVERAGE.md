@@ -57,6 +57,7 @@ emit as static classes, stream operators are timing-shaped, etc.
 | MessageInheritanceTests | MessageInheritanceFeatureTests.spek | ✅ behavior (`on Base` receives every variant; specific arm wins); record emit + CE0124/CE0125 stay C# |
 | ActorInheritanceTests | ActorInheritanceFeatureTests.spek | ✅ behavior (derived actor reuses base field/method + dispatches abstract hook); emit shape + CE0122/CE0123 stay C# |
 | ActorInheritanceTests (behaviors) + CatchAllHandlerTests + StreamOperatorTests | DocumentedFeatureTests.spek | ✅ behavior (override-behavior dispatch, `on any` catch-all routing, `distinct` operator); emit shape stays C# |
+| ConversionFamilyTests + FlagsEnumTests + FlagsUsageTests + FlagsRuntimeTests | ConversionAndFlagsFeatureTests.spek | ✅ behavior (To/TryTo across message boundaries, rounding strategy, flags combine/query, flags-aware TryTo); lowering shapes + CE0127-0133 stay C# |
 | StreamOperatorTests | — | C#-only — `debounce`/`throttle`/`distinct` are timing-shaped; tested via emitted operator chain |
 | SharedRegionTests | — | C#-only — concurrency *shape* (emit); the behavioral reader/writer slice is ReaderWriterTests |
 | EventHandlerTests | — | C#-only — `on event` emit shape; external-event firing isn't surfaced through the test API |

@@ -127,6 +127,26 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
+    public void SpawnNamed_SamePathAgain_ReverseLookupTracksCurrentHolder()
+    {
+        // Re-registering a path rebinds it to the new actor, and the
+        // DISPLACED actor stops reverse-resolving — it is no longer a named
+        // root, so the cluster layer must not stamp its old path into wire
+        // envelopes as a reply-to address that now routes to the usurper.
+        // Pins that the ref → path map (perf r16) unbinds in lockstep with
+        // the path → ref map it mirrors, preserving the reverse-scan-era
+        // behavior.
+        using var system = new ActorSystem("named");
+
+        var first  = system.SpawnNamed<PingPong>("ingress/orders");
+        var second = system.SpawnNamed<PingPong>("ingress/orders");
+
+        Assert.Same(second, system.ResolveNamed("ingress/orders"));
+        Assert.Equal("ingress/orders", system.PathOfNamedRoot(second));
+        Assert.Null(system.PathOfNamedRoot(first));
+    }
+
+    [Fact]
     public void SpawnNamed_EmptyPath_Throws()
     {
         using var system = new ActorSystem("named");
@@ -153,7 +173,7 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
-    public async Task DeliverIncoming_KnownRoot_RoutesMessageToActor()
+    public async Task DeliverIncoming_KnownRoot_RoutesMessageToActorAsync()
     {
         Interlocked.Exchange(ref _pongsCollected, 0);
         using var system = new ActorSystem("deliver");
@@ -172,7 +192,7 @@ public class RuntimeCoverageTests
         // dispatches, which can be starved for several seconds under the fully
         // parallel suite. It returns as soon as the Pong lands (ms in the common
         // case); the long timeout only matters under heavy contention.
-        await WaitUntil(() => Volatile.Read(ref _pongsCollected) == 1, timeoutMs: 30_000);
+        await WaitUntilAsync(() => Volatile.Read(ref _pongsCollected) == 1, timeoutMs: 30_000);
         Assert.Equal(1, Volatile.Read(ref _pongsCollected));
     }
 
@@ -213,7 +233,7 @@ public class RuntimeCoverageTests
     // ─── Default Unhandled → dead-letter ─────────────────────────────────────────
 
     [Fact]
-    public async Task UnhandledMessage_RoutesToDeadLetter_WithReason()
+    public async Task UnhandledMessage_RoutesToDeadLetter_WithReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new ActorSystem("unhandled", deadLetterSink: sink);
@@ -221,7 +241,7 @@ public class RuntimeCoverageTests
 
         actor.Tell(new Boom());   // PingPong has no Boom arm → Unhandled
 
-        await WaitUntil(() => sink.Records.Any(r => r.Message is Boom));
+        await WaitUntilAsync(() => sink.Records.Any(r => r.Message is Boom));
 
         var record = sink.Records.Single(r => r.Message is Boom);
         Assert.Contains("no handler matched", record.Reason);
@@ -232,19 +252,19 @@ public class RuntimeCoverageTests
     // ─── Tell to a stopped actor → dead-letter ───────────────────────────────────
 
     [Fact]
-    public async Task TellToStoppedActor_DeadLetters_WithStoppedReason()
+    public async Task TellToStoppedActor_DeadLetters_WithStoppedReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new ActorSystem("stopped", deadLetterSink: sink);
         var actor = system.Spawn<Exploder>();
 
         actor.Tell(new Ping());   // throws → root actor defaults to Stop
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
         // Subsequent sends hit the stopped-actor dead-letter path in Enqueue.
         actor.Tell(new Ping());
 
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("target actor is stopped", StringComparison.Ordinal)));
 
         var stoppedRecord = sink.Records.Last(r =>
@@ -256,7 +276,7 @@ public class RuntimeCoverageTests
     // ─── Ask edge cases ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AskWithTimeout_WrongReplyType_FaultsWithInvalidCast()
+    public async Task AskWithTimeout_WrongReplyType_FaultsWithInvalidCastAsync()
     {
         using var system = new ActorSystem("ask-wrong");
         var actor = system.Spawn<WrongTypeReplier>();
@@ -265,46 +285,48 @@ public class RuntimeCoverageTests
         // ReplyActor<Pong> sets the asker's task to an InvalidCastException
         // — the asker faults rather than waiting out the timeout.
         await Assert.ThrowsAsync<InvalidCastException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)));
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]
-    public async Task AskWithTimeout_StoppedTarget_FaultsWithTimeout()
+    public async Task AskWithTimeout_StoppedTarget_FaultsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("ask-stopped");
         var actor = system.Spawn<Exploder>();
 
         actor.Tell(new Ping());          // crash → root stops
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
-        // Asking a stopped actor dead-letters the request; no reply ever
-        // arrives, so the bounded ask must surface a TimeoutException rather
-        // than hanging forever.
-        await Assert.ThrowsAsync<TimeoutException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(200)));
+        // Asking a stopped actor can never produce a reply, so under the
+        // "fail fast on all" semantics the send fails the asker immediately
+        // with an AskException ("target actor is stopped") — no dead-letter
+        // wait, no deadline. A generous timeout proves the failure is fast.
+        await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]
-    public async Task AskWithTimeout_WriterHandlerThrows_TimesOut_NotAskException()
+    public async Task AskWithTimeout_WriterHandlerThrows_FailsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("ask-writer-throws");
         var actor = system.Spawn<WriterThatThrows>();
 
-        // The writer dispatch path runs supervision but does not fail the
-        // asker's reply (only the reader path does). So the asker is left
-        // pending and the timeout is what unblocks it — a TimeoutException,
-        // NOT an AskException. This documents the writer/reader asymmetry.
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(300)));
+        // A writer handler that throws now fails the asker fast with an
+        // AskException, symmetric with the reader path — closing the old
+        // writer/reader asymmetry that left the asker to time out (red-team
+        // V1, "fail fast on all"). The handler's own throw rides along as
+        // the inner exception. A generous timeout proves the failure is fast.
+        var ex = await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
 
-        Assert.IsType<TimeoutException>(ex);
-        Assert.IsNotType<AskException>(ex);
+        Assert.IsType<InvalidOperationException>(ex.InnerException);
+        Assert.Equal("writer boom", ex.InnerException!.Message);
     }
 
     // ─── ActorRef surface: NoSender reply + remote-ask guard ──────────────────────
 
     [Fact]
-    public async Task ReplyToActorWithNoSender_DoesNotThrow_AndIsRecoverable()
+    public async Task ReplyToActorWithNoSender_DoesNotThrow_AndIsRecoverableAsync()
     {
         // A bare Tell (no explicit sender) gives the recipient ActorRef.NoSender
         // as its sender. A handler that replies to NoSender must not crash the
@@ -409,7 +431,7 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
-    public async Task Escalation_ChainDeeperThanCap_DegradesToStop_WithMaxDepthReason()
+    public async Task Escalation_ChainDeeperThanCap_DegradesToStop_WithMaxDepthReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("escalate-cap", deadLetterSink: sink);
@@ -426,7 +448,7 @@ public class RuntimeCoverageTests
 
         leafRef.Tell(new Crash());
 
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("escalation chain exceeded max depth", StringComparison.Ordinal)));
 
         var capRecord = sink.Records.First(r =>
@@ -434,7 +456,7 @@ public class RuntimeCoverageTests
         Assert.IsType<InvalidOperationException>(capRecord.Cause);
 
         // The cap degrades to Stop — the leaf ends up stopped.
-        await WaitUntil(() => leafRef.IsStopped);
+        await WaitUntilAsync(() => leafRef.IsStopped);
         Assert.True(leafRef.IsStopped);
 
         // And the "ran out of supervisors" path was NOT taken — the cap fired first.
@@ -449,7 +471,7 @@ public class RuntimeCoverageTests
     // be starved for seconds under the fully parallel suite. The predicate returns
     // as soon as it's satisfied (ms in the common case); the ceiling only bites
     // under heavy contention, where a tighter bound produced load flakes.
-    private static async Task WaitUntil(Func<bool> predicate, int timeoutMs = 30_000)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = 30_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

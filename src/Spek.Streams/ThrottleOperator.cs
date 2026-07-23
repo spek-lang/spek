@@ -13,7 +13,13 @@ namespace Spek.Streams;
 public sealed class ThrottleOperator<T> : StreamOperator<T>
 {
     private readonly TimeSpan _interval;
-    private long _windowStartTicks;   // 0 = never emitted
+
+    // Timestamp (in Clock.GetTimestamp units) of the current window's
+    // open, 0 = never emitted. The sentinel is safe on both clock
+    // families: the system clock's timestamp is time-since-boot (never
+    // 0 at runtime) and the manual test clock's is DateTimeOffset
+    // UtcTicks (its epoch defaults to year 2000).
+    private long _windowStartTimestamp;
 
     public ThrottleOperator(int milliseconds)
     {
@@ -33,14 +39,19 @@ public sealed class ThrottleOperator<T> : StreamOperator<T>
 
     public override async Task OfferAsync(T message)
     {
-        var nowTicks = DateTimeOffset.UtcNow.UtcTicks;
-        var startedAt = Interlocked.Read(ref _windowStartTicks);
-        var elapsed   = TimeSpan.FromTicks(nowTicks - startedAt);
+        // Window math rides the configured clock: GetTimestamp is the
+        // monotonic source on the system clock (no wall-clock jump can
+        // reopen or pin a window) and is virtualized by the test kit's
+        // manual clock, so a virtual-time test Advances the window
+        // instead of sleeping through it.
+        var clock     = Clock;
+        var nowTs     = clock.GetTimestamp();
+        var startedAt = Interlocked.Read(ref _windowStartTimestamp);
 
-        if (startedAt == 0 || elapsed >= _interval)
+        if (startedAt == 0 || clock.GetElapsedTime(startedAt, nowTs) >= _interval)
         {
             // Take this message — open a new window.
-            if (Interlocked.CompareExchange(ref _windowStartTicks, nowTicks, startedAt) == startedAt)
+            if (Interlocked.CompareExchange(ref _windowStartTimestamp, nowTs, startedAt) == startedAt)
             {
                 await Dispatch(message).ConfigureAwait(false);
             }
