@@ -18,13 +18,17 @@ if [ ! -f "$JAR" ]; then
   curl -L -o "$JAR" "https://www.antlr.org/download/antlr-4.13.1-complete.jar"
 fi
 
+# Run from the Grammar directory with bare filenames so the generated
+# headers carry relative paths, not this machine's absolute ones (the
+# Generated/*.cs files are checked in).
+cd "$SCRIPT_DIR"
 "$JAVA" -jar "$JAR" \
   -Dlanguage=CSharp \
   -package "Spek.Compiler.Grammar" \
   -visitor \
   -no-listener \
-  -o "$SCRIPT_DIR/Generated" \
-  "$SCRIPT_DIR/SpekLexer.g4" \
-  "$SCRIPT_DIR/SpekParser.g4"
+  -o Generated \
+  SpekLexer.g4 \
+  SpekParser.g4
 
 echo "Done. Generated files are in Grammar/Generated/"

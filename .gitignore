@@ -24,8 +24,10 @@ riderModule.iml
 node_modules/
 *.vsix
 
-# Generated parser output (regenerated from .g4 via regenerate.sh).
-/src/Spek.Compiler/Grammar/Generated/
+# ANTLR side files (the Generated/*.cs sources are checked in;
+# regenerate via regenerate.sh).
+/src/Spek.Compiler/Grammar/Generated/*.interp
+/src/Spek.Compiler/Grammar/Generated/*.tokens
 
 # Bundled-on-demand toolchain binaries (regenerate.sh downloads if missing).
 /src/Spek.Compiler/Grammar/antlr4-complete.jar

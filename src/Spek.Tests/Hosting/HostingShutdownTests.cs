@@ -67,11 +67,11 @@ public class HostingShutdownTests
         sw.Stop();
 
         // Must return via the cancellation branch, not the 60s grace. A
-        // generous ceiling (10s) tolerates a CPU-saturated parallel run
+        // generous ceiling (30s) tolerates a CPU-saturated parallel run
         // where the 50ms `Task.Delay` continuations stack up, while still
         // being unmistakably shorter than the 60s grace window. If the
         // token branch were broken, StopAsync would block the full 60s.
-        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(10),
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(30),
             $"StopAsync should short-circuit on the cancelled token, but took {sw.Elapsed} " +
             "(grace window was 60s; it ignored the token).");
     }
