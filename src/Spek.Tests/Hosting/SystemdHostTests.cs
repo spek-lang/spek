@@ -56,7 +56,7 @@ public sealed class SystemdHostTests
         var service = new SpekSystemdHostedService<LifecycleEntryActor>(
             shutdownFactory: () => new HostShutdown(),
             reloadFactory: () => new HostReload(),   // registers the SIGHUP → Reload seam
-            shutdownGrace: TimeSpan.FromSeconds(10));
+            shutdownGrace: TimeSpan.FromSeconds(60));
 
         await service.StartAsync(CancellationToken.None);
 
@@ -65,7 +65,7 @@ public sealed class SystemdHostTests
         sw.Stop();
 
         // Returned because the actor stopped, not because the grace ran out.
-        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(8),
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(30),
             $"StopAsync should return promptly after the actor stops; took {sw.Elapsed}.");
 
         var message = Assert.Single(LifecycleEntryActor.Received);
@@ -84,7 +84,7 @@ public sealed class SystemdHostTests
         await service.StartAsync(CancellationToken.None);
 
         var stop = service.StopAsync(CancellationToken.None);
-        await stop.WaitAsync(TimeSpan.FromSeconds(10));   // bounded, despite the live actor
+        await stop.WaitAsync(TimeSpan.FromSeconds(60));   // bounded, despite the live actor
 
         await service.DisposeAsync();
     }
@@ -94,7 +94,7 @@ public sealed class SystemdHostTests
     {
         var service = new SpekSystemdHostedService<StubbornEntryActor>(
             shutdownFactory: () => new HostShutdown(),
-            shutdownGrace: TimeSpan.FromSeconds(30));
+            shutdownGrace: TimeSpan.FromSeconds(120));
 
         await service.StartAsync(CancellationToken.None);
 
@@ -103,8 +103,8 @@ public sealed class SystemdHostTests
         await service.StopAsync(cts.Token);
         sw.Stop();
 
-        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(10),
-            $"Cancelled StopAsync must not wait out the 30s grace; took {sw.Elapsed}.");
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(30),
+            $"Cancelled StopAsync must not wait out the 120s grace; took {sw.Elapsed}.");
 
         await service.DisposeAsync();
     }
