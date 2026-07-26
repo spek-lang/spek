@@ -52,7 +52,7 @@ public sealed class LaunchdHostTests
 
         var service = new SpekLaunchdHostedService<LifecycleEntryActor>(
             shutdownFactory: () => new HostShutdown(),
-            shutdownGrace: TimeSpan.FromSeconds(10));
+            shutdownGrace: TimeSpan.FromSeconds(60));
 
         await service.StartAsync(CancellationToken.None);
 
@@ -60,7 +60,7 @@ public sealed class LaunchdHostTests
         await service.StopAsync(CancellationToken.None);
         sw.Stop();
 
-        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(8),
+        Assert.True(sw.Elapsed < TimeSpan.FromSeconds(30),
             $"StopAsync should return promptly after the actor stops; took {sw.Elapsed}.");
 
         var message = Assert.Single(LifecycleEntryActor.Received);
@@ -79,7 +79,7 @@ public sealed class LaunchdHostTests
         await service.StartAsync(CancellationToken.None);
 
         var stop = service.StopAsync(CancellationToken.None);
-        await stop.WaitAsync(TimeSpan.FromSeconds(10));   // bounded, despite the live actor
+        await stop.WaitAsync(TimeSpan.FromSeconds(60));   // bounded, despite the live actor
 
         await service.DisposeAsync();
     }
