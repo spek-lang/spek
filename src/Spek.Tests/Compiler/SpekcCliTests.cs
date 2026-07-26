@@ -105,7 +105,7 @@ public sealed class SpekcCliTests
         var temp = NewTempDir();
         try
         {
-            // Unterminated actor body — a hard parse error.
+            // Unterminated actor body: a hard parse error.
             var spekFile = Path.Combine(temp, "Broken.spek");
             File.WriteAllText(spekFile, """
                 namespace Samples;
@@ -247,7 +247,7 @@ public sealed class SpekcCliTests
     [Fact]
     public void Compile_SingleFileMissingType_StillFails()
     {
-        // Compiling only the message file — the enum's file is absent — can't see
+        // Compiling only the message file (the enum's file is absent) can't see
         // HostState, so it trips CE0010. Confirms resolution needs the whole set,
         // which the multi-file path supplies (and that we didn't over-loosen).
         var temp = NewTempDir();
@@ -279,6 +279,89 @@ public sealed class SpekcCliTests
 
             Assert.NotEqual(0, exit);
             Assert.Contains("CE0013", stderr);
+        }
+        finally { Directory.Delete(temp, recursive: true); }
+    }
+
+    // ─── coverage gaps closed: exit-code contract completeness ──────────
+
+    [Fact]
+    public void Compile_NonexistentInput_FailsCleanly_ExitsOne()
+    {
+        var (exit, _, stderr) = RunSpekc("compile", "/nope/definitely-missing.spek");
+        Assert.Equal(1, exit);
+        Assert.Contains("missing.spek", stderr);
+    }
+
+    [Fact]
+    public void Compile_Warning_StillEmits_ExitsZero()
+    {
+        var temp = NewTempDir();
+        try
+        {
+            var spekFile = Path.Combine(temp, "Warny.spek");
+            // CE0134 (direct time read in an actor) is a warning: the build
+            // must emit and exit 0, with the warning on stderr.
+            File.WriteAllText(spekFile, """
+                namespace W;
+                message T();
+                actor A
+                {
+                    behavior Default
+                    {
+                        on T t => { var n = DateTime.UtcNow; }
+                    }
+                }
+                """);
+            var outDir = Path.Combine(temp, "gen");
+            var (exit, _, stderr) = RunSpekc("compile", spekFile, "--out", outDir);
+
+            Assert.Equal(0, exit);
+            Assert.True(File.Exists(Path.Combine(outDir, "Warny.g.cs")));
+            Assert.Contains("CE0134", stderr);
+        }
+        finally { Directory.Delete(temp, recursive: true); }
+    }
+
+    [Fact]
+    public void Compile_Check_CleanSource_ExitsZero()
+    {
+        var temp = NewTempDir();
+        try
+        {
+            var spekFile = Path.Combine(temp, "Clean.spek");
+            File.WriteAllText(spekFile, """
+                namespace C;
+                message Ping();
+                actor A
+                {
+                    behavior Default { on Ping p => { } }
+                }
+                """);
+            var (exit, _, _) = RunSpekc("compile", spekFile, "--out",
+                Path.Combine(temp, "gen"), "--check");
+            Assert.Equal(0, exit);
+        }
+        finally { Directory.Delete(temp, recursive: true); }
+    }
+
+    [Fact]
+    public void Compile_Directory_EmitsForEverySpekFile()
+    {
+        var temp = NewTempDir();
+        try
+        {
+            File.WriteAllText(Path.Combine(temp, "One.spek"),
+                "namespace D;\nmessage A();\n");
+            File.WriteAllText(Path.Combine(temp, "Two.spek"),
+                "namespace D;\nmessage B();\n");
+
+            var outDir = Path.Combine(temp, "gen");
+            var (exit, _, _) = RunSpekc("compile", temp, "--out", outDir);
+
+            Assert.Equal(0, exit);
+            Assert.True(File.Exists(Path.Combine(outDir, "One.g.cs")));
+            Assert.True(File.Exists(Path.Combine(outDir, "Two.g.cs")));
         }
         finally { Directory.Delete(temp, recursive: true); }
     }

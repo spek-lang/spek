@@ -39,15 +39,24 @@ declaration
 // types (CE0010 whitelists them). Emitted as a plain C# enum in the
 // generated code.
 enumDecl
-    : visibility? ENUM IDENTIFIER LBRACE enumMembers? RBRACE
+    : visibility? FLAGS? ENUM IDENTIFIER LBRACE enumMembers? RBRACE
     ;
 
 enumMembers
     : enumMember (COMMA enumMember)* COMMA?
     ;
 
+// A member may carry an explicit value: an integer literal (hex/binary/
+// separators allowed) or, in a flags enum, a union of earlier members
+// (`ReadWrite = Read | Write`). Value-less members auto-number (0,1,2… for
+// plain enums; the next unused power of two for flags enums).
 enumMember
-    : IDENTIFIER
+    : IDENTIFIER (ASSIGN enumMemberValue)?
+    ;
+
+enumMemberValue
+    : MINUS? INTEGER_LITERAL
+    | IDENTIFIER (PIPE IDENTIFIER)*
     ;
 
 usingDecl
@@ -58,11 +67,11 @@ usingDecl
 //
 // A channel names a set of inputs (messages the implementing actor accepts)
 // and emits (unprompted event messages the implementing actor may send).
-// Every type referenced is a pre-existing `message` — channels don't
+// Every type referenced is a pre-existing `message` - channels don't
 // re-declare payloads. See /language/channels/ for the full model.
 //
 // Channels may inherit from other channels via `: Base, OtherBase, ...`
-// Inheritance is add-only — derived channels add inputs/
+// Inheritance is add-only: derived channels add inputs/
 // emits to the base set but don't override or hide inherited members.
 channelDecl
     : visibility? CHANNEL IDENTIFIER channelBases? LBRACE channelMember* RBRACE
@@ -87,11 +96,11 @@ channelEmits
 
 // ─── Interface declarations ──────────────────────────────────────────
 //
-// An `interface` is the class-side implementation contract — the method/
+// An `interface` is the class-side implementation contract - the method/
 // property surface a `class` promises. It is the method-based sibling of
 // `channel` (the message-based actor contract): both lower to a C#
 // `interface`. Deliberately pre-C#-8: signatures only, never a body and
-// never a field — a Spek contract declares shape, never behavior or state.
+// never a field: a Spek contract declares shape, never behavior or state.
 //
 // An interfaceMethod ends in `;` (the only legal form). A `block` also
 // parses so the analyzer can reject a default-method body with a friendly
@@ -118,11 +127,11 @@ interfaceMethod
 
 // ─── 2. Message declarations ─────────────────────────────────────────────────
 
-// `abstract message` is the polymorphic dispatch contract — a family base a
+// `abstract message` is the polymorphic dispatch contract - a family base a
 // handler keys on (`on ClusterEvent` receives every variant). A variant names
 // its base after the field list: `message NodeUp(string Node) : ClusterEvent`.
-// Lowers to abstract/derived C# records. Base-carries-fields is deferred: an
-// abstract base must be empty (CE0125).
+// Lowers to abstract/derived C# records. An abstract base must be empty
+// (CE0125); shared fields live on each variant.
 messageDecl
     : ABSTRACT? MESSAGE IDENTIFIER typeParams? LPAREN messageFields? RPAREN messageBase? SEMICOLON
     ;
@@ -154,7 +163,7 @@ visibility
     : PUBLIC | INTERNAL | PROTECTED | PRIVATE
     ;
 
-// After the COLON, an actor lists one or more names — the first may be
+// After the COLON, an actor lists one or more names - the first may be
 // a base actor, additional names are channel implementations. Semantic
 // analysis disambiguates which is which based on the declared kind of
 // each name.
@@ -164,14 +173,14 @@ baseActor
 
 // ─── Class declarations ───────────────────────────────────────────────
 //
-// A `class` is a mutable, single-owner instance type — the genuinely-new
+// A `class` is a mutable, single-owner instance type - the genuinely-new
 // "mutable but not concurrent" kind from the type/ownership model. It holds
 // fields, an optional `init(params)` constructor, and methods, and lowers to a
 // plain C# instance class. There's no capability marker: mutability of the
 // declaration is the signal, ownership is inferred (CE0085/CE0087). Members
-// reuse the actor-side `fieldDecl` / `initBlock` / `methodDecl` rules. The
-// `typeParams?` slot is accepted for the generics work; generic semantics
-// aren't wired yet.
+// reuse the actor-side `fieldDecl` / `initBlock` / `methodDecl` rules. Type
+// parameters and `where` constraints are emitted verbatim to C#; Roslyn
+// type-checks them.
 classDecl
     : visibility? ABSTRACT? CLASS IDENTIFIER typeParams? classBases? whereClause* LBRACE classMember* RBRACE
     ;
@@ -191,7 +200,7 @@ classMember
     ;
 
 // Property: `public int X { get; set; }`, `int Y { get; init; } = 0;`,
-// `int Z { get => _z; }`. The accessor names (get/set/init) are contextual —
+// `int Z { get => _z; }`. The accessor names (get/set/init) are contextual;
 // matched as identifiers and validated in the builder, so they never collide
 // with C# member names like `Get()`.
 propertyDecl
@@ -204,14 +213,14 @@ propertyAccessor
 
 // ─── 4. Actor members ────────────────────────────────────────────────────────
 
-// `onHandler` is now also an actorMember alternative.
+// `onHandler` is also an actorMember alternative.
 // Bare on-handlers at actor scope (without an enclosing
 // `behavior X { ... }` wrapper) fold into a synthesised
 // behavior named "Default" by the AST builder. Single-behavior
 // actors don't need to write the wrapper; the name "Default"
 // is chosen so stack traces and supervision messages remain
 // readable. Mixed mode (some bare, some inside `behavior X {}`)
-// is allowed — the bare handlers go into Default; explicit
+// is allowed: the bare handlers go into Default; explicit
 // blocks stay separate.
 //
 // `useDecl` attaches a shared region to an actor.
@@ -253,7 +262,7 @@ sharedInit
 // `term { ... }` is the disposal counterpart to `init`. Runs at
 // `ActorSystem` shutdown in reverse construction order; triggers
 // `IAsyncDisposable` emission on the region class. Same scope rules
-// as `init`: no `Tell`, `ask`, `become`, `persist` — this is for
+// as `init`: no `Tell`, `ask`, `become`, `persist` - this is for
 // resource release, not for further state mutation or messaging.
 sharedTerm
     : TERM block
@@ -269,20 +278,20 @@ useDecl
 //
 // `deprecated` and `retired` are field-lifecycle markers,
 // inspired by gRPC's reserved/deprecated mechanism. Fields stay in
-// the source forever — never deleted — but their usage is policed:
-//   * `deprecated` — references compile but emit a CE0101 warning.
+// the source forever: never deleted: but their usage is policed:
+//   * `deprecated`: references compile but emit a CE0101 warning.
 //     The data is still captured/restored so existing snapshots roundtrip.
-//   * `retired`    — references are a hard CE0102 error. The field
+//   * `retired`   : references are a hard CE0102 error. The field
 //     is skipped from capture/restore so persistence stores can drop
 //     the key on the next save.
-// The three modifiers are mutually exclusive — a field is one of:
+// The three modifiers are mutually exclusive - a field is one of:
 // normal, transient, deprecated, or retired.
 fieldDecl
     : visibility? (TRANSIENT | DEPRECATED | RETIRED)? type_ softName (ASSIGN expression)? SEMICOLON
     ;
 
 // A constructor. `: base(args)` chains to a base-class constructor when the
-// class extends an abstract base with a parameterized `init` — the C# idiom.
+// class extends an abstract base with a parameterized `init` - the C# idiom.
 initBlock
     : INIT LPAREN params_? RPAREN baseInit? block
     ;
@@ -306,7 +315,7 @@ behaviorDecl
 
 // `onHandler` allows zero or more `=>` chain steps before the
 // final body. Each chain step is an expression that evaluates to a
-// `Spek.Streams.StreamOperator<T>` — typically a factory call like
+// `Spek.Streams.StreamOperator<T>`: typically a factory call like
 // `debounce(500)`. The compiler wires the operators left-to-right
 // and routes dispatch through them before the body runs.
 //
@@ -367,7 +376,7 @@ superviseOptions
 
 superviseOption
     : ON FAILURE (LPAREN qualifiedName RPAREN)? COLON restartAction
-    // Named options (maxRetries, withinTime) are plain named arguments — the same
+    // Named options (maxRetries, withinTime) are plain named arguments - the same
     // `IDENTIFIER COLON expression` shape as any call. The option name is validated
     // in semantics (CE0117), not the grammar, so a typo is a real diagnostic rather
     // than a raw parse error, and `maxRetries`/`withinTime` aren't reserved words.
@@ -378,7 +387,7 @@ restartAction
     : RESTART | STOP | ESCALATE | RESUME
     ;
 
-// `abstract` marks a method with no body — the subclass must implement it (only
+// `abstract` marks a method with no body - the subclass must implement it (only
 // valid inside an `abstract class` / `abstract actor`; otherwise CE0122). The
 // bodyless `;` form is meant for abstract methods; the subclass writes a plain
 // method to implement an inherited abstract one and the emitter infers the
@@ -402,12 +411,12 @@ moduleDecl
     : visibility? MODULE IDENTIFIER LBRACE moduleMember* RBRACE
     ;
 
-// A module body holds methods (same `methodDecl` as actors/classes — there is
+// A module body holds methods (same `methodDecl` as actors/classes - there is
 // ONE method concept in Spek) and nested modules. A module's methods become C#
 // `static` methods on the emitted static class; the dev never writes `static`.
 moduleMember
     : methodDecl
-    | moduleDecl       // nested modules — sub-namespacing
+    | moduleDecl       // nested modules: sub-namespacing
     ;
 
 // ─── 5. Statements ───────────────────────────────────────────────────────────
@@ -571,7 +580,7 @@ conditionalExpr
     : coalesceExpr (QUESTION expression COLON expression)?
     ;
 
-// ?? — binds tighter than ?: , looser than || (matches C# precedence).
+// ??: binds tighter than ?: , looser than || (matches C# precedence).
 // The optional trailing `?? throw ...` is a C# throw expression in the most
 // common position (null-or-throw); the `throw` only ever ends the chain.
 coalesceExpr
@@ -665,7 +674,7 @@ memberName
     : IDENTIFIER
     | RESTART | STOP | ESCALATE | RESUME
     | ACTOR | MESSAGE | EVENT | READER | WRITER
-    | STRATEGY | CHANNEL | INTERFACE | AFTER | SHARED | USE
+    | STRATEGY | CHANNEL | INTERFACE | AFTER | SHARED | USE | FLAGS
     ;
 
 // Soft keywords usable as ordinary identifiers in name positions (variable / parameter /
@@ -676,7 +685,7 @@ memberName
 // out to avoid ambiguity with `on event` / `reader on` / `writer on`.
 softName
     : IDENTIFIER
-    | ACTOR | MESSAGE | CHANNEL | INTERFACE | AFTER | STRATEGY | RESUME
+    | ACTOR | MESSAGE | CHANNEL | INTERFACE | AFTER | STRATEGY | RESUME | FLAGS
     ;
 
 switchArm
@@ -686,7 +695,7 @@ switchArm
 // Patterns:
 //   type pattern with optional binding   (`Foo`, `Foo b`)
 //   constant pattern                     (`1`, `"x"`, `MyEnum.Value`)
-//   discard pattern                      (`_`) — tokenized as IDENTIFIER and
+//   discard pattern                      (`_`) - tokenized as IDENTIFIER and
 //                                                resolved by the AST builder.
 //   relational pattern                   (`> 0`, `<= 100`, `== "x"`)
 //   property pattern                     (`{ X: pat, A.B: pat }`, `{ }`)
@@ -694,7 +703,7 @@ switchArm
 //   conjunction                          (`pat and pat`)
 //   disjunction                          (`pat or pat`)
 //   parenthesised pattern                (`(pat)`)
-// Tuple/list patterns are deferred to a follow-up release.
+// Tuple and list patterns are not supported.
 //
 // Precedence is ANTLR4 alt-order: top alternatives bind tighter. Atoms
 // (type/relational/property/paren) are the tightest, then `not`, then
@@ -715,11 +724,22 @@ propertySubpattern
     : qualifiedName COLON pattern
     ;
 
+// Expression-side names are a single `softName` atom; dotted chains
+// (`a.b.c`, `a.b.c(x)`, `a.b.Foo<T>(x)`) assemble exclusively in
+// `postfixExpr` via `DOT`-consuming postfix ops. Only ONE loop may compete
+// for `DOT` in expression position: when `qualifiedName` (with its own
+// greedy `(DOT softName)*` loop) sat here, deciding where the name stopped
+// and the postfix chain began required full-context prediction, which made
+// SLL prediction bail on ordinary source like `Pricing.Stamp(x)`.
+// `qualifiedName` remains the rule for type positions and declarations,
+// where nothing else consumes `DOT`. AstBuilder.VisitPostfixExpr collapses
+// the leading member-access run back into a single NameExpr/QualifiedName,
+// so the AST shape is unchanged.
 primaryExpr
     : newExpr
     | spawnExpr
-    | typedCallExpr   // must precede plain qualifiedName so `foo.Bar<T>(x)` matches
-    | bareCallExpr    // single-identifier function call — must precede qualifiedName
+    | typedCallExpr   // single-name generic call: must precede softName
+    | bareCallExpr    // single-identifier function call: must precede softName
     | DECIMAL_LITERAL
     | INTEGER_LITERAL
     | CHAR_LITERAL
@@ -733,18 +753,19 @@ primaryExpr
     | NULL
     | SELF
     | SENDER
-    | qualifiedName
+    | softName
     | DEFAULT LPAREN type_ RPAREN                     // default(T)
     | DEFAULT                                          // bare default literal
-    | LPAREN expression (COMMA expression)+ RPAREN   // tuple literal: (a, b) — needs a comma
+    | LPAREN expression (COMMA expression)+ RPAREN   // tuple literal: (a, b) - needs a comma
     | LPAREN expression RPAREN
     ;
 
-// Generic method call at the start of an expression: `a.b.Foo<T>(args)`.
-// Without this, qualifiedName greedily consumes `a.b.Foo`, leaving `<T>(args)`
-// to be misparsed as chained relational operators.
+// Generic call on a single bare name: `Foo<T>(args)`. Without this alt the
+// tokens would silently parse as chained relational operators
+// (`Foo < T > (args)`). Qualified generic calls (`a.b.Foo<T>(args)`) parse
+// as a softName primary plus postfix ops ending in `typedMethodCallOp`.
 typedCallExpr
-    : qualifiedName typeArgs LPAREN argList? RPAREN
+    : softName typeArgs LPAREN argList? RPAREN
     ;
 
 // bare function call: `f(args)` with a single, unqualified callee.
@@ -785,17 +806,18 @@ argList
     ;
 
 // at call sites the user must restate the modifier (`Foo(ref x)`,
-// `Foo(in x)`). Semantics mirror C# — making the modifier mandatory at
+// `Foo(in x)`). Semantics mirror C#: making the modifier mandatory at
 // the call site is part of the safety story (the reader sees that this
 // parameter may be aliased / written to). The second alternative is the
-// inline out-variable declaration `Foo(out var y)` — `y` is introduced
+// inline out-variable declaration `Foo(out var y)` - `y` is introduced
 // as a local for the rest of the enclosing scope (C# out-var semantics).
 // the optional `IDENTIFIER COLON` prefix is a C# named argument
-// (`Foo(width: 3)`). `IDENTIFIER COLON` after an arg-start is unambiguous —
-// it can't begin a positional expression — so the optional is safe.
+// (`Foo(width: 3)`). `IDENTIFIER COLON` after an arg-start is unambiguous;
+// it can't begin a positional expression - so the optional is safe.
 arg
     : (IDENTIFIER COLON)? paramModifier? expression
     | OUT_KW VAR IDENTIFIER
+    | OUT_KW type_ IDENTIFIER
     ;
 
 // ─── 7. Types ────────────────────────────────────────────────────────────────
@@ -821,7 +843,7 @@ typeParam
 // `struct`/`notnull`/`unmanaged` aren't keywords, so they parse as a bare
 // `type_` and emit verbatim. Multiple clauses (one per type parameter) and
 // multiple comma-separated constraints per clause are allowed. Lowered
-// verbatim to C# — Roslyn enforces them.
+// verbatim to C#: Roslyn enforces them.
 whereClause
     : WHERE IDENTIFIER COLON typeConstraint (COMMA typeConstraint)*
     ;

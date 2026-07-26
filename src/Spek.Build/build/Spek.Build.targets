@@ -1,11 +1,11 @@
 <!--
-  Spek.Build.targets — auto-imported when a project references the Spek.Build
+  Spek.Build.targets: auto-imported when a project references the Spek.Build
   package. Compiles every *.spek file to a .g.cs under the intermediate (obj)
-  output — like a source generator, NOT beside the .spek source — before the C#
+  output: like a source generator, NOT beside the .spek source; before the C#
   compiler runs (with MSBuild incrementality), by invoking the `spekc` tool.
   Nothing is written into your source tree, so there's no .g.cs to check in.
 
-  `spekc` comes from the Spek.Cli.Tool package — install it globally
+  `spekc` comes from the Spek.Cli.Tool package; install it globally
   (`dotnet tool install -g Spek.Cli.Tool`) or, preferably, as a local tool via a
   `.config/dotnet-tools.json` manifest (the `spek-test` / `spek-console` templates
   scaffold one). This targets file restores local tools automatically if a
@@ -60,7 +60,7 @@
 
     <!-- Pass the project's resolved references so invisible-async can see the
          Task-returning APIs of referenced assemblies (Spek.Runtime, Spek.Testing,
-         and any async library) and auto-await them — without this the rewriter
+         and any async library) and auto-await them; without this the rewriter
          only sees the BCL, so e.g. `sys.ExpectStop(actor)` would silently be
          fire-and-forget. -->
     <PropertyGroup>

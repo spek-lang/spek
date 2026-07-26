@@ -10,7 +10,7 @@ namespace Spek.Tests.Emit;
 /// `await`; the compiler's semantic pass auto-awaits Task-returning
 /// calls, marks the enclosing method async, and propagates async-ness
 /// through Spek functions to a fixpoint. Detection is a real Roslyn
-/// semantic model seeded with the framework BCL — so framework async
+/// semantic model seeded with the framework BCL - so framework async
 /// (Task.Delay, File.*Async, ...) is detected precisely.
 /// </summary>
 public sealed class InvisibleAsyncTests(ITestOutputHelper output)
@@ -36,11 +36,71 @@ public sealed class InvisibleAsyncTests(ITestOutputHelper output)
             }
             """;
         var code = EmitCSharp(src);
-        // Auto-awaited. (A handler also threads in the shutdown token —
-        // `Delay(1, cancellationToken: this.ShutdownToken)` — so match the call
+        // Auto-awaited. (A handler also threads in the shutdown token
+        // (`Delay(1, cancellationToken: this.ShutdownToken)`) so match the call
         // open-paren tolerantly; the token itself is covered by
         // InvisibleCancellationTests.)
         Assert.Contains("await System.Threading.Tasks.Task.Delay(1", code);
+    }
+
+    // ── a method the author already declared Task/ValueTask-
+    //    returning must NOT be re-wrapped when the async pass marks it async;
+    //    `Task<int>` became `Task<Task<int>>` and broke the body's return. ──
+    [Fact]
+    public void DeclaredTaskReturn_IsNotDoubleWrapped()
+    {
+        const string src = """
+            module Calc
+            {
+                Task<int> LoadAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        // The declared spelling (`Task<int>`) is preserved, just prefixed async.
+        Assert.Contains("async Task<int> LoadAsync", code);
+        Assert.DoesNotContain("Task<Task<int>>", code);
+        var (ok, summary, _) = RoslynCompileHelper.TryCompile(code, "DeclaredTaskReturn");
+        Assert.True(ok, $"emitted C# must compile:\n{summary}");
+    }
+
+    [Fact]
+    public void DeclaredValueTaskReturn_IsNotDoubleWrapped()
+    {
+        const string src = """
+            module Calc
+            {
+                System.Threading.Tasks.ValueTask<int> VtAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.DoesNotContain("Task<System.Threading.Tasks.ValueTask", code);
+        Assert.DoesNotContain("Task<ValueTask", code);
+    }
+
+    // A plain (non-Task) return with an awaitable body still wraps correctly.
+    [Fact]
+    public void DeclaredPlainReturn_StillWrapsToTask()
+    {
+        const string src = """
+            module Calc
+            {
+                int LenAsync(string path)
+                {
+                    var text = System.IO.File.ReadAllTextAsync(path);
+                    return text.Length;
+                }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.Contains("async System.Threading.Tasks.Task<int> LenAsync", code);
     }
 
     [Fact]
@@ -123,7 +183,7 @@ public sealed class InvisibleAsyncTests(ITestOutputHelper output)
             }
             """;
         var code = EmitCSharp(src);
-        // `var` binds the Task (deferred) — not awaited at the binding...
+        // `var` binds the Task (deferred) - not awaited at the binding...
         Assert.Contains("var content = System.IO.File.ReadAllTextAsync(path)", code);
         Assert.DoesNotContain("var content = await", code);
         // ...and is awaited at the value-use (parenthesised for member access).

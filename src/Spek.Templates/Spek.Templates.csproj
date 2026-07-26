@@ -14,7 +14,7 @@
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <!-- Templates package carries no compiled code — skip symbol packaging. -->
+    <!-- Templates package carries no compiled code; skip symbol packaging. -->
     <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>
 

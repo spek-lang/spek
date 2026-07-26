@@ -1,6 +1,6 @@
 namespace AlertHub;
 
-/// The class-side implementation contract — the method-based sibling of
+/// The class-side implementation contract - the method-based sibling of
 /// `channel`. Signatures only: an interface never carries a body or a field.
 interface Formatter
 {

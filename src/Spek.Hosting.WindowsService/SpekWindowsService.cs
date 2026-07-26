@@ -9,7 +9,7 @@ namespace Spek.Hosting.WindowsService;
 /// <summary>
 /// Factory bundle handed to <see cref="SpekWindowsHostedService{TActor}"/>
 /// to translate SCM control commands into user-defined Spek messages.
-/// All factories except <see cref="ShutdownFactory"/> are optional —
+/// All factories except <see cref="ShutdownFactory"/> are optional;
 /// if null, the corresponding SCM command is ignored. The actor's
 /// channel declaration determines which inputs it actually accepts;
 /// callers should provide factories matching that channel.
@@ -19,7 +19,7 @@ public sealed class SpekWindowsServiceFactories
     /// <summary>
     /// Creates the user's Shutdown message, sent to the entry actor when
     /// SCM issues <c>SERVICE_CONTROL_STOP</c> (the host's
-    /// <see cref="IHostedService.StopAsync"/> path). Required — every
+    /// <see cref="IHostedService.StopAsync"/> path). Required - every
     /// service must handle graceful shutdown.
     /// </summary>
     public required Func<object> ShutdownFactory { get; init; }
@@ -75,7 +75,7 @@ public sealed class SpekWindowsHostedService<TActor> : IHostedService, IAsyncDis
     /// <summary>
     /// Creates the hosted service. <paramref name="shutdownGrace"/> caps
     /// how long <see cref="StopAsync"/> waits for the entry actor to stop
-    /// after receiving the Shutdown message (default 30s) — after that
+    /// after receiving the Shutdown message (default 30s) - after that
     /// the host proceeds with teardown regardless.
     /// </summary>
     public SpekWindowsHostedService(
@@ -110,7 +110,7 @@ public sealed class SpekWindowsHostedService<TActor> : IHostedService, IAsyncDis
     /// <summary>
     /// Graceful-shutdown path for <c>SERVICE_CONTROL_STOP</c>: sends the
     /// message from <see cref="SpekWindowsServiceFactories.ShutdownFactory"/>
-    /// to the entry actor, then waits for the actor to stop itself —
+    /// to the entry actor, then waits for the actor to stop itself;
     /// giving up when the shutdown grace period elapses or
     /// <paramref name="cancellationToken"/> fires, whichever comes first.
     /// </summary>
@@ -171,7 +171,7 @@ public sealed class SpekWindowsHostedService<TActor> : IHostedService, IAsyncDis
     }
 
     /// <summary>Tears down the <see cref="ActorSystem"/> (and every actor
-    /// in it). Runs after <see cref="StopAsync"/> — by then the entry
+    /// in it). Runs after <see cref="StopAsync"/> - by then the entry
     /// actor has either stopped gracefully or exhausted its grace
     /// period.</summary>
     public ValueTask DisposeAsync()

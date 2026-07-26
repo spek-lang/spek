@@ -11,7 +11,7 @@ namespace Spek.Tests.Emit;
 /// reflection to recover the channel's input/emit message sets.
 /// Actors that implement a channel emit as <c>: ChannelName</c> on
 /// the C# class so the implementation relationship survives at
-/// runtime — letting reflection on the actor type discover its
+/// runtime: letting reflection on the actor type discover its
 /// channels through the standard <c>type.GetInterfaces()</c> path.
 /// </summary>
 public sealed class ChannelEmitTests
@@ -83,7 +83,7 @@ public sealed class ChannelEmitTests
         var code = EmitCSharp(src);
         Assert.Contains("emitsAny: true", code);
         // Empty emits array when the channel uses advisory mode. Must be an
-        // array-creation expression, not Array.Empty<T>() — attribute
+        // array-creation expression, not Array.Empty<T>() - attribute
         // arguments can't be method calls (CS0182).
         Assert.Contains("emits: new global::System.Type[] { }", code);
     }
@@ -228,7 +228,7 @@ public sealed class ChannelEmitTests
     public void ChannelWithNoEmits_RoundTripsThroughRoslyn()
     {
         // A channel with inputs but no emits must still emit valid C#. The
-        // empty emits array has to be an array-creation expression — emitting
+        // empty emits array has to be an array-creation expression - emitting
         // Array.Empty<T>() (a method call) is a CS0182 inside the attribute,
         // so any inputs-only (or emits-only) channel produced uncompilable C#.
         const string src = """

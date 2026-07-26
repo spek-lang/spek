@@ -28,7 +28,7 @@ internal static class SpekMessageBinder
     {
         var ctor = messageType.GetConstructors().FirstOrDefault()
             ?? throw new InvalidOperationException(
-                $"Message type {messageType.Name} has no constructor — Spek " +
+                $"Message type {messageType.Name} has no constructor; Spek " +
                 $"messages should compile to records with a primary constructor.");
 
         var parameters = ctor.GetParameters();
@@ -105,7 +105,7 @@ internal static class SpekMessageBinder
     private static bool IsJsonRequest(HttpRequest request)
     {
         // Default to "yes, try to read it as JSON" if the client
-        // didn't send a content type — most HTTP clients in test
+        // didn't send a content type: most HTTP clients in test
         // suites do this. Reject only when the type is explicitly
         // not JSON-shaped (form data, plain text, etc.).
         var ct = request.ContentType;

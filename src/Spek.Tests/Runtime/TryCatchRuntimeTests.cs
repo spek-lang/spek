@@ -71,13 +71,13 @@ public sealed class TryCatchRuntimeTests
         var ack = probe.ExpectMsg(recovered, TimeSpan.FromSeconds(2));
         Assert.IsType(recovered, ack);
 
-        // Actor stayed alive — query the counter.
+        // Actor stayed alive: query the counter.
         probe.Send(actor, Activator.CreateInstance(getCount)!);
         var reply = probe.ExpectMsg(countMsg, TimeSpan.FromSeconds(2));
         var count = (int)countMsg.GetProperty("v")!.GetValue(reply)!;
         Assert.Equal(1, count);
 
-        // No dead-letters — the catch swallowed the exception locally.
+        // No dead-letters: the catch swallowed the exception locally.
         Assert.Empty(sink.Records);
     }
 
@@ -88,7 +88,7 @@ public sealed class TryCatchRuntimeTests
         // body. Existing supervision flow takes over: it dead-letters
         // the message and decides Resume/Restart/Stop per the actor's
         // OnFailure policy. Default for a root actor is Stop, so the
-        // actor should be stopped after this — confirming the throw
+        // actor should be stopped after this - confirming the throw
         // wasn't silently swallowed.
         const string uncaughtSource = """
             using System;
@@ -131,7 +131,7 @@ public sealed class TryCatchRuntimeTests
     [Fact]
     public void TypedCatch_RoutesByExceptionType()
     {
-        // Two catch arms — only the matching type catches. The other
+        // Two catch arms: only the matching type catches. The other
         // type would escalate to supervision.
         const string typedSource = """
             using System;

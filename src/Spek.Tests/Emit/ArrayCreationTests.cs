@@ -46,7 +46,7 @@ public sealed class ArrayCreationTests(ITestOutputHelper output)
     {
         // The shape the observability idiom needs: a named arg whose value is
         // an implicit array. (Tuple elements arrive with the next parser gap.)
-        // Emit-only — the exact call target is irrelevant; we're checking that
+        // Emit-only: the exact call target is irrelevant; we're checking that
         // `name: new[] { ... }` parses and lowers, not BCL overload resolution.
         const string src = """
             module M

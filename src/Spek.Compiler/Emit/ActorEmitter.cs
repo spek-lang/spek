@@ -6,7 +6,7 @@ namespace Spek.Compiler.Emit;
 /// <summary>
 /// Emits a C# class for a Spek actor declaration.
 ///
-/// Mapping summary (from CONTEXT.md):
+/// Mapping summary:
 ///   actor Foo               → internal sealed class Foo : ActorBase
 ///   public actor Foo        → public sealed class Foo : ActorBase
 ///   abstract actor Foo      → public abstract class Foo : ActorBase
@@ -19,7 +19,7 @@ namespace Spek.Compiler.Emit;
 ///   on Restore(Snapshot s)  → protected override void OnRestore(Snapshot s)
 ///   persist;                 → await PersistAsync()
 ///   self                    → _selfRef
-///   sender                  → _currentSender
+///   sender                  → _sender (the handler's dispatch-local parameter)
 /// </summary>
 public sealed class ActorEmitter
 {
@@ -87,7 +87,7 @@ public sealed class ActorEmitter
 
         // Disambiguate the colon list: the parser puts the first name
         // in `BaseActor` and the rest in `ImplementedChannels`, but
-        // either slot might actually be a channel — only the symbol
+        // either slot might actually be a channel - only the symbol
         // table knows. Resolve each name and split into (base actor,
         // channel list).
         string? actorBaseName = null;
@@ -99,11 +99,14 @@ public sealed class ActorEmitter
 
         foreach (var name in colonNames)
         {
-            if (_symbols.ResolveChannel(name) is not null)
+            // _symbols may be null (symbol-table-less emission, e.g. unit
+            // tests) - then nothing resolves and every name falls through
+            // to the base-actor-candidate arm below.
+            if (_symbols?.ResolveChannel(name) is not null)
                 channelNames.Add(name.ToString());
-            else if (_symbols.ResolveActor(name) is not null && actorBaseName is null)
+            else if (_symbols?.ResolveActor(name) is not null && actorBaseName is null)
                 actorBaseName = name.ToString();
-            // else: unresolved — the semantic analyzer surfaces CE0091.
+            // else: unresolved: the semantic analyzer surfaces CE0091.
             // Fall through; treat as a base-actor candidate to avoid
             // emitting bogus inheritance from a non-existent type.
             else if (actorBaseName is null)
@@ -172,6 +175,13 @@ public sealed class ActorEmitter
         // on `become` so the slot's dispatch loop knows which arm a given
         // message would hit (reader vs writer) in the current behavior.
         _w.Line("private Func<object, bool> _isReaderClassifier = _ => false;");
+        // Introspection: the behavior handlers are named `<Behavior>_HandleAsync`,
+        // so the active behavior's name is recoverable from the delegate.
+        // `protected` not `protected internal`: cross-assembly overrides of a
+        // protected-internal member must narrow to protected (CS0507).
+        _w.Line("protected override string? CurrentBehaviorName");
+        _w.Line("    => _behavior?.Method.Name is { } __n && __n.EndsWith(\"_HandleAsync\")");
+        _w.Line("        ? __n.Substring(0, __n.Length - 12) : null;");
         _w.Line();
     }
 
@@ -182,16 +192,21 @@ public sealed class ActorEmitter
         var init = actor.Members.OfType<InitBlock>().FirstOrDefault();
         var firstBehavior = actor.Members.OfType<BehaviorDecl>().FirstOrDefault();
 
-        // If the actor has no behaviors at all, there's nothing to
-        // dispatch — skip the constructor too.
-        if (firstBehavior is null) return;
+        // Nothing to construct only when there's neither an init to run nor a
+        // behavior to default. An abstract actor with just fields + a
+        // parameterized `init` still needs its constructor emitted so a derived
+        // actor's `init(...) : base(args)` resolves - the old "no behaviors →
+        // no constructor" early return dropped it, breaking abstract-actor
+        // inheritance with CS1729 (a regression; abstract CLASSES already
+        // worked, abstract ACTORS silently didn't).
+        if (init is null && firstBehavior is null) return;
 
         var parms = init is null
             ? ""
             : string.Join(", ", init.Parameters.Select(p => $"{p.Type} {p.Name}"));
 
         // `init(...) : base(args)` chains to an abstract base actor's
-        // parameterized constructor — same emit as the class side.
+        // parameterized constructor: same emit as the class side.
         var baseCall = init?.BaseArgs is { } ba
             ? $" : base({string.Join(", ", ba.Select(a => new ExpressionEmitter(fieldNames, _symbols, inActor: true).Emit(a)))})"
             : "";
@@ -203,10 +218,14 @@ public sealed class ActorEmitter
         // Implicit-entry-point: default `_behavior` to the first declared
         // behavior. Matches CE0014's reachability rule. If the user's
         // `init` block ends with an explicit `become X;`, that overrides
-        // this assignment — emitted immediately below.
-        _w.Line($"_behavior = {firstBehavior.Name}_HandleAsync;");
-        // Parallel classifier swap.
-        _w.Line($"_isReaderClassifier = {firstBehavior.Name}_IsReaderMessage;");
+        // this assignment: emitted immediately below. A behavior-less
+        // (abstract-base) actor has no such delegate to default.
+        if (firstBehavior is not null)
+        {
+            _w.Line($"_behavior = {firstBehavior.Name}_HandleAsync;");
+            // Parallel classifier swap.
+            _w.Line($"_isReaderClassifier = {firstBehavior.Name}_IsReaderMessage;");
+        }
 
         if (init is not null)
         {
@@ -229,7 +248,6 @@ public sealed class ActorEmitter
         _w.Line("protected override async Task DispatchAsync(object message, Spek.ActorRef sender)");
         _w.Line("{");
         _w.Indent();
-        _w.Line("_currentSender = sender;");
         _w.Line("await _behavior(message, sender);");
         _w.Dedent();
         _w.Line("}");
@@ -327,7 +345,7 @@ public sealed class ActorEmitter
         // synthetic body-trigger records, operator instance fields,
         // and lazy-init helpers.
         foreach (var (behavior, handler) in streamHandlers)
-            EmitStreamHandlerScaffolding(behavior, handler);
+            EmitStreamHandlerScaffolding(behavior, handler, fieldNames);
     }
 
     // ─── Stream-shaped handlers ──────────────────────────────────────────────
@@ -404,7 +422,7 @@ public sealed class ActorEmitter
     }
 
     /// <summary>
-    /// Emits the synthetic body-trigger arm — the dispatch case for
+    /// Emits the synthetic body-trigger arm - the dispatch case for
     /// the private nested record that the operator chain Tells back
     /// to self when ready to fire the user's body. Runs the body
     /// under the actor lock with the original binding restored.
@@ -443,7 +461,8 @@ public sealed class ActorEmitter
             stmtEmitter.InsideOnHandler = wasInsideOn;
         }
 
-        _w.Line("break;");
+        if (!BodyAlwaysExits(handler.Body))
+            _w.Line("break;");
         _w.Dedent();
         _w.Line("}");
     }
@@ -455,7 +474,7 @@ public sealed class ActorEmitter
     /// lazy-getter that initialises the chain on first access, and
     /// a private builder method that constructs and wires the chain.
     /// </summary>
-    private void EmitStreamHandlerScaffolding(BehaviorDecl behavior, OnHandler handler)
+    private void EmitStreamHandlerScaffolding(BehaviorDecl behavior, OnHandler handler, HashSet<string> fieldNames)
     {
         var key       = StreamHandlerKey(behavior, handler);
         var msgType   = StreamMessageTypeName(handler);
@@ -473,20 +492,25 @@ public sealed class ActorEmitter
         _w.Line($"    => __ops_{key} ??= BuildOps_{key}();");
         _w.Line();
 
-        // Builder method — constructs the chain, wires the final
+        // Builder method: constructs the chain, wires the final
         // dispatch to a self-Tell of the body-trigger record.
         _w.Line($"private Spek.Streams.StreamOperator<{msgType}> BuildOps_{key}()");
         _w.Line("{");
         _w.Indent();
 
         // Each chain step is emitted as a Spek expression. For bare-name
-        // factory calls (the common case — `debounce(500)`, `throttle(16)`),
+        // factory calls (the common case: `debounce(500)`, `throttle(16)`),
         // the compiler injects an explicit `<T>` type argument so the call
         // resolves without leaning on target-typed inference. Multiple
         // steps wrap in `compose<T>(...)`; a single step is assigned
         // directly so C# can pick the correct `StreamOperator<T>` at the
         // declaration site.
-        var exprEmitter = new ExpressionEmitter(new HashSet<string>(), _symbols);
+        // The chain-step exprs live inside the actor class (BuildOps_*), so
+        // field reads in an operator arg (`throttle(window)`) or a selector
+        // (`distinct(by: x => _field + x.n)`) must resolve against the actor's
+        // fields with the `inActor` transforms - NOT an empty set, which
+        // emitted them bare and broke the generated C# (CS0103, a regression).
+        var exprEmitter = new ExpressionEmitter(fieldNames, _symbols, inActor: true);
         if (operators.Count == 1)
         {
             _w.Line($"Spek.Streams.StreamOperator<{msgType}> op = {EmitChainStep(operators[0], msgType, exprEmitter)};");
@@ -506,14 +530,16 @@ public sealed class ActorEmitter
 
         // Wire dispatch: when the chain emits, post a body-trigger
         // self-Tell so the body runs through the mailbox under the
-        // actor lock.
+        // actor lock. The actor's clock rides along so time-based
+        // operators (debounce/throttle windows) follow the system
+        // clock: virtual time in tests, system time in production.
         _w.Line("op.Configure(msg =>");
         _w.Line("{");
         _w.Indent();
         _w.Line($"_selfRef.Tell(new __FireBody_{key}(msg));");
         _w.Line("return System.Threading.Tasks.Task.CompletedTask;");
         _w.Dedent();
-        _w.Line("});");
+        _w.Line("}, this.Clock);");
         _w.Line("return op;");
 
         _w.Dedent();
@@ -530,10 +556,54 @@ public sealed class ActorEmitter
     {
         if (step is InvocationExpr inv)
         {
+            // Inject the message type only when the author didn't annotate.
+            // `debounce<Reading>(500)` must not become `debounce<Reading><Reading>(...)`.
+            if (inv.TypeArgs is { Count: > 0 })
+                return ee.Emit(inv);
+
+            // A bare operator taking a SELECTOR lambda (`distinct(by: x => …)`)
+            // needs BOTH an element and a key type; injecting only `<T>` gives
+            // the wrong arity (CS0305, a regression). Instead type the
+            // selector's parameter with the element type and let C# infer all of
+            // the operator's type args from the now-typed lambda. Timer operators
+            // (debounce/throttle) carry no lambda and keep the `<T>` injection.
+            if (inv.Args.Any(a => a is LambdaExpr or NamedArgExpr { Value: LambdaExpr }))
+            {
+                var typed = string.Join(", ",
+                    inv.Args.Select(a => ee.Emit(TypeSelectorParam(a, msgType))));
+                return $"{inv.Callee}({typed})";
+            }
+
             var args = string.Join(", ", inv.Args.Select(ee.Emit));
             return $"{inv.Callee}<{msgType}>({args})";
         }
         return ee.Emit(step);
+    }
+
+    // If an operator argument is a selector lambda (bare or `by:`-named), return
+    // a copy whose first parameter is typed with the stream element type; other
+    // args pass through. A selector runs over the stream element, so typing that
+    // parameter lets C# infer the operator's remaining type args (emit-B).
+    private static Expr TypeSelectorParam(Expr arg, string msgType) => arg switch
+    {
+        NamedArgExpr na when na.Value is LambdaExpr l => na with { Value = WithTypedFirstParam(l, msgType) },
+        LambdaExpr l => WithTypedFirstParam(l, msgType),
+        _ => arg,
+    };
+
+    private static LambdaExpr WithTypedFirstParam(LambdaExpr l, string msgType)
+    {
+        // Leave an already-typed (or parameterless) lambda alone.
+        if (l.Parameters.Count == 0 || l.Parameters[0].Type is not null) return l;
+        var p0 = l.Parameters[0];
+        var typed = p0 with
+        {
+            Type = new TypeRef(p0.Span,
+                new QualifiedName(p0.Span, msgType.Split('.')),
+                System.Array.Empty<TypeRef>()),
+        };
+        var newParams = new List<LambdaParam>(l.Parameters) { [0] = typed };
+        return l with { Parameters = newParams };
     }
 
     private void EmitReaderClassifier(BehaviorDecl behavior)
@@ -548,7 +618,7 @@ public sealed class ActorEmitter
 
         if (readerHandlers.Count == 0)
         {
-            // No reader arms in this behavior — fast path.
+            // No reader arms in this behavior: fast path.
             _w.Line("return false;");
         }
         else
@@ -587,7 +657,7 @@ public sealed class ActorEmitter
     // accesses are O(1) and lock-free (the backing field caches it).
     //
     // Initialising lazily (rather than in the constructor) avoids the
-    // chicken-and-egg with `_system` — that field is set during
+    // chicken-and-egg with `_system`: that field is set during
     // `Initialize`, not when the constructor runs, so a constructor-
     // time fetch would NRE on systems running plain `new MyActor(...)`.
 
@@ -639,11 +709,11 @@ public sealed class ActorEmitter
             var paramArgs = string.Join(", ",
                 pattern.Parameters.Select(p => p.Name));
 
-            // Synthetic message record (private nested type — actor-scoped).
+            // Synthetic message record (private nested type - actor-scoped).
             _w.Line($"private sealed record __Event_{pattern.HandlerName}({paramSig});");
             _w.Line();
 
-            // Bridge method. Visibility mirrors the on-handler — public
+            // Bridge method. Visibility mirrors the on-handler - public
             // handlers expose the bridge as part of the actor's API
             // surface (callable across assemblies); private handlers
             // hide it (only init/this can wire `+=`).
@@ -713,8 +783,8 @@ public sealed class ActorEmitter
             _w.Line("}");
         }
 
-        // Option D: inside a behavior on-handler, `return expr;` is the
-        // reply idiom — StatementEmitter routes it to _currentSender.Tell.
+        // the inferred-reply convention: inside a behavior on-handler, `return expr;` is the
+        // reply idiom: StatementEmitter routes it to _sender.Tell.
         var wasInsideOn = stmtEmitter.InsideOnHandler;
         stmtEmitter.InsideOnHandler = true;
         try
@@ -726,10 +796,45 @@ public sealed class ActorEmitter
             stmtEmitter.InsideOnHandler = wasInsideOn;
         }
 
-        _w.Line("break;");
+        if (!BodyAlwaysExits(handler.Body))
+            _w.Line("break;");
         _w.Dedent();
         _w.Line("}");
     }
+
+    /// <summary>
+    /// True when a handler body's endpoint is unreachable - its last
+    /// statement always transfers control out of the dispatch arm
+    /// (return/throw, or an if/else, try/catch, or nested block whose
+    /// every path does). Used to skip the arm's trailing <c>break;</c>,
+    /// which Roslyn would otherwise flag as unreachable (CS0162);
+    /// e.g. after the `return expr` reply idiom. Conservative: loops
+    /// and switches never count as exiting, so a missed case merely
+    /// keeps a reachable <c>break;</c>.
+    /// </summary>
+    private static bool BodyAlwaysExits(HandlerBody body) => body switch
+    {
+        BlockHandlerBody b => BlockAlwaysExits(b.Block.Statements),
+        _                  => false,
+    };
+
+    private static bool BlockAlwaysExits(IReadOnlyList<Stmt> statements)
+        => statements.Count > 0 && StmtAlwaysExits(statements[^1]);
+
+    private static bool StmtAlwaysExits(Stmt stmt) => stmt switch
+    {
+        ReturnStmt  => true,
+        ThrowStmt   => true,
+        BlockStmt b => BlockAlwaysExits(b.Statements),
+        IfStmt { Else: not null } i
+            => BlockAlwaysExits(i.Then.Statements) && StmtAlwaysExits(i.Else),
+        // Reachable-after only if the try block and every catch clause
+        // all exit; a finally block doesn't change reachability.
+        TryStmt t
+            => BlockAlwaysExits(t.Try.Statements)
+               && t.Catches.All(c => BlockAlwaysExits(c.Body.Statements)),
+        _ => false,
+    };
 
     /// <summary>
     /// Wrap the handler body in nested try/finally pairs that
@@ -737,9 +842,9 @@ public sealed class ActorEmitter
     /// the actor declared. Reader handlers acquire reader locks;
     /// writer handlers (the default, including catch-all and event
     /// handlers) acquire writer locks. Lock acquisition order matches
-    /// declaration order in the actor body — users wanting deadlock-
+    /// declaration order in the actor body - users wanting deadlock-
     /// safe multi-region access should declare attachments in a
-    /// consistent global order across actors. Phase 1 always acquires
+    /// consistent global order across actors. Every attachment is acquired
     /// (no body-scan optimisation); over-locking is preferred to
     /// missing a lock.
     /// </summary>
@@ -815,7 +920,7 @@ public sealed class ActorEmitter
                     stmtEmitter.EmitStatement(stmt);
                 break;
             case InlineHandlerBody i:
-                // Inline expression — emit as expression statement
+                // Inline expression: emit as expression statement
                 stmtEmitter.EmitStatement(new ExpressionStmt(i.Span, i.Expr));
                 break;
         }
@@ -838,7 +943,7 @@ public sealed class ActorEmitter
             _w.Line(signature);
             _w.Line("{");
             _w.Indent();
-            // `on Restore(Snapshot s)` binds `s` — it shadows a same-named field.
+            // `on Restore(Snapshot s)` binds `s` - it shadows a same-named field.
             stmtEmitter.SetShadowed(hook.Event is RestoreEvent rb
                 ? new[] { rb.Binding } : System.Array.Empty<string>());
             EmitHandlerBody(hook.Body, stmtEmitter);
@@ -917,14 +1022,14 @@ public sealed class ActorEmitter
 
     /// <summary>
     /// When a persistent actor has no explicit <c>on Restore</c> hook, emit one that
-    /// rehydrates each captured field — mirroring <see cref="EmitCaptureFields"/>. Without
+    /// rehydrates each captured field: mirroring <see cref="EmitCaptureFields"/>. Without
     /// this, an actor would <c>persist</c> its state yet silently never reload it (the
     /// counter-persists-3-rehydrates-0 footgun). An explicit <c>on Restore</c> still wins;
     /// transient/retired fields are excluded, exactly as they are from capture.
     /// </summary>
     private void EmitAutoRestore(ActorDecl actor, HashSet<string> fieldNames)
     {
-        // Explicit `on Restore` wins — EmitLifecycleHooks already emitted it.
+        // Explicit `on Restore` wins: EmitLifecycleHooks already emitted it.
         if (actor.Members.OfType<LifecycleHook>().Any(h => h.Event is RestoreEvent)) return;
 
         // Only persistent actors (same trigger as CaptureFields).
@@ -962,9 +1067,9 @@ public sealed class ActorEmitter
     // Actor bodies may declare ordinary methods and override ActorBase hooks
     // (OnFailure / OnChildFailure / OnPreStart / …). Override names emit as
     // `protected override`; everything else takes its declared visibility. Without
-    // this, methods parse but are silently dropped — e.g. a hand-written
+    // this, methods parse but are silently dropped - e.g. a hand-written
     // OnChildFailure (the only way to return Resume) would never take effect.
-    // Exactly the virtuals ActorBase declares — emitting `protected override` for a
+    // Exactly the virtuals ActorBase declares - emitting `protected override` for a
     // name not in this set would be CS0115. (OnPreRestart/OnPostRestart are NOT
     // ActorBase virtuals; they were here by mistake.)
     private static readonly HashSet<string> ActorBaseOverrides = new()
@@ -992,7 +1097,7 @@ public sealed class ActorEmitter
 
             if (m.IsAbstract)
             {
-                // `abstract T M(params);` on an abstract actor — the subclass
+                // `abstract T M(params);` on an abstract actor - the subclass
                 // implements it, no body.
                 _w.Line($"{MethodVisibility(m.Visibility)} abstract {ret} {m.Name}{tps}({parms}){ExpressionEmitter.FormatWhereClauses(m.WhereClauses)};");
                 continue;
@@ -1000,7 +1105,7 @@ public sealed class ActorEmitter
 
             // `protected override` for the ActorBase lifecycle virtuals; else
             // infer `override` when this implements a base *actor's* abstract
-            // method (same reuse+abstract-only model as classes — no keyword).
+            // method (same reuse+abstract-only model as classes - no keyword).
             var head = ActorBaseOverrides.Contains(m.Name) && m.TypeParameters.Count == 0
                 ? "protected override"
                 : OverridesBaseActorAbstract(actor, m)
@@ -1015,7 +1120,7 @@ public sealed class ActorEmitter
 
     /// <summary>
     /// True when <paramref name="method"/> implements an <c>abstract</c> method
-    /// declared up <paramref name="actor"/>'s base-actor chain — matched by name
+    /// declared up <paramref name="actor"/>'s base-actor chain - matched by name
     /// and parameter count. Used to infer <c>override</c> so Spek source never
     /// spells it (the reuse + abstract-only model, mirrored from classes).
     /// </summary>
@@ -1060,7 +1165,7 @@ public sealed class ActorEmitter
     }
 
     /// <summary>
-    /// The base *actor* of <paramref name="actor"/>, if any — the colon name
+    /// The base *actor* of <paramref name="actor"/>, if any - the colon name
     /// that resolves to an actor (the rest are channels). Null when the actor
     /// extends only channels or nothing.
     /// </summary>
@@ -1070,7 +1175,7 @@ public sealed class ActorEmitter
         if (actor.BaseActor is not null) names.Add(actor.BaseActor);
         names.AddRange(actor.ImplementedChannels);
         foreach (var n in names)
-            if (_symbols.ResolveActor(n) is { } a)
+            if (_symbols?.ResolveActor(n) is { } a)
                 return a;
         return null;
     }
@@ -1146,7 +1251,7 @@ public sealed class ActorEmitter
     }
 
     /// <summary>
-    /// Emits the body of a single <c>supervise</c> decl's branch — an
+    /// Emits the body of a single <c>supervise</c> decl's branch - an
     /// optional <c>RestartSiblingsOf</c> broadcast for AllForOne, followed
     /// by the on-Failure dispatch ladder: one <c>if (cause is ExType)</c>
     /// per typed arm plus a catch-all <c>return</c>. Multiple arms match
@@ -1164,7 +1269,7 @@ public sealed class ActorEmitter
         var windowExpr = options.OfType<WithinTimeOption>().FirstOrDefault()?.Window is { } w
             ? exprEmitter.Emit(w) : null;
 
-        // If no arms at all (user wrote `supervise OneForOne();` — unusual
+        // If no arms at all (user wrote `supervise OneForOne();` - unusual
         // but legal), default to Stop.
         if (arms.Count == 0)
         {
@@ -1172,7 +1277,7 @@ public sealed class ActorEmitter
             return;
         }
 
-        // Typed arms first — each becomes `if (cause is ExType) return ...;`.
+        // Typed arms first: each becomes `if (cause is ExType) return ...;`.
         // Untyped catch-all(s) become the fallthrough. The first untyped
         // arm wins; anything after it is dead (caught here as unreachable).
         OnFailureOption? fallback = null;
@@ -1201,7 +1306,7 @@ public sealed class ActorEmitter
     /// <summary>
     /// For <c>AllForOne</c> strategies, emit a call to broadcast the
     /// restart to all sibling children before applying the policy to the
-    /// failing one. <c>OneForOne</c> has no broadcast — each child fails
+    /// failing one. <c>OneForOne</c> has no broadcast - each child fails
     /// and is handled individually.
     /// </summary>
     private void EmitStrategyBroadcastIfNeeded(SuperviseDecl decl)

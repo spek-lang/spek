@@ -3,34 +3,34 @@ using System.Collections.Immutable;
 namespace Spek;
 
 /// <summary>
-/// Multi-node logical clock — for distributed actor systems that
+/// Multi-node logical clock: for distributed actor systems that
 /// need to detect concurrency between events, not just total-order
 /// them. Each node maintains its own counter; the clock as a whole
 /// is the per-node counter map.
 ///
 /// <para>The relationships:</para>
 /// <list type="bullet">
-///   <item><b>A happens-before B</b> — every counter in A is &lt;= the
+///   <item><b>A happens-before B</b>: every counter in A is &lt;= the
 ///         corresponding counter in B, and at least one is strictly
 ///         less.</item>
-///   <item><b>A and B are concurrent</b> — neither happens-before the
+///   <item><b>A and B are concurrent</b> - neither happens-before the
 ///         other (some counters higher in A, some higher in B). This
 ///         is the case Lamport clocks can't represent.</item>
-///   <item><b>A and B are equal</b> — every counter matches.</item>
+///   <item><b>A and B are equal</b>: every counter matches.</item>
 /// </list>
 ///
 /// <para>Pairs naturally with the cluster's
-/// <see cref="Spek.Cluster.NodeIdentity"/> for the per-node key.
+/// <c>Spek.Cluster.NodeIdentity</c> for the per-node key.
 /// (We use <see cref="Guid"/> as the key directly here so this type
 /// stays in <see cref="Spek.Runtime"/> without depending on
-/// <see cref="Spek.Cluster"/>.)</para>
+/// <c>Spek.Cluster</c>.)</para>
 ///
-/// <para>Immutable — every operation returns a new clock. Wire-safe
+/// <para>Immutable: every operation returns a new clock. Wire-safe
 /// (passes CE0010 as an immutable record).</para>
 /// </summary>
 public sealed record VectorClock(ImmutableDictionary<Guid, long> Entries)
 {
-    /// <summary>The empty clock — no node has recorded any event.</summary>
+    /// <summary>The empty clock: no node has recorded any event.</summary>
     public static readonly VectorClock Empty =
         new(ImmutableDictionary<Guid, long>.Empty);
 
@@ -57,7 +57,7 @@ public sealed record VectorClock(ImmutableDictionary<Guid, long> Entries)
     }
 
     /// <summary>
-    /// Per-node max of two clocks — the join in the lattice. Used
+    /// Per-node max of two clocks: the join in the lattice. Used
     /// by <see cref="Receive"/> and useful on its own when merging
     /// CRDTs.
     /// </summary>
@@ -75,7 +75,7 @@ public sealed record VectorClock(ImmutableDictionary<Guid, long> Entries)
 
     /// <summary>
     /// True if <c>this</c> causally precedes <paramref name="other"/>
-    /// — every per-node counter in <c>this</c> is &lt;= the
+    ///: every per-node counter in <c>this</c> is &lt;= the
     /// corresponding counter in <paramref name="other"/>, with at
     /// least one strictly less.
     /// </summary>
@@ -95,14 +95,14 @@ public sealed record VectorClock(ImmutableDictionary<Guid, long> Entries)
 
     /// <summary>
     /// True if <c>this</c> and <paramref name="other"/> are
-    /// concurrent — neither happens-before the other. Useful for
+    /// concurrent: neither happens-before the other. Useful for
     /// CRDT merge logic and conflict detection.
     /// </summary>
     public bool IsConcurrentWith(VectorClock other) =>
         !HappensBefore(other) && !other.HappensBefore(this) && !Equals(other);
 
     /// <summary>
-    /// Value equality — two clocks are equal when every per-node counter
+    /// Value equality: two clocks are equal when every per-node counter
     /// matches (absent entries count as zero). Overrides the record's default
     /// to compare the dictionary contents rather than its reference.
     /// </summary>

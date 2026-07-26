@@ -20,9 +20,8 @@ namespace Spek.Cluster;
 ///         transport layer once the handshake completes.</item>
 ///   <item><see cref="LeaveAsync"/> transitions the local node to
 ///         <see cref="NodeState.Leaving"/> → <see cref="NodeState.Exiting"/>,
-///         emits the corresponding events, and signals the
-///         <see cref="LeaveCompleted"/> task so callers can sequence
-///         shutdown.</item>
+///         emits the corresponding events, and completes the task it
+///         returns so callers can sequence shutdown.</item>
 ///   <item><see cref="MarkUnreachable"/> / <see cref="MarkReachableAgain"/>
 ///         simulate failure-detector signals; in the production SWIM
 ///         impl these come from missed heartbeats.</item>
@@ -39,7 +38,7 @@ public sealed class StaticSeedClusterMembership : IClusterMembership
         IReadOnlyDictionary<string, string>? localMetadata = null)
     {
         LocalNode = localNode;
-        // The local node enters its own view in `Up` immediately — we're
+        // The local node enters its own view in `Up` immediately - we're
         // by definition reachable from ourselves.
         _members[localNode.Id] = new ClusterMember(localNode, NodeState.Up, localMetadata);
     }

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Add-on package — not part of the initial public package set; flip to true
+    <!-- Add-on package: not part of the initial public package set; flip to true
          (and add to release.yml's manifest) when this add-on ships. -->
     <IsPackable>false</IsPackable>
     <TargetFramework>net10.0</TargetFramework>

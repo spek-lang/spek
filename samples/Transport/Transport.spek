@@ -1,8 +1,8 @@
-// Transport.spek — demonstrates the mutable-transport-type pattern:
+// Transport.spek: demonstrates the mutable-transport-type pattern:
 //   * a mutable `class` used as a request context (the "transport type")
 //   * a synchronous pipeline of `module` methods that mutate it in place
 //     (one allocation per request, not one per pipeline stage)
-//   * confinement keeps it race-free — it never crosses an actor boundary
+//   * confinement keeps it race-free - it never crosses an actor boundary
 //   * copy into an immutable `message` at the edge, where data must travel
 //
 // Run:       dotnet run
@@ -11,7 +11,7 @@ namespace TransportSample;
 
 // ─── The transport type: a mutable, single-owner request context ──────────────
 //
-// It's an ordinary `class`. There is no separate `transport` kind — the mutable
+// It's an ordinary `class`. There is no separate `transport` kind - the mutable
 // class IS the transport type. It stays race-free because a `class` can't ride a
 // message to another actor (CE0010), so it never leaves the actor handling the
 // request.
@@ -92,6 +92,6 @@ program Main
     handler.Tell(new Handle("GET", "/admin/secrets"));   // rejected by Authenticate
 
     // AwaitTermination returns once the handler has drained its mailbox and
-    // gone idle — no explicit shutdown needed for a finite workload.
+    // gone idle: no explicit shutdown needed for a finite workload.
     system.AwaitTermination();
 }

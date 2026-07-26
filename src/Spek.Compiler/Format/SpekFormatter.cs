@@ -8,7 +8,7 @@ namespace Spek.Compiler.Format;
 /// Re-prints Spek source with canonical whitespace and indentation
 /// while preserving every comment verbatim. Works at the token-stream
 /// level (not the AST) so comments stay anchored to the code they
-/// originally lived next to — block comments before a declaration
+/// originally lived next to: block comments before a declaration
 /// remain before that declaration, end-of-line comments stay
 /// end-of-line, etc.
 ///
@@ -16,8 +16,8 @@ namespace Spek.Compiler.Format;
 /// brace nesting, runs of horizontal whitespace collapse to a single
 /// space, but the user's choice of where to break lines is otherwise
 /// preserved. Aggressive structural reformatting (e.g. forcing
-/// one-statement-per-line, re-laying-out parameter lists) is deferred
-/// until a later release.
+/// one-statement-per-line, re-laying-out parameter lists) is not
+/// performed.
 /// </summary>
 public static class SpekFormatter
 {
@@ -59,7 +59,7 @@ public static class SpekFormatter
             int nextType = i + 1 < tokenList.Count ? tokenList[i + 1].Type : TokenConstants.EOF;
 
             // Whitespace tokens drive newline detection but contribute
-            // nothing to the output themselves — we synthesize spacing.
+            // nothing to the output themselves: we synthesize spacing.
             if (type == SpekLexer.LINE_COMMENT || type == SpekLexer.BLOCK_COMMENT)
             {
                 EmitComment(output, ref atLineStart, ref indentLevel, prev, token);
@@ -276,12 +276,12 @@ public static class SpekFormatter
             || prev == SpekLexer.DOT)
             return false;
 
-        // `name(` and `name[` and `name<` — call/index/generic-args.
+        // `name(` and `name[` and `name<`: call/index/generic-args.
         if (next == SpekLexer.LPAREN
             && (prev == SpekLexer.IDENTIFIER || prev == SpekLexer.RPAREN
                 || prev == SpekLexer.RBRACKET))
             return false;
-        // `?[` — the index bracket hugs a null-conditional QUESTION too
+        // `?[`: the index bracket hugs a null-conditional QUESTION too
         // (a `?` directly before `[` is always null-conditional; no
         // expression form puts a ternary `?` against `[`).
         if (next == SpekLexer.LBRACKET

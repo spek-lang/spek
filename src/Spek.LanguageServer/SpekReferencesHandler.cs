@@ -7,7 +7,7 @@ using Spek.Compiler.AST;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Resolves <c>textDocument/references</c> requests — "find all references"
+/// Resolves <c>textDocument/references</c> requests - "find all references"
 /// in editor parlance. Walks the parsed AST and returns every span where
 /// the symbol the cursor is on appears.
 ///

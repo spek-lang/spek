@@ -40,7 +40,7 @@ public sealed class RateLimitIngressPolicy : IngressPolicy, IAsyncDisposable
         ResilienceContext context,
         CancellationToken cancellationToken = default)
     {
-        // AttemptAcquire is the non-blocking variant — we want to
+        // AttemptAcquire is the non-blocking variant - we want to
         // surface backoff as Defer rather than block the dispatcher
         // thread waiting in the queue. (The runtime will re-tell the
         // message after the RetryAfter window elapses.)
@@ -126,7 +126,7 @@ public sealed class RateLimitIngressPolicy : IngressPolicy, IAsyncDisposable
     /// <summary>
     /// Bounded concurrency: at most <paramref name="permits"/>
     /// in-flight at any moment. Permits release when the lease is
-    /// disposed — this policy releases immediately on acquisition,
+    /// disposed: this policy releases immediately on acquisition,
     /// so it functions as a flat admission gate rather than a true
     /// concurrency limiter. Use <c>ConcurrencyExecutionPolicy</c> in
     /// <c>Spek.Resilience.Bulkheads</c> (when shipped) for leases

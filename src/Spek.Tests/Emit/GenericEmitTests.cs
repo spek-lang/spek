@@ -11,8 +11,8 @@ namespace Spek.Tests.Emit;
 /// constraint-solving, and inference. These tests prove the emitted generic
 /// C# actually compiles (not just that it contains the right substrings).
 ///
-/// Stage 1 covers the kinds that were already wired earlier — generic
-/// <c>message</c>, <c>class</c>, and <c>actor</c> — locking them with Roslyn
+/// Stage 1 covers the kinds that were already wired earlier - generic
+/// <c>message</c>, <c>class</c>, and <c>actor</c> - locking them with Roslyn
 /// round-trips. Generic methods/functions and `where` constraints are added in
 /// later stages (and tested there).
 /// </summary>
@@ -161,7 +161,7 @@ public sealed class GenericEmitTests(ITestOutputHelper output)
     [Fact]
     public void GenericFunction_WithComparableConstraint_RoundTrips()
     {
-        // The constraint makes `a.CompareTo(b)` legal — Roslyn enforces it.
+        // The constraint makes `a.CompareTo(b)` legal - Roslyn enforces it.
         const string src = """
             module Algo
             {

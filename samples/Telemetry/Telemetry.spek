@@ -1,12 +1,12 @@
-// Telemetry.spek — stream operators, reader/writer handlers, shared regions.
+// Telemetry.spek: stream operators, reader/writer handlers, shared regions.
 //
 // Run: dotnet run
 //
 // A Monitor rate-shapes a noisy sensor feed BEFORE its handlers run:
 // `distinct` drops consecutive duplicate readings, `throttle` caps a spammy
-// heartbeat to one per window. Tallies live in a shared region — writer
+// heartbeat to one per window. Tallies live in a shared region - writer
 // handlers take the writer lock, the query handler reads under the
-// concurrent reader lock — and the region's `transient` field opts out of
+// concurrent reader lock: and the region's `transient` field opts out of
 // any future persistence capture.
 
 namespace Telemetry;

@@ -8,7 +8,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// End-to-end tests for the <c>AllForOne</c> supervise strategy — when one
+/// End-to-end tests for the <c>AllForOne</c> supervise strategy - when one
 /// child fails, every sibling under the same parent is restarted in
 /// lockstep (loses in-memory state, reloads from the latest snapshot for
 /// persistent actors). Contrasts with <c>OneForOne</c>, which leaves
@@ -28,7 +28,7 @@ public class AllForOneSupervisionTests
         """;
 
     [Fact]
-    public async Task AllForOne_RestartsSiblings_WhenOneChildFails()
+    public async Task AllForOne_RestartsSiblings_WhenOneChildFailsAsync()
     {
         // Parent has two children, A (incrementing counter) and B (badChild).
         // B throws → parent's AllForOne strategy restarts BOTH (A loses its
@@ -126,23 +126,23 @@ public class AllForOneSupervisionTests
         var before = (int)replyType.GetProperty("count")!.GetValue(probe.ExpectMsg(replyType))!;
         Assert.Equal(3, before);
 
-        // Crash B. AllForOne should also restart A — losing A's in-memory
+        // Crash B. AllForOne should also restart A - losing A's in-memory
         // count (it's non-persistent, so restart resets to 0).
         parent.Tell(Activator.CreateInstance(crashBType)!);
 
         // Wait for the restart work to drain (observable, not a guessed sleep).
         await system.WhenIdleAsync(TimeSpan.FromSeconds(10));
 
-        // Ask A again — should be 0 now after the broadcast restart.
+        // Ask A again: should be 0 now after the broadcast restart.
         probe.Send(parent, Activator.CreateInstance(askAType)!);
         var after = (int)replyType.GetProperty("count")!.GetValue(probe.ExpectMsg(replyType))!;
         Assert.Equal(0, after);
     }
 
     [Fact]
-    public async Task OneForOne_DoesNotRestartSiblings()
+    public async Task OneForOne_DoesNotRestartSiblingsAsync()
     {
-        // Same shape as AllForOne, but strategy is OneForOne — A's count
+        // Same shape as AllForOne, but strategy is OneForOne - A's count
         // should survive B's crash.
         const string src = """
             namespace OneForOneDemo;
@@ -242,7 +242,7 @@ public class AllForOneSupervisionTests
         probe.Send(parent, Activator.CreateInstance(askAType)!);
         var after = (int)replyType.GetProperty("count")!.GetValue(probe.ExpectMsg(replyType))!;
 
-        // A was untouched by B's crash under OneForOne — still 3.
+        // A was untouched by B's crash under OneForOne - still 3.
         Assert.Equal(3, after);
     }
 }

@@ -9,7 +9,7 @@ namespace Spek.Testing;
 /// The Spek emitter stamps the framework-neutral <c>[Spek.Testing.SpekTest]</c>
 /// attribute on each generated test method; referencing this package binds that
 /// name to xUnit. Because it derives from <see cref="Xunit.FactAttribute"/>,
-/// xUnit's default discovery picks it up — no custom test-case discoverer is
+/// xUnit's default discovery picks it up - no custom test-case discoverer is
 /// needed. A future <c>Spek.Testing.NUnit</c> adapter binds the same attribute
 /// name to an NUnit test instead; the emitter stays framework-agnostic.
 /// </para>

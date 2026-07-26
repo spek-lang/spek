@@ -9,7 +9,7 @@ using Spek.Compiler.Semantic;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Resolves <c>textDocument/hover</c> — shows type/declaration info when
+/// Resolves <c>textDocument/hover</c> - shows type/declaration info when
 /// the user hovers over an identifier. Covers messages, actors, behaviors,
 /// and fields. Field-of-current-actor resolution uses
 /// <see cref="ActorSymbols.Fields"/>; cross-actor field access isn't
@@ -52,7 +52,7 @@ internal sealed class SpekHoverHandler : HoverHandlerBase
     {
         var symbols = SymbolTable.Build(file);
 
-        // BecomeStmt first — behavior name.
+        // BecomeStmt first: behavior name.
         if (chain.OfType<BecomeStmt>().LastOrDefault() is { } bs &&
             chain.OfType<ActorDecl>().FirstOrDefault() is { } enclosingActor)
         {
@@ -63,7 +63,7 @@ internal sealed class SpekHoverHandler : HoverHandlerBase
                 return $"```spek\nbehavior {beh.Name}\n```\n\nDefined on actor `{enclosingActor.Name}`.";
         }
 
-        // Type in new / spawn (a `.Ask(new Msg())` message is a NewExpr) —
+        // Type in new / spawn (a `.Ask(new Msg())` message is a NewExpr);
         // format as a message or actor signature.
         var targetName =
             chain.OfType<NewExpr>().LastOrDefault()?.Type
@@ -79,7 +79,7 @@ internal sealed class SpekHoverHandler : HoverHandlerBase
                 return FormatActor(actor);
         }
 
-        // Bare NameExpr — check whether it's a field of the enclosing actor.
+        // Bare NameExpr: check whether it's a field of the enclosing actor.
         if (chain.OfType<NameExpr>().LastOrDefault() is { } name &&
             name.Name.Parts.Count == 1 &&
             chain.OfType<ActorDecl>().FirstOrDefault() is { } containingActor)

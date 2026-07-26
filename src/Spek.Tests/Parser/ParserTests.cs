@@ -21,7 +21,7 @@ public class ParserTests
         return result;
     }
 
-    // ─── 01 — Messages only ──────────────────────────────────────────────────
+    // ─── 01: Messages only ──────────────────────────────────────────────────
 
     [Fact]
     public void Messages_ParsesNamespace()
@@ -72,7 +72,7 @@ public class ParserTests
         Assert.Equal("T", msg.TypeParameters[0].Name);
     }
 
-    // ─── 02 — Simple actor ───────────────────────────────────────────────────
+    // ─── 02: Simple actor ───────────────────────────────────────────────────
 
     [Fact]
     public void SimpleActor_ParsesActorDecl()
@@ -115,7 +115,7 @@ public class ParserTests
         Assert.Equal("Ping", pattern.MessageType.Simple);
     }
 
-    // ─── 03 — Become ─────────────────────────────────────────────────────────
+    // ─── 03: Become ─────────────────────────────────────────────────────────
 
     [Fact]
     public void Become_ActorHasTwoBehaviors()
@@ -137,7 +137,7 @@ public class ParserTests
         Assert.Equal(3, off.Handlers.Count);
     }
 
-    // ─── 04 — Persist / passivate ────────────────────────────────────────────
+    // ─── 04: Persist / passivate ────────────────────────────────────────────
 
     [Fact]
     public void Persist_ActorHasPassivateTimeout()
@@ -173,7 +173,7 @@ public class ParserTests
         Assert.Equal("s", re.Binding);
     }
 
-    // ─── 05 — Full bank account ──────────────────────────────────────────────
+    // ─── 05: Full bank account ──────────────────────────────────────────────
 
     [Fact]
     public void Full_ParsesWithNoErrors()

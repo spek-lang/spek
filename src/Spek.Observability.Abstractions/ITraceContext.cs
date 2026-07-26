@@ -9,8 +9,8 @@ namespace Spek.Observability;
 ///
 /// <para>
 /// The implementation rides on <see cref="System.Diagnostics.Activity"/>
-/// — the modern .NET primitive everyone uses, and the one
-/// OpenTelemetry maps onto — but the Spek surface stays
+///: the primitive OpenTelemetry maps onto, and the one
+/// OpenTelemetry maps onto: but the Spek surface stays
 /// implementation-agnostic so a future runtime could swap in
 /// something else without breaking handler code.
 /// </para>
@@ -23,7 +23,7 @@ namespace Spek.Observability;
 public interface ITraceContext
 {
     /// <summary>
-    /// W3C trace ID — 32-hex-char string identifying the entire
+    /// W3C trace ID: 32-hex-char string identifying the entire
     /// distributed operation across actors and nodes. Empty when
     /// no trace is active (e.g. handler invoked outside a
     /// traced ingress).
@@ -31,7 +31,7 @@ public interface ITraceContext
     string TraceId { get; }
 
     /// <summary>
-    /// W3C span ID — 16-hex-char string identifying this specific
+    /// W3C span ID: 16-hex-char string identifying this specific
     /// operation. Each handler invocation produces a new span ID;
     /// the trace ID is preserved.
     /// </summary>
@@ -45,7 +45,7 @@ public interface ITraceContext
     bool IsActive { get; }
 
     /// <summary>
-    /// Read-only snapshot of the W3C baggage entries — arbitrary
+    /// Read-only snapshot of the W3C baggage entries - arbitrary
     /// key/value strings that propagate alongside the trace
     /// context. Use sparingly; baggage rides on every Tell.
     /// </summary>
@@ -70,9 +70,9 @@ public sealed class NullTraceContext : ITraceContext
     /// so one instance serves everywhere.</summary>
     public static readonly NullTraceContext Instance = new();
 
-    /// <summary>Always empty — no trace is active on this context.</summary>
+    /// <summary>Always empty: no trace is active on this context.</summary>
     public string TraceId => string.Empty;
-    /// <summary>Always empty — no span is active on this context.</summary>
+    /// <summary>Always empty: no span is active on this context.</summary>
     public string SpanId  => string.Empty;
     /// <summary>Always false, so handlers branching on "is anything
     /// observing me?" skip their tracing work.</summary>
@@ -81,7 +81,7 @@ public sealed class NullTraceContext : ITraceContext
     /// <see cref="WithBaggage"/>).</summary>
     public IReadOnlyDictionary<string, string> Baggage { get; }
         = new Dictionary<string, string>();
-    /// <summary>No-op by design — with no active trace there is nothing
+    /// <summary>No-op by design: with no active trace there is nothing
     /// to attach baggage to. Returns the same empty context.</summary>
     public ITraceContext WithBaggage(string key, string value) => this;
 }

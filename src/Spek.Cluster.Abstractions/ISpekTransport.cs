@@ -12,11 +12,11 @@ namespace Spek.Cluster;
 /// wire endpoint. Concrete implementations:
 ///
 /// <list type="bullet">
-///   <item><c>Spek.Cluster.Memory</c> — in-process pipe, free byproduct of
+///   <item><c>Spek.Cluster.Memory</c>: in-process pipe, free byproduct of
 ///         the abstraction; ideal for tests.</item>
-///   <item><c>Spek.Cluster.Tcp</c> — Spek-native binary protocol on
+///   <item><c>Spek.Cluster.Tcp</c>: Spek-native binary protocol on
 ///         Kestrel's <c>SocketTransport</c>. Default for production.</item>
-///   <item><c>Spek.Cluster.Grpc</c> — opt-in adapter for HTTP/2-only
+///   <item><c>Spek.Cluster.Grpc</c>: opt-in adapter for HTTP/2-only
 ///         environments.</item>
 /// </list>
 /// </summary>
@@ -27,7 +27,7 @@ public interface ISpekTransport : IAsyncDisposable
 
     /// <summary>
     /// Send <paramref name="envelope"/> to the actor system identified by
-    /// <paramref name="target"/>. The transport handles routing — for
+    /// <paramref name="target"/>. The transport handles routing - for
     /// in-memory it's a direct dispatch, for TCP/QUIC it's a wire send.
     /// Fire-and-forget at the transport level: failures (unreachable
     /// node, serialization error) surface via the
@@ -36,9 +36,9 @@ public interface ISpekTransport : IAsyncDisposable
     Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Wires up the inbound handler. Called once during
-    /// <see cref="Spek.Runtime.ActorSystem.RegisterTransport"/> — the
-    /// system installs its dispatcher here, and the transport invokes
+    /// Wires up the inbound handler. Called once during cluster
+    /// bootstrap (<c>Cluster.Bind</c> in <c>Spek.Cluster</c>) - the
+    /// cluster installs its dispatcher here, and the transport invokes
     /// it whenever a peer node sends us an envelope. Calling twice
     /// replaces the previous handler.
     /// </summary>
@@ -47,7 +47,7 @@ public interface ISpekTransport : IAsyncDisposable
     /// <summary>
     /// Fires when a send fails irrecoverably (target node is gone,
     /// envelope serialization rejected, the transport itself is
-    /// disposing). The <see cref="ActorSystem"/> uses this to
+    /// disposing). The <see cref="Spek.Runtime.ActorSystem"/> uses this to
     /// dead-letter the offending message and raise a
     /// <c>RemoteNodeUnreachable</c> notification.
     /// </summary>

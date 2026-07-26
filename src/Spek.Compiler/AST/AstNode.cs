@@ -13,7 +13,13 @@ public abstract record AstNode(SourceSpan Span)
     public IReadOnlyList<string>? DocComment { get; init; }
 }
 
-/// <summary>Source location range (line/column, 1-based).</summary>
+/// <summary>
+/// Source location range. Lines and columns are 1-based; <see cref="EndColumn"/>
+/// is EXCLUSIVE (one past the last character), so a span's single-line width is
+/// <c>EndColumn - StartColumn</c>. Every producer (parser spans, name-span
+/// approximations) and consumer (caret renderer, LSP range mapping) follows
+/// this convention.
+/// </summary>
 public record SourceSpan(int StartLine, int StartColumn, int EndLine, int EndColumn)
 {
     public static readonly SourceSpan None = new(0, 0, 0, 0);

@@ -12,7 +12,7 @@ namespace Spek.Cluster;
 /// </summary>
 public sealed record NodeIdentity(Guid Id, string? Label = null)
 {
-    /// <summary>The "no node" marker — used when a message originates
+    /// <summary>The "no node" marker: used when a message originates
     /// locally with no associated remote sender (the default for
     /// fire-and-forget Tells from outside the actor system).</summary>
     public static readonly NodeIdentity Local = new(Guid.Empty, "local");

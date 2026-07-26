@@ -8,7 +8,7 @@ namespace Spek.Cluster.Memory;
 /// receive-side stores the handler and lets the fabric invoke it
 /// synchronously when a peer transport dispatches to this node.
 ///
-/// No serialization, no sockets, no connection management — just a
+/// Envelopes are delivered in-process by reference through a
 /// dictionary lookup. Same code paths as a real wire transport (the
 /// <see cref="ISpekTransport"/> contract is shared) so tests exercise
 /// the same dispatching logic production hits.

@@ -4,8 +4,8 @@ namespace Spek.Compiler.AST;
 
 public abstract record Expr(SourceSpan Span) : AstNode(Span);
 
-// target.Ask(new MessageType(args))                     — reply type inferred from handler returns.
-// target.Ask<ExplicitReply>(new MessageType(args))       — reply type declared at call site (disambiguates
+// target.Ask(new MessageType(args))                     - reply type inferred from handler returns.
+// target.Ask<ExplicitReply>(new MessageType(args))       - reply type declared at call site (disambiguates
 //                                                          when multiple handlers return different types).
 // Message is normally a `new Msg(...)` expression; reply inference and CE0020 read
 // the constructed type from it. Modeled as an Expr so a pre-built message works too.
@@ -70,14 +70,16 @@ public record MethodCallExpr(
 // modifier: `Foo(ref x)`, `Foo(out var y)`, `Foo(in z)`. Only ever
 // produced at argument positions (the parser's `arg` rule); the inner
 // expression is the actual value. Modeled as an Expr so every
-// arg-bearing node keeps its `IReadOnlyList<Expr> Args` shape — the
+// arg-bearing node keeps its `IReadOnlyList<Expr> Args` shape - the
 // emitter prefixes the C# keyword and emits the inner expression.
 public record RefArgExpr(SourceSpan Span, ParamModifier Modifier, Expr Inner) : Expr(Span);
 
 // Inline out-variable declaration at a call site: `Foo(out var x)`.
 // Only produced at argument positions. The variable is introduced into the
 // enclosing scope (C# out-var semantics); emit is `out var x`.
-public record OutVarExpr(SourceSpan Span, string Name) : Expr(Span);
+/// <summary>Inline out-variable declaration at a call site: <c>out var x</c>
+/// (inferred, <see cref="TypeName"/> null) or <c>out int x</c> (explicit).</summary>
+public record OutVarExpr(SourceSpan Span, string Name, string? TypeName = null) : Expr(Span);
 
 // Named argument at a call site: `Foo(width: 3)`. Only produced at
 // argument positions (parser's `arg` rule). Modeled as an Expr wrapping the
@@ -95,7 +97,7 @@ public record ArrayExpr(
     Expr? Size = null
 ) : Expr(Span);
 
-// Tuple literal: `(a, b)` (always two or more elements — a single
+// Tuple literal: `(a, b)` (always two or more elements - a single
 // parenthesized expression stays a ParenExpr). Emitted verbatim; C# infers
 // the ValueTuple type.
 public record TupleExpr(SourceSpan Span, IReadOnlyList<Expr> Elements) : Expr(Span);
@@ -112,11 +114,16 @@ public record DefaultExpr(SourceSpan Span, TypeRef? Type) : Expr(Span);
 // Bare function invocation: `name(args)` with no receiver.
 // Used for free-standing factory functions imported via `using` (e.g.
 // `debounce(500)` after `using Spek.Streams`). The compiler emits the
-// callee verbatim — Roslyn resolves the import.
+// callee verbatim: Roslyn resolves the import.
+// `TypeArgs` carries an explicit generic annotation the author wrote
+// (`debounce<Reading>(500)`); empty when they left inference to the callee
+// (`debounce(500)`). The stream-chain emitter injects the message type only
+// when the author supplied none, so an explicit annotation always wins.
 public record InvocationExpr(
     SourceSpan Span,
     string Callee,
-    IReadOnlyList<Expr> Args
+    IReadOnlyList<Expr> Args,
+    IReadOnlyList<TypeRef>? TypeArgs = null
 ) : Expr(Span);
 
 // Index access: expr[index]. NullConditional => emit `?[` instead of `[`.
@@ -140,10 +147,10 @@ public record SwitchArm(
 
 public abstract record SwitchPattern(SourceSpan Span) : AstNode(Span);
 
-/// <summary>Discard pattern (`_`) — matches anything.</summary>
+/// <summary>Discard pattern (`_`) - matches anything.</summary>
 public record DiscardPattern(SourceSpan Span) : SwitchPattern(Span);
 
-/// <summary>Type pattern (`Foo` or `Foo bar`) — matches when the
+/// <summary>Type pattern (`Foo` or `Foo bar`) - matches when the
 /// subject is assignable to the declared type; optionally binds the
 /// matched value to <paramref name="Binding"/>.</summary>
 public record TypePattern(
@@ -152,11 +159,11 @@ public record TypePattern(
     string? Binding
 ) : SwitchPattern(Span);
 
-/// <summary>Constant pattern (`1`, `"x"`, `MyEnum.Value`) — matches
+/// <summary>Constant pattern (`1`, `"x"`, `MyEnum.Value`) - matches
 /// when the subject equals the constant value.</summary>
 public record ConstPattern(SourceSpan Span, Expr Value) : SwitchPattern(Span);
 
-/// <summary>Relational pattern (`&gt; 0`, `&lt;= 100`) — matches when the
+/// <summary>Relational pattern (`&gt; 0`, `&lt;= 100`) - matches when the
 /// subject compares to the operand using the given operator. Maps
 /// directly to C# 9 relational patterns; Roslyn enforces that the
 /// operand is a constant expression.</summary>
@@ -168,7 +175,7 @@ public record RelationalPattern(
 
 public enum RelationalPatternOp { Lt, Lte, Gt, Gte, Eq, Neq }
 
-/// <summary>Property pattern (`{ X: 0, Inner.Y: > 0 }`) — matches when
+/// <summary>Property pattern (`{ X: 0, Inner.Y: > 0 }`) - matches when
 /// every listed property/path matches its sub-pattern. Empty form
 /// (`{ }`) matches any non-null subject.</summary>
 public record PropertyPattern(
@@ -248,8 +255,8 @@ public record ParenExpr(SourceSpan Span, Expr Inner) : Expr(Span);
 public abstract record LiteralExpr(SourceSpan Span) : Expr(Span);
 
 // Numeric/string literals carry the verbatim source lexeme in `Raw` (set
-// when parsed from source). The emitter prints `Raw` so the exact C# form —
-// digit separators, hex/binary, type suffixes, exponents, string escapes —
+// when parsed from source). The emitter prints `Raw` so the exact C# form
+// (digit separators, hex/binary, type suffixes, exponents, string escapes)
 // passes through untouched. `Raw` is null for nodes built directly in tests,
 // which fall back to formatting the parsed value.
 public record IntLiteralExpr(SourceSpan Span, long Value, string? Raw = null) : LiteralExpr(Span);

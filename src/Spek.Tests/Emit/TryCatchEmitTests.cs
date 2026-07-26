@@ -171,7 +171,7 @@ public sealed class TryCatchEmitTests
             }
             """;
         var code = EmitCSharp(src);
-        // Bare `throw;` (no expression) — exact textual match for the rethrow.
+        // Bare `throw;` (no expression) - exact textual match for the rethrow.
         Assert.Contains("throw;", code);
     }
 }

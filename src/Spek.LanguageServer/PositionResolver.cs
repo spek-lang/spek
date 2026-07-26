@@ -10,7 +10,7 @@ namespace Spek.LanguageServer;
 /// innermost first.
 ///
 /// LSP handlers use this to answer "what did the user click on?" and then
-/// walk up the chain to find what that token refers to — for example, an
+/// walk up the chain to find what that token refers to - for example, an
 /// inner <see cref="QualifiedName"/> plus an outer <see cref="NewExpr"/>
 /// tells us the user clicked a message name inside a <c>new Foo(...)</c>
 /// expression.
@@ -30,7 +30,7 @@ public static class PositionResolver
     }
 
     /// <summary>
-    /// Convenience wrapper — returns the innermost node whose span contains
+    /// Convenience wrapper: returns the innermost node whose span contains
     /// (line, column), or <c>null</c> if the position is outside every
     /// declaration.
     /// </summary>

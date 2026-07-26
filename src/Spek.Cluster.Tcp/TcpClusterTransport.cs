@@ -9,7 +9,7 @@ using System.Text;
 namespace Spek.Cluster.Tcp;
 
 /// <summary>
-/// Default Spek cluster transport — Spek-native binary protocol over TCP.
+/// Default Spek cluster transport: Spek-native binary protocol over TCP.
 /// Bedrock-aligned in shape (it implements the same
 /// <see cref="ISpekTransport"/> contract the in-memory transport does)
 /// but uses raw <see cref="Socket"/> + <see cref="System.IO.Pipelines"/>
@@ -17,7 +17,7 @@ namespace Spek.Cluster.Tcp;
 /// <c>IConnectionListener</c> indirection. The same wire format would
 /// drop into a Kestrel-hosted listener without changes.
 ///
-/// Ships today:
+/// Provides:
 /// <list type="bullet">
 ///   <item>Length-prefixed binary framing.</item>
 ///   <item>JSON serialization of payloads (<see cref="JsonSpekSerializer"/>).</item>
@@ -25,14 +25,9 @@ namespace Spek.Cluster.Tcp;
 ///   <item>Single connection per peer pair, lazy connection.</item>
 /// </list>
 ///
-/// Not yet implemented:
-/// <list type="bullet">
-///   <item>TLS / mTLS via <c>SslStream</c> middleware.</item>
-///   <item>Cluster-shared-secret authentication.</item>
-///   <item>Connection retry / reconnect on transient failure.</item>
-///   <item>Multiple concurrent connections per peer (keepalive pool).</item>
-///   <item>SWIM heartbeats / failure detection.</item>
-/// </list>
+/// The transport has no TLS, no peer authentication, no reconnect on
+/// transient failure, and no failure detection; keep it on a trusted
+/// network (see <see cref="TcpClusterOptions"/>).
 /// </summary>
 public sealed class TcpClusterTransport : ISpekTransport
 {
@@ -49,15 +44,14 @@ public sealed class TcpClusterTransport : ISpekTransport
         _serializer = serializer ?? new JsonSpekSerializer();
 
         // Fail loud, not silent: ClusterSharedKey looks like peer authentication
-        // but isn't enforced yet (the handshake doesn't check it, and the wire is
-        // unencrypted). Don't let an operator believe they're secured. mTLS +
-        // shared-secret enforcement are planned but not built yet.
+        // but is not enforced: the handshake does not check it, and the wire
+        // is unencrypted. Warn so an operator cannot believe they are secured.
         if (options.ClusterSharedKey is not null)
         {
             Console.Error.WriteLine(
-                "WARN: TcpClusterOptions.ClusterSharedKey is set but NOT YET ENFORCED — " +
+                "WARN: TcpClusterOptions.ClusterSharedKey is set but NOT ENFORCED; " +
                 "peers are not authenticated and the cluster wire is unencrypted. " +
-                "Use LoopbackOnly and/or network isolation until mTLS ships.");
+                "Use LoopbackOnly and/or network isolation.");
         }
 
         LocalNode  = new NodeIdentity(
@@ -76,33 +70,45 @@ public sealed class TcpClusterTransport : ISpekTransport
     public NodeIdentity LocalNode { get; }
 
     /// <summary>The local endpoint we're actually bound to. Useful for
-    /// tests that pass <c>port: 0</c> to let the OS pick a free port —
+    /// tests that pass <c>port: 0</c> to let the OS pick a free port;
     /// after construction this property reveals the chosen port.</summary>
     public IPEndPoint BoundEndpoint => (IPEndPoint)_listener.LocalEndpoint;
 
     public event Action<NodeIdentity, RemoteEnvelope, Exception>? DeliveryFailed;
 
-    public Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default)
+    public async Task SendAsync(NodeIdentity target, RemoteEnvelope envelope, CancellationToken cancellationToken = default)
     {
-        if (_shutdown.IsCancellationRequested) return Task.CompletedTask;
+        if (_shutdown.IsCancellationRequested) return;
 
         // Find or open the outbound connection to this peer.
         if (!_outbound.TryGetValue(target.Id, out var conn))
         {
             DeliveryFailed?.Invoke(target, envelope, new InvalidOperationException(
                 $"No outbound connection registered for node {target}. Call ConnectToPeer() first."));
-            return Task.CompletedTask;
+            return;
         }
 
+        // One frame at a time per connection: PipeWriter is not safe for
+        // concurrent writers, and before this gate two actors sending to the
+        // same peer from different threads could interleave GetSpan/Advance
+        // and corrupt the wire. The gate also makes the connection's frame
+        // scratch buffer safely reusable. Flush faults are routed
+        // to DeliveryFailed like every other send failure, per the
+        // ISpekTransport contract.
+        await conn.SendGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            TcpFrame.Write(conn.Writer, envelope, envelope.Message.GetType().FullName!, _serializer);
-            return conn.Writer.FlushAsync(cancellationToken).AsTask();
+            TcpFrame.Write(conn.Writer, envelope, envelope.Message.GetType().FullName!,
+                _serializer, conn.FrameScratch);
+            await conn.Writer.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             DeliveryFailed?.Invoke(target, envelope, ex);
-            return Task.CompletedTask;
+        }
+        finally
+        {
+            conn.SendGate.Release();
         }
     }
 
@@ -116,7 +122,7 @@ public sealed class TcpClusterTransport : ISpekTransport
     /// <paramref name="expectedIdentity"/>, the connection is dropped
     /// (defensive against accidental cross-cluster connections).
     ///
-    /// Idempotent — calling twice with the same target is a no-op.
+    /// Idempotent: calling twice with the same target is a no-op.
     /// </summary>
     public async Task ConnectToPeerAsync(IPEndPoint endpoint, NodeIdentity expectedIdentity, CancellationToken cancellationToken = default)
     {
@@ -145,7 +151,7 @@ public sealed class TcpClusterTransport : ISpekTransport
         _outbound[expectedIdentity.Id] = conn;
     }
 
-    /// <summary>Inbound accept loop — runs for the transport's lifetime.</summary>
+    /// <summary>Inbound accept loop: runs for the transport's lifetime.</summary>
     private async Task AcceptLoopAsync()
     {
         while (!_shutdown.IsCancellationRequested)
@@ -220,9 +226,9 @@ public sealed class TcpClusterTransport : ISpekTransport
         catch (OperationCanceledException) { /* shutdown */ }
         catch (Exception)
         {
-            // Swallow — transient peer errors shouldn't bring the
-            // transport down. A later release will surface these via
-            // the failure detector.
+            // Swallow: transient peer errors must not bring the
+            // transport down. There is no failure detector to report
+            // them to.
         }
     }
 
@@ -304,6 +310,13 @@ public sealed class TcpClusterTransport : ISpekTransport
         public PipeWriter Writer { get; }
         public PipeReader Reader { get; }
 
+        /// <summary>Serializes frame writes: PipeWriter is single-writer.</summary>
+        public SemaphoreSlim SendGate { get; } = new(1, 1);
+
+        /// <summary>Payload staging buffer, reused across frames under
+        /// <see cref="SendGate"/>.</summary>
+        public ArrayBufferWriter<byte> FrameScratch { get; } = new(4096);
+
         public OutboundConnection(TcpClient client, PipeWriter writer, PipeReader reader)
         {
             Client = client;
@@ -316,6 +329,7 @@ public sealed class TcpClusterTransport : ISpekTransport
             try { Writer.Complete(); } catch { /* ignore */ }
             try { Reader.Complete(); } catch { /* ignore */ }
             Client.Dispose();
+            SendGate.Dispose();
         }
     }
 }

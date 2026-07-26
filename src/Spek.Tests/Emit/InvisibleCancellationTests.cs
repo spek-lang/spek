@@ -9,7 +9,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Invisible cooperative cancellation. The emitter threads the actor's
 /// <c>ShutdownToken</c> into auto-awaited, cancellation-accepting calls inside
-/// actor handlers — never visible in Spek source. Module/static and non-actor
+/// actor handlers: never visible in Spek source. Module/static and non-actor
 /// contexts are left alone (no <c>this.ShutdownToken</c> to reach).
 /// </summary>
 public sealed class InvisibleCancellationTests(ITestOutputHelper output)
@@ -59,7 +59,7 @@ public sealed class InvisibleCancellationTests(ITestOutputHelper output)
     [Fact]
     public void ModuleMethod_AwaitedCall_GetsNoToken()
     {
-        // Static module method: no `this`, no ShutdownToken — must be left alone.
+        // Static module method: no `this`, no ShutdownToken - must be left alone.
         var code = Emit("""
             module Helper
             {
@@ -88,7 +88,7 @@ public sealed class InvisibleCancellationTests(ITestOutputHelper output)
     [Fact]
     public void CallAlreadyPassingAToken_IsNotDoubleThreaded()
     {
-        // The handler already supplies a token — the rewriter must not append a
+        // The handler already supplies a token - the rewriter must not append a
         // second one (Delay(int, CancellationToken) is fully satisfied).
         var code = Emit("""
             message Go();
@@ -104,7 +104,7 @@ public sealed class InvisibleCancellationTests(ITestOutputHelper output)
     [Fact]
     public void NonActorClassMethod_GetsNoToken()
     {
-        // A plain `class` (not an actor) has no ShutdownToken accessor — its
+        // A plain `class` (not an actor) has no ShutdownToken accessor - its
         // instance methods are a different code path from a module static method,
         // and must also be left alone.
         var code = Emit("""

@@ -24,7 +24,7 @@ public sealed class CSharpWriter
     public void MapLine(int spekLine)
     {
         if (_mapFile is null || spekLine <= 0) return;
-        // `#line` is a preprocessor directive — always column 0, never indented.
+        // `#line` is a preprocessor directive - always column 0, never indented.
         _sb.Append("#line ").Append(spekLine).Append(" \"").Append(_mapFile).Append('"').AppendLine();
         _mapped = true;
     }

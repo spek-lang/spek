@@ -24,7 +24,7 @@
 
   <!-- The HostState enum + lifecycle messages are authored in Spek
        (LifecycleMessages.spek); this compiles them into obj/ at build time.
-       SpekChannelMetadataAttribute.cs stays C# — it derives from Attribute,
+       SpekChannelMetadataAttribute.cs stays C#: it derives from Attribute,
        which Spek doesn't express. -->
   <Import Project="..\..\build\Spek.targets" />
 

@@ -9,7 +9,7 @@ using Spek.Compiler.Semantic;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Resolves <c>textDocument/definition</c> requests — the "jump to
+/// Resolves <c>textDocument/definition</c> requests - the "jump to
 /// declaration" action. Currently handles message/actor type references
 /// and <c>become</c> behavior targets. Cross-file resolution (using
 /// <c>SpekCompilation</c>) is deferred to a future iteration.
@@ -79,7 +79,7 @@ internal sealed class SpekDefinitionHandler : DefinitionHandlerBase
         if (chain.OfType<SpawnExpr>().LastOrDefault() is { } spawn && spawn.TypeArgs.Count > 0)
             return symbols.ResolveActor(spawn.TypeArgs[0].Name);
 
-        // TypeRef in a field or parameter — could be an actor, a message,
+        // TypeRef in a field or parameter: could be an actor, a message,
         // or a primitive. Try actor first (most useful for navigation).
         if (chain.OfType<TypeRef>().LastOrDefault() is { } type)
         {
@@ -88,7 +88,7 @@ internal sealed class SpekDefinitionHandler : DefinitionHandlerBase
             return symbols.ResolveMessage(type.Name);
         }
 
-        // Bare QualifiedName — fall back to "try message then actor."
+        // Bare QualifiedName: fall back to "try message then actor."
         if (chain.OfType<QualifiedName>().LastOrDefault() is { } qn)
         {
             var msg = symbols.ResolveMessage(qn);
@@ -101,11 +101,11 @@ internal sealed class SpekDefinitionHandler : DefinitionHandlerBase
 
     internal static OmniSharp.Extensions.LanguageServer.Protocol.Models.Range SpanToRange(SourceSpan span)
     {
-        // Spek: 1-based, end-inclusive. LSP: 0-based, end-exclusive.
+        // Spek: 1-based, end-exclusive. LSP: 0-based, end-exclusive.
         var startLine = Math.Max(0, span.StartLine - 1);
         var startCol  = Math.Max(0, span.StartColumn - 1);
         var endLine   = Math.Max(0, span.EndLine - 1);
-        var endCol    = Math.Max(0, span.EndColumn);
+        var endCol    = Math.Max(0, span.EndColumn - 1);
         return new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(
             new Position(startLine, startCol),
             new Position(endLine, endCol));

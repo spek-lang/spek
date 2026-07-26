@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -21,14 +22,14 @@ namespace Spek.Compiler.Emit;
 ///   * A Task-bound local *defers*: an explicit <c>Task&lt;T&gt;</c> local
 ///     always (the developer named the Task type), and a <c>var</c>-bound
 ///     <c>Task</c> local when its method is *single-exit* (no early
-///     returns) — so deferral is only applied where provably safe; every
+///     returns) - so deferral is only applied where provably safe; every
 ///     other case falls back to eager await, which is always safe.
 ///   * Uses of a deferred Task local are awaited at the value-use
-///     (generalized to Task-typed identifiers, not just invocations) —
+///     (generalized to Task-typed identifiers, not just invocations);
 ///     this is what makes lazy <c>var</c> concurrent and makes the
 ///     explicit-Task hatch usable.
 ///   * A *structured join* awaits any deferred Task local not otherwise
-///     awaited, before the method returns — required so no Task outlives
+///     awaited, before the method returns - required so no Task outlives
 ///     the actor's writer lock (and it closes a latent leak in the
 ///     explicit-Task hatch).
 ///   * The pass iterates to a fixpoint: a method that gains an await
@@ -48,7 +49,7 @@ public static class AsyncRewriter
 
     // Filenames the framework seed already provides. Extra references that
     // duplicate one (e.g. a project's net10.0 ref-pack System.Runtime.dll vs the
-    // runtime's, or a netcoreapp3.1 test-host assembly) are skipped — two copies
+    // runtime's, or a netcoreapp3.1 test-host assembly) are skipped - two copies
     // of a core assembly make types like Task ambiguous, which would silently
     // stop them being recognized as awaitable.
     private static readonly Lazy<HashSet<string>> SeededFileNames =
@@ -70,10 +71,9 @@ public static class AsyncRewriter
         // Default seed is the BCL (DefaultReferences). When the caller supplies
         // extra assembly paths (the CLI's --ref, the MSBuild target's package
         // refs), append them so the rewriter can SEE their Task-returning APIs
-        // and auto-await them — this is what makes e.g. AspNetCore's
-        // app.RunAsync() / context.Response.WriteAsync() auto-await. The
-        // locked design called for "BCL-seeded + injectable"; this is the
-        // injectable half.
+        // and auto-await them: this is what makes e.g. AspNetCore's
+        // app.RunAsync() / context.Response.WriteAsync() auto-await. Detection is BCL-seeded plus
+        // injectable references; this is the injectable half.
         if (references is null)
         {
             references = DefaultReferences.Value;
@@ -105,7 +105,7 @@ public static class AsyncRewriter
             var pass    = new Pass(model);
             var newRoot = pass.Visit(tree.GetRoot());
             if (!pass.Changed)
-                return source;            // converged — return as-is
+                return source;            // converged: return as-is
 
             source = newRoot.ToFullString();
         }
@@ -160,7 +160,7 @@ public static class AsyncRewriter
         /// await: <c>task.Wait()</c> → <c>await task</c> (void) and
         /// <c>x.GetAwaiter().GetResult()</c> → <c>(await x)</c> (value). Only
         /// when the receiver is a real Task/ValueTask and an await is legal
-        /// here. The receiver is taken from the original node — for these
+        /// here. The receiver is taken from the original node - for these
         /// shapes it's never itself rewritten (it's a "used-as-task" position).
         /// </summary>
         private bool TryRewriteSyncOverAsync(InvocationExpressionSyntax node, out SyntaxNode? result)
@@ -206,7 +206,7 @@ public static class AsyncRewriter
         // `System.IO.File.ReadAllText(p)` blocks the dispatcher on disk I/O,
         // but has a drop-in `File.ReadAllTextAsync(p)` that returns a Task of
         // the same value. We swap the method name to its `*Async` sibling and
-        // await it — value-preserving (same result, same exceptions). The
+        // await it: value-preserving (same result, same exceptions). The
         // curated `File.*` surface matches CE0115; the semantic warning teaches
         // the idiom, this rewrite makes it non-blocking either way.
 
@@ -240,7 +240,7 @@ public static class AsyncRewriter
             var asyncInv   = visitedInv.WithExpression(
                 visitedMa.WithName(IdentifierName(methodName + "Async")));
 
-            // The *Async sibling accepts a CancellationToken — thread it in too
+            // The *Async sibling accepts a CancellationToken - thread it in too
             // (in actor bodies only), so the swapped-in async I/O is cancellable.
             if (InActorContext(node))
             {
@@ -262,7 +262,7 @@ public static class AsyncRewriter
 
         // ─── Rewriting `task.Result` into `(await task)` ────────────────
         // `Task<T>.Result` / `ValueTask<T>.Result` block the calling thread
-        // until the Task completes — under load that parks a dispatcher pool
+        // until the Task completes: under load that parks a dispatcher pool
         // thread and starves siblings. `await task` yields the same T without
         // blocking (and unwraps the exception instead of AggregateException),
         // so invisible async rewrites it for you. Type-checked against the
@@ -276,7 +276,7 @@ public static class AsyncRewriter
             if (!IsAwaitable(model.GetTypeInfo(node.Expression).Type)) return visited;
             if (!AwaitContextAllowed(node)) return visited;
             Changed = true;
-            // `(await <receiver>)` — receiver from the visited node so any
+            // `(await <receiver>)`: receiver from the visited node so any
             // rewrites inside it are preserved; take the member access's trivia.
             return WrapAwait(visited.Expression, parens: true)
                 .WithLeadingTrivia(visited.GetLeadingTrivia())
@@ -295,16 +295,16 @@ public static class AsyncRewriter
 
         // ─── Dropping a `var` binding that awaits to void ────────────────
         // A `var` local whose initializer the pass eager-awaits to a
-        // *non-generic* Task/ValueTask binds `void` — illegal C# (CS0815).
+        // *non-generic* Task/ValueTask binds `void` - illegal C# (CS0815).
         // Such a local can't hold a usable value anyway, so drop the binding
         // and keep just the awaited call as a statement:
         //   `var x = await F();`  →  `await F();`
         // Conservative: only single-declarator `var` locals whose initializer
         // is now an `await` of a void-typed expression, and which nothing else
         // references (dropping a referenced local would turn CS0815 into a
-        // CS0103 "name does not exist" — a referenced void binding is malformed
+        // CS0103 "name does not exist": a referenced void binding is malformed
         // either way, so we leave it). Explicit-Task locals (`Task x = …`, the
-        // escape hatch — deferred, then joined) and `Task<T>`/`ValueTask<T>`
+        // escape hatch: deferred, then joined) and `Task<T>`/`ValueTask<T>`
         // bindings (which await to a real value) are untouched. The void check
         // reads the ORIGINAL initializer's type via the model (the rewritten
         // `await …` node isn't in the model).
@@ -314,7 +314,7 @@ public static class AsyncRewriter
             var visited = (LocalDeclarationStatementSyntax)base.VisitLocalDeclarationStatement(node)!;
 
             if (node.Declaration.Type is not IdentifierNameSyntax { Identifier.Text: "var" })
-                return visited;                                  // explicit type — leave it
+                return visited;                                  // explicit type: leave it
             if (visited.Declaration.Variables.Count != 1)
                 return visited;                                  // single-declarator only
 
@@ -330,7 +330,7 @@ public static class AsyncRewriter
                 return visited;
 
             if (IsLocalReferenced(origVd))
-                return visited;                                  // referenced — leave as-is
+                return visited;                                  // referenced: leave as-is
 
             Changed = true;
             // Replace the whole declaration with `await F();`, carrying the
@@ -342,7 +342,7 @@ public static class AsyncRewriter
 
         /// <summary>
         /// True when the name declared by <paramref name="vd"/> appears again
-        /// (beyond its own declarator) anywhere in the enclosing method — in
+        /// (beyond its own declarator) anywhere in the enclosing method - in
         /// which case its binding must not be dropped. Matching is by NAME, not
         /// symbol: a void-typed binding is already a Roslyn error declaration,
         /// so its use sites don't bind to the local and a symbol-based check
@@ -370,7 +370,7 @@ public static class AsyncRewriter
             // Structured join: await every deferred Task local before each
             // exit in its live range (and at fall-through), so no Task
             // outlives the method (actor safety) and unused results still
-            // complete. Path-aware — handles returns after a deferred binding.
+            // complete. Path-aware: handles returns after a deferred binding.
             if (visited.Body is not null)
             {
                 var deferred = DeferredTaskLocalNames(node);
@@ -444,7 +444,7 @@ public static class AsyncRewriter
 
             if (!AwaitContextAllowed(node)) return false;
 
-            // Inside a lambda, only await a call used as a bare statement —
+            // Inside a lambda, only await a call used as a bare statement;
             // the after-next pattern `next(ctx);` followed by more work.
             // A call in return / expression-body / argument position is left
             // as a forwarded Task, so before-next middleware (`return
@@ -455,7 +455,7 @@ public static class AsyncRewriter
                 return false;
 
             // Deferred bindings (explicit Task local, or var Task in a
-            // single-exit method) are not awaited here — the use / join is.
+            // single-exit method) are not awaited here - the use / join is.
             if (IsDeferredBinding(node)) return false;
 
             return true;
@@ -470,14 +470,14 @@ public static class AsyncRewriter
 
             // Only await a use of a local we actually KEPT as a Task
             // (deferred). A local whose binding was eager-awaited holds the
-            // unwrapped value, so its uses must not be awaited — awaiting
+            // unwrapped value, so its uses must not be awaited - awaiting
             // both the binding and the use would double-unwrap.
             if (!RefersToDeferredTaskLocal(node)) return false;
 
             if (UsedAsTaskViaMember(node, type)) return false;
             if (!AwaitContextAllowed(node)) return false;
             // Identifier uses never sit in bare-statement position, so this
-            // disables awaiting deferred Task-locals inside a lambda — an
+            // disables awaiting deferred Task-locals inside a lambda - an
             // edge the lambda support doesn't need and stays clear of.
             if (EnclosingCallableIsLambda(node) && node.Parent is not ExpressionStatementSyntax)
                 return false;
@@ -488,7 +488,7 @@ public static class AsyncRewriter
 
         /// <summary>
         /// True when <paramref name="id"/> references a local whose binding
-        /// was deferred (kept as a Task) — mirrors <see cref="IsDeferredBinding"/>
+        /// was deferred (kept as a Task) - mirrors <see cref="IsDeferredBinding"/>
         /// but resolved from the use site, so the use and the binding agree.
         /// </summary>
         private bool RefersToDeferredTaskLocal(IdentifierNameSyntax id)
@@ -572,7 +572,7 @@ public static class AsyncRewriter
         /// Path-aware structured join. Walks the method body's top-level
         /// statements tracking which deferred locals are live (declared so
         /// far); before every <c>return</c>/<c>throw</c> in a live local's
-        /// range — at any nesting — inserts <c>await L;</c> (unless that exit
+        /// range (at any nesting) inserts <c>await L;</c> (unless that exit
         /// already awaits L, or a prior join already does). At fall-through
         /// (no trailing exit) appends awaits for any still-unawaited locals.
         /// Since Spek emits braces on every control-flow body, every exit is a
@@ -653,7 +653,7 @@ public static class AsyncRewriter
             }
 
             // Returns inside a lambda / local function belong to it, not the
-            // enclosing method — leave them alone.
+            // enclosing method: leave them alone.
             public override SyntaxNode? VisitSimpleLambdaExpression(SimpleLambdaExpressionSyntax node) => node;
             public override SyntaxNode? VisitParenthesizedLambdaExpression(ParenthesizedLambdaExpressionSyntax node) => node;
             public override SyntaxNode? VisitAnonymousMethodExpression(AnonymousMethodExpressionSyntax node) => node;
@@ -702,7 +702,7 @@ public static class AsyncRewriter
                 .Any(aw => AwaitedName(aw) == name);
 
         /// <summary>Names awaited by the contiguous run of `await X;` statements
-        /// immediately preceding <paramref name="exitIndex"/> — the prior-iteration
+        /// immediately preceding <paramref name="exitIndex"/> - the prior-iteration
         /// join, so we don't duplicate it.</summary>
         private static HashSet<string> TrailingJoinNames(SyntaxList<StatementSyntax> stmts, int exitIndex)
         {
@@ -748,7 +748,7 @@ public static class AsyncRewriter
 
         // ─── Invisible cooperative cancellation ──────────────────────────────
         // When an auto-awaited call accepts a CancellationToken, thread the
-        // actor's ShutdownToken into it — invisibly, in the emitted C# only.
+        // actor's ShutdownToken into it: invisibly, in the emitted C# only.
         // Gated to actor-handler bodies (where `this` is a Spek.ActorBase, so
         // `this.ShutdownToken` resolves); module/static methods and non-actor
         // class methods are left alone.
@@ -760,7 +760,7 @@ public static class AsyncRewriter
         // so `Spek.ActorBase` resolves as an error type and a symbol-based base-type
         // walk is unreliable. The emitter always writes `: Spek.ActorBase` on actor
         // classes, so checking the enclosing class's base list is robust. (The callee
-        // CancellationToken resolution stays semantic — BCL types DO resolve.)
+        // CancellationToken resolution stays semantic - BCL types DO resolve.)
         private bool InActorContext(SyntaxNode node)
         {
             var method = node.FirstAncestorOrSelf<MethodDeclarationSyntax>();
@@ -828,10 +828,10 @@ public static class AsyncRewriter
         {
             // Assignment target (write, not a value-use).
             if (id.Parent is AssignmentExpressionSyntax asn && asn.Left == id) return true;
-            // `out`/`ref`/`in` argument — passed by reference, not a value.
+            // `out`/`ref`/`in` argument: passed by reference, not a value.
             if (id.Parent is ArgumentSyntax { RefKindKeyword.RawKind: not (int)SyntaxKind.None })
                 return true;
-            // Inside nameof(...) — the identifier isn't evaluated.
+            // Inside nameof(...) - the identifier isn't evaluated.
             foreach (var anc in id.Ancestors())
                 if (anc is InvocationExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: "nameof" } })
                     return true;
@@ -849,7 +849,7 @@ public static class AsyncRewriter
                     case AnonymousMethodExpressionSyntax:
                         // Awaiting inside a lambda is only safe when the
                         // lambda's converted delegate type already returns
-                        // Task/ValueTask — then marking it `async` doesn't
+                        // Task/ValueTask: then marking it `async` doesn't
                         // change its signature. A value-returning delegate
                         // (Func<int,int>) must stay synchronous.
                         return LambdaReturnsTask((ExpressionSyntax)anc);
@@ -922,9 +922,9 @@ public static class AsyncRewriter
         /// A `var`-bound Task local is deferrable when it is declared at the
         /// method body's top level. The path-aware join then awaits it before
         /// every exit in its live range (guard-clause returns *before* the
-        /// declaration don't count — it isn't in scope there). Loop bodies and
+        /// declaration don't count: it isn't in scope there). Loop bodies and
         /// nested blocks aren't top-level, so locals there fall back to eager
-        /// await (always safe). Pure syntax — no model needed.
+        /// await (always safe). Pure syntax: no model needed.
         /// </summary>
         private static bool SafeToDeferAt(VariableDeclaratorSyntax vd) =>
             IsTopLevelInMethodBody(vd);
@@ -956,9 +956,35 @@ public static class AsyncRewriter
             TypeSyntax result =
                 ret is PredefinedTypeSyntax p && p.Keyword.IsKind(SyntaxKind.VoidKeyword)
                     ? ParseTypeName("System.Threading.Tasks.Task")
+                // A method the author already declared Task/ValueTask-returning
+                // (Task, Task<T>, ValueTask, ValueTask<T>) is ALREADY async-shaped:
+                // adding `async` keeps the same return type. Wrapping it again gave
+                // `Task<Task<int>>` and broke the body's `return` .
+                : IsTaskLikeSyntax(ret)
+                    ? ret.WithoutTrivia()
                     : ParseTypeName($"System.Threading.Tasks.Task<{ret.WithoutTrivia()}>");
 
             return result.WithLeadingTrivia(lead).WithTrailingTrivia(trail);
+        }
+
+        // Syntactic Task/ValueTask test for the DECLARED return type (no
+        // semantic model here). Matches `Task`, `Task<…>`, `ValueTask`,
+        // `ValueTask<…>`, bare or namespace-qualified.
+        private static bool IsTaskLikeSyntax(TypeSyntax ret)
+        {
+            var name = ret switch
+            {
+                QualifiedNameSyntax q => (NameSyntax)q.Right,
+                NameSyntax n => n,
+                _ => null,
+            };
+            var id = name switch
+            {
+                GenericNameSyntax g => g.Identifier.ValueText,
+                IdentifierNameSyntax i => i.Identifier.ValueText,
+                _ => null,
+            };
+            return id is "Task" or "ValueTask";
         }
 
         private static bool ContainsDirectAwait(SyntaxNode body) =>
@@ -970,7 +996,7 @@ public static class AsyncRewriter
                         LocalFunctionStatementSyntax))
                 .Any(n => n is AwaitExpressionSyntax);
 
-        private static bool IsAwaitable(ITypeSymbol? type)
+        private static bool IsAwaitable([NotNullWhen(true)] ITypeSymbol? type)
         {
             if (type is not INamedTypeSymbol named) return false;
             var def = named.OriginalDefinition;
@@ -988,7 +1014,7 @@ public static class AsyncRewriter
         }
 
         /// <summary>
-        /// True for a NON-generic <c>Task</c>/<c>ValueTask</c> — i.e. an
+        /// True for a NON-generic <c>Task</c>/<c>ValueTask</c> - i.e. an
         /// awaitable whose <c>await</c> yields <c>void</c>. Used to spot a
         /// <c>var</c> binding that would become <c>var x = await &lt;void&gt;</c>
         /// (CS0815). <c>Task&lt;T&gt;</c>/<c>ValueTask&lt;T&gt;</c> await to a

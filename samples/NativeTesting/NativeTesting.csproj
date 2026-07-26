@@ -4,7 +4,7 @@
     A Spek test project: a `*Tests` module/class compiles to xUnit facts via
     Spek.targets (the in-repo MSBuild integration), and `dotnet test` runs them.
     Requires the CLI built first (dotnet build src/Spek.Cli) so Spek.targets can find
-    spekc.dll. Outside this repo, scaffold with `dotnet new spek-test` instead —
+    spekc.dll. Outside this repo, scaffold with `dotnet new spek-test` instead;
     it uses the Spek.Build package + a pinned local spekc tool, no path imports.
   -->
   <PropertyGroup>

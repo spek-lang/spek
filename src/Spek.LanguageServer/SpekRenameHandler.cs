@@ -11,9 +11,9 @@ namespace Spek.LanguageServer;
 /// references within the file) with the new name and returns a
 /// <see cref="WorkspaceEdit"/>.
 ///
-/// The current scope is per-file rename. Cross-file rename — when a
+/// The current scope is per-file rename. Cross-file rename - when a
 /// message declared in <c>messages.spek</c> is referenced from
-/// <c>actors.spek</c> — needs a workspace-aware document cache and
+/// <c>actors.spek</c>: needs a workspace-aware document cache and
 /// lifts to a future iteration.
 /// </summary>
 internal sealed class SpekRenameHandler : RenameHandlerBase
@@ -69,7 +69,7 @@ internal sealed class SpekRenameHandler : RenameHandlerBase
     /// <summary>
     /// Conservative identifier check: starts with letter or underscore,
     /// rest is letters / digits / underscores. Matches Spek lexer's
-    /// <c>IDENTIFIER</c> rule. Does NOT check for keyword collisions —
+    /// <c>IDENTIFIER</c> rule. Does NOT check for keyword collisions;
     /// the user may pick a name that's a keyword and the next compile
     /// will surface that as a CE0001 syntax error, which is honest
     /// feedback rather than silent rename refusal.

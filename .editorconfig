@@ -1,4 +1,4 @@
-# EditorConfig — https://editorconfig.org
+# EditorConfig: https://editorconfig.org
 # Light, cross-editor baseline. Roslyn analyzer/style rules live in
 # Directory.Build.props and the .csproj files, not here.
 root = true

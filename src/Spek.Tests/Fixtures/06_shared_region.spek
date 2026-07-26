@@ -8,7 +8,7 @@
 // around its read. Multiple PriceReader instances can run concurrently
 // against the same cache; PriceWriter serialises against all of them.
 //
-// Also exercises the implicit Default behavior — neither actor
+// Also exercises the implicit Default behavior - neither actor
 // declares a `behavior X { ... }` wrapper.
 
 namespace Samples;

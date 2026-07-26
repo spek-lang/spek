@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Persistence.Log</RootNamespace>
     <AssemblyName>Spek.Persistence.Log</AssemblyName>
     <PackageId>Spek.Persistence.Log</PackageId>
-    <Description>Append-only segmented snapshot store for Spek actors. Each persist appends a new immutable segment instead of overwriting the previous one — Cassandra-SSTable shape. ISnapshotStore-compatible (existing actors see only the latest segment) plus a richer API for replay-style and event-sourcing patterns.</Description>
+    <Description>Append-only segmented snapshot store for Spek actors. Each persist appends a new immutable segment instead of overwriting the previous one; Cassandra-SSTable shape. ISnapshotStore-compatible (existing actors see only the latest segment) plus a richer API for replay-style and event-sourcing patterns.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

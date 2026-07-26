@@ -4,7 +4,7 @@ using System.Text;
 namespace Spek.Cluster;
 
 /// <summary>
-/// Default placement strategy — uses **rendezvous hashing** (HRW) over
+/// Default placement strategy: uses **rendezvous hashing** (HRW) over
 /// the live cluster members. Each <c>(actorType, actorKey)</c> hashes
 /// against every candidate node; the node with the highest combined
 /// hash wins.
@@ -13,7 +13,7 @@ namespace Spek.Cluster;
 /// ring? Two reasons:</para>
 /// <list type="bullet">
 ///   <item>Determinism without external state. No virtual-node tables
-///         to keep in sync across nodes — each node computes the same
+///         to keep in sync across nodes: each node computes the same
 ///         winner from the same inputs.</item>
 ///   <item>Minimum disruption on membership change. When a node leaves
 ///         or joins, only the keys that actually owned that node have
@@ -40,14 +40,14 @@ public sealed class ConsistentHashPlacement : IPlacementStrategy
 
         foreach (var member in members)
         {
-            // Skip nodes that aren't fully online — placement should
+            // Skip nodes that aren't fully online - placement should
             // never pin a key to a node that can't accept traffic.
             if (member.State != NodeState.Up) continue;
 
             var combined = $"{actorType}/{actorKey}:{member.Identity.Id:N}";
             var bytes    = Encoding.UTF8.GetBytes(combined);
             var hash     = SHA256.HashData(bytes);
-            // Take the first 8 bytes as a ulong — 64 bits of entropy
+            // Take the first 8 bytes as a ulong - 64 bits of entropy
             // is plenty for owner-selection.
             ulong h = BitConverter.ToUInt64(hash, 0);
 

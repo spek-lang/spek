@@ -209,8 +209,8 @@ public sealed class InterfaceTests(ITestOutputHelper output)
     [Fact]
     public void PrivateOnChannelHandler_ReportsCE0121()
     {
-        // Even a private handler — which otherwise escapes the declared-message
-        // rule and may bind BCL types — cannot dispatch on a channel.
+        // Even a private handler: which otherwise escapes the declared-message
+        // rule and may bind BCL types: cannot dispatch on a channel.
         const string src = """
             namespace X;
             message M();

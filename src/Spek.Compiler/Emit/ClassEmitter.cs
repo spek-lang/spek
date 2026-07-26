@@ -15,7 +15,7 @@ namespace Spek.Compiler.Emit;
 ///   init(string id) { … }             → public Account(string id) { … }
 ///
 /// Unlike an actor, a class has no generated dispatch infrastructure
-/// (<c>_behavior</c>, <c>_selfRef</c>, …), so fields keep their plain names —
+/// (<c>_behavior</c>, <c>_selfRef</c>, …), so fields keep their plain names;
 /// a bare field reference in a method body resolves to the instance field by
 /// normal C# scoping, and a <c>public</c> field stays reachable as
 /// <c>obj.field</c>. <c>self</c> emits as <c>this</c> (the expression emitter is
@@ -47,7 +47,7 @@ public sealed class ClassEmitter
         var kind = cls.IsAbstract ? "abstract" : "sealed";
 
         // Order the base list base-class-first (C# requires it), then the
-        // implemented interfaces — regardless of the order the user wrote them.
+        // implemented interfaces: regardless of the order the user wrote them.
         var baseClass  = cls.Bases.FirstOrDefault(b => _symbols?.ResolveClass(b.Simple) is not null);
         var interfaces = cls.Bases.Where(b => !ReferenceEquals(b, baseClass)).Select(b => b.ToString());
         var ordered    = (baseClass is not null ? new[] { baseClass.ToString() } : [])
@@ -105,13 +105,13 @@ public sealed class ClassEmitter
 
             if (m.IsAbstract)
             {
-                // `abstract T M(params);` — no body. The subclass implements it.
+                // `abstract T M(params);`: no body. The subclass implements it.
                 _w.Line($"{mvis} abstract {ret} {m.Name}{mtp}({parms}){ExpressionEmitter.FormatWhereClauses(m.WhereClauses)};");
             }
             else
             {
                 // Infer `override` when this method implements an abstract method
-                // inherited from an ancestor abstract class — the user never
+                // inherited from an ancestor abstract class - the user never
                 // writes `override` (there is no `virtual` in Spek).
                 var overrideKw = OverridesBaseAbstract(cls, m) ? "override " : "";
                 _w.Line($"{mvis} {overrideKw}{ret} {m.Name}{mtp}({parms}){ExpressionEmitter.FormatWhereClauses(m.WhereClauses)}");
@@ -144,7 +144,7 @@ public sealed class ClassEmitter
 
     /// <summary>
     /// True when <paramref name="method"/> implements an <c>abstract</c> method
-    /// declared somewhere up <paramref name="cls"/>'s base-class chain — matched
+    /// declared somewhere up <paramref name="cls"/>'s base-class chain - matched
     /// by name and parameter count. Used to infer the C# <c>override</c> keyword
     /// so Spek source never spells it. Walks only the base *class* link (the
     /// first base that resolves to a class); interfaces don't carry abstracts.

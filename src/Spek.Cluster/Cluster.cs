@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Spek.Runtime;
 
 namespace Spek.Cluster;
@@ -5,7 +6,7 @@ namespace Spek.Cluster;
 /// <summary>
 /// Wires an <see cref="ActorSystem"/> together with an
 /// <see cref="ISpekTransport"/> and a peer registry. This is the
-/// primary entry point for distributed Spek — call
+/// primary entry point for distributed Spek - call
 /// <see cref="Bind"/> once during host bootstrap, register peers as
 /// they're discovered (or up front for static deployments), and use
 /// <see cref="ResolveRemote"/> to obtain remote actor refs.
@@ -26,6 +27,17 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
         new(StringComparer.Ordinal);
     private readonly Lock _peersLock = new();
 
+    // Remote-sender refs, one per (origin node, sender path), reused across
+    // inbound envelopes: the receive path used to allocate a fresh
+    // RemoteEndpoint + ActorRef for every envelope that carried a sender.
+    // Keyed by the node's wire-canonical UUID; the label plays no part in
+    // routing. Unbounded by design: sender paths are named roots, explicitly
+    // registered on the origin node via SpawnNamed, so the population is one
+    // entry per (peer, named root actually used as a sender) - small and
+    // fixed for any real topology, and entries are ~100 B each.
+    private readonly ConcurrentDictionary<(Guid NodeId, string Path), ActorRef>
+        _remoteSenderRefs = new();
+
     private Cluster(ActorSystem system, ISpekTransport transport,
                     IClusterMembership membership, IPlacementStrategy placement)
     {
@@ -35,7 +47,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
         _placement = placement;
     }
 
-    /// <summary>The placement strategy in effect — defaults to
+    /// <summary>The placement strategy in effect - defaults to
     /// <see cref="ConsistentHashPlacement"/>.</summary>
     public IPlacementStrategy Placement => _placement;
 
@@ -45,7 +57,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     /// <summary>The transport this cluster is using.</summary>
     public ISpekTransport Transport => _transport;
 
-    /// <summary>The membership view backing this cluster — subscribe
+    /// <summary>The membership view backing this cluster - subscribe
     /// to events, query the live member list, mark nodes up/down.</summary>
     public IClusterMembership Membership => _membership;
 
@@ -53,7 +65,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     /// Binds <paramref name="transport"/> to <paramref name="system"/>,
     /// installs the inbound-receive handler, and registers the cluster
     /// as the system's <see cref="IClusterAdapter"/>. Returns the
-    /// configured cluster object — keep a reference for peer
+    /// configured cluster object: keep a reference for peer
     /// registration and resolution.
     ///
     /// If <paramref name="membership"/> is null, a default
@@ -99,9 +111,9 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     }
 
     /// <summary>
-    /// Mark a registered peer as <see cref="NodeState.Up"/> — typically
+    /// Mark a registered peer as <see cref="NodeState.Up"/> - typically
     /// called once the transport-level handshake completes successfully.
-    /// In a future SWIM-based impl this transition is automatic; for
+    /// The static-seed membership leaves this transition user-driven so tests can sequence the state machine.; for
     /// the static-seed impl it's user-driven so tests can sequence
     /// the state machine deterministically.
     /// </summary>
@@ -113,7 +125,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
 
     /// <summary>
     /// Mark a registered peer as <see cref="NodeState.Unreachable"/>.
-    /// In production the failure detector calls this; the static-seed
+    /// Exposed so tests and operators can mark a peer unreachable; the static-seed
     /// impl exposes it for tests.
     /// </summary>
     public void MarkPeerUnreachable(NodeIdentity identity)
@@ -133,7 +145,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     // ─── Located actors ─────────────────────────────────────────────────────
 
     /// <summary>
-    /// Register an actor type as <b>located</b> — eligible for
+    /// Register an actor type as <b>located</b> - eligible for
     /// cluster-wide auto-placement and on-demand activation via
     /// <see cref="Locate{TActor}"/>. The location key is passed as
     /// the first constructor argument when the actor is activated
@@ -159,10 +171,10 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     /// The placement strategy decides which cluster node owns this
     /// location; if it's the local node, the actor is auto-activated;
     /// if it's a remote node, the returned ref dispatches across the
-    /// wire — exactly the same code path as a manually-resolved
+    /// wire: exactly the same code path as a manually-resolved
     /// remote ref.
     ///
-    /// Idempotent — repeated calls with the same key return refs
+    /// Idempotent: repeated calls with the same key return refs
     /// pointing at the same logical actor (the runtime activates at
     /// most one instance per (Type, Key) per cluster).
     /// </summary>
@@ -172,7 +184,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
         ArgumentException.ThrowIfNullOrEmpty(key);
         var typeName = typeof(TActor).FullName ?? typeof(TActor).Name;
 
-        // Pick the owning node. Filter to Up members only — placement
+        // Pick the owning node. Filter to Up members only - placement
         // shouldn't pin a location to a node that can't accept traffic.
         var members = _membership.Members
             .Where(m => m.State == NodeState.Up)
@@ -190,7 +202,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
             return EnsureLocalActivation(typeof(TActor), locationPath, key);
         }
 
-        // Remote — return a ref pointing at the location path on the
+        // Remote: return a ref pointing at the location path on the
         // owning node. The receiver auto-activates on first inbound
         // envelope (see OnReceiveAsync below).
         return new ActorRef(new RemoteEndpoint(_transport, owner, locationPath, this));
@@ -206,7 +218,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
         var existing = _system.ResolveNamed(locationPath);
         if (existing is not null) return existing;
 
-        // Look up registration — supplies extra ctor args beyond the
+        // Look up registration: supplies extra ctor args beyond the
         // location key. Default is "just the key as the only arg."
         LocatedActorRegistration? reg;
         var typeName = actorType.FullName ?? actorType.Name;
@@ -216,7 +228,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
         if (reg is not null)
             args.AddRange(reg.ExtraArgsFactory(locationKey));
 
-        // Use the runtime's named-root spawn — registers under the path
+        // Use the runtime's named-root spawn - registers under the path
         // for inbound resolution.
         var actor = _system.SpawnNamed(actorType, locationPath, args.ToArray());
         return actor;
@@ -257,21 +269,35 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
 
     private Task OnReceiveAsync(RemoteEnvelope envelope)
     {
-        // If the envelope carries sender info, build a remote-sender ref
+        // If the envelope carries sender info, resolve a remote-sender ref
         // that round-trips back to the originator. Otherwise the
         // recipient's `_currentSender` will be NoSender and any
-        // `sender.Tell(reply)` dead-letters — same semantics as a Tell
+        // `sender.Tell(reply)` dead-letters - same semantics as a Tell
         // from outside the actor system locally.
+        //
+        // Resolution is cached per (node id, path): repeated envelopes from
+        // the same originator hand the recipient the SAME ActorRef instance
+        // (reference identity: pinned by ClusterMemoryTransportTests
+        // .RepeatedEnvelopesFromSameSender_ReceiverSeesOneCachedRef), so
+        // per-message traffic doesn't allocate an endpoint + ref pair,
+        // and recipients that stash senders in sets/dictionaries see one
+        // logical sender as one ref. The static factory keeps the miss path
+        // closure-free.
         ActorRef? sender = null;
         if (envelope.SenderNode is { } sn && envelope.SenderPath is { } sp)
         {
-            sender = new ActorRef(new RemoteEndpoint(_transport, sn, sp, this));
+            sender = _remoteSenderRefs.GetOrAdd(
+                (sn.Id, sp),
+                static ((Guid, string) _, (Cluster Cluster, NodeIdentity Node, string Path) a) =>
+                    new ActorRef(new RemoteEndpoint(
+                        a.Cluster._transport, a.Node, a.Path, a.Cluster)),
+                (this, sn, sp));
         }
 
         // Located-actor auto-activation. If the target path
         // matches a registered located-actor type's prefix and isn't
         // yet bound locally, spawn-and-register it before delivery.
-        // Format: `{TypeFullName}/{key}` — the prefix-before-`/` is
+        // Format: `{TypeFullName}/{key}`: the prefix-before-`/` is
         // the type name to look up.
         var slash = envelope.TargetPath.IndexOf('/');
         if (slash > 0 && _system.ResolveNamed(envelope.TargetPath) is null)
@@ -289,23 +315,16 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     }
 
     /// <summary>
-    /// Reverse lookup — given a local <see cref="ActorRef"/>, find its
+    /// Reverse lookup: given a local <see cref="ActorRef"/>, find its
     /// named-root path so a remote receiver can reply through it. Only
     /// named roots are currently wire-addressable; anonymous spawned actors
     /// are local-only.
     /// </summary>
     internal string? LocalPathOfNamedRoot(ActorRef? actor) =>
-        actor is null ? null : ReverseLookup(actor);
-
-    private string? ReverseLookup(ActorRef target)
-    {
-        // ActorSystem doesn't expose its named-root map publicly — we'd
-        // either need a public reverse-lookup API or scan known names.
-        // Punt for now: callers should pass remote-already-paths through
-        // RemoteEndpoint, and named-root senders are picked up from the
-        // ActorSystem via PathOfNamedRoot below.
-        return _system.PathOfNamedRoot(target);
-    }
+        // On the send path for every Tell-with-sender. The runtime keeps a
+        // ref → path map alongside its named-root registry, so
+        // this is a dictionary hit under the system lock, not a scan.
+        actor is null ? null : _system.PathOfNamedRoot(actor);
 
     public async ValueTask DisposeAsync()
     {
@@ -318,7 +337,7 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
 /// Internal <see cref="IRemoteEndpoint"/> impl that bridges
 /// <see cref="ActorRef.Tell(object)"/> to the cluster's transport.
 /// One instance per (target node, target path) pair; users normally
-/// don't construct these directly — use <see cref="Cluster.ResolveRemote"/>.
+/// don't construct these directly: use <see cref="Cluster.ResolveRemote"/>.
 /// </summary>
 internal sealed class RemoteEndpoint : IRemoteEndpoint
 {

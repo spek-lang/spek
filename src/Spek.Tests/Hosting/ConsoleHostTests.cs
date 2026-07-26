@@ -8,8 +8,8 @@ namespace Spek.Tests.Hosting;
 /// Integration coverage for <see cref="SpekConsoleHost"/>. We can't
 /// fire OS signals from a unit test (it'd kill the test runner), but
 /// the signal handler's effect is just <c>entryActor.Tell(shutdown,
-/// sender: receiver)</c>. We verify the surrounding plumbing — actor
-/// runs, host returns when it stops, exit code propagates via Option D
+/// sender: receiver)</c>. We verify the surrounding plumbing - actor
+/// runs, host returns when it stops, exit code propagates via the inferred-reply convention
 /// reply.
 /// </summary>
 public class ConsoleHostTests
@@ -19,8 +19,8 @@ public class ConsoleHostTests
 
     /// <summary>
     /// Stand-in entry actor. On <see cref="Shutdown"/> it replies with
-    /// a typed exit code (Option D equivalent) and stops itself. On
-    /// <see cref="StopYourself"/> it just stops, no reply — the host
+    /// a typed exit code (the inferred-reply convention equivalent) and stops itself. On
+    /// <see cref="StopYourself"/> it just stops, no reply - the host
     /// should fall back to the default exit code.
     /// </summary>
     private sealed class GracefulActor : ActorBase
@@ -30,7 +30,7 @@ public class ConsoleHostTests
             switch (message)
             {
                 case Shutdown:
-                    _currentSender.Tell(42);    // Option D return → exit code 42
+                    _currentSender.Tell(42);    // the inferred-reply convention return → exit code 42
                     StopSelf();
                     break;
                 case StopYourself:
@@ -42,11 +42,11 @@ public class ConsoleHostTests
     }
 
     [Fact]
-    public async Task ShutdownPath_RoutesReplyAsExitCode()
+    public async Task ShutdownPath_RoutesReplyAsExitCodeAsync()
     {
         // Drive shutdown through the public RunAsync surface: bring our
         // own system + entry, kick off RunAsync, then trigger shutdown
-        // via the same factory the signal handlers use — but we have to
+        // via the same factory the signal handlers use - but we have to
         // do it from outside, so we Tell directly to the entry actor.
         // The internal receiver is wired by the host; we just need to
         // make the entry actor stop.
@@ -55,7 +55,7 @@ public class ConsoleHostTests
 
         // Send the shutdown ourselves. The actor's reply goes to
         // NoSender (since we Tell with no sender override), so the
-        // host's receiver never sees the 42 — the host returns the
+        // host's receiver never sees the 42 - the host returns the
         // default. This isn't the full signal flow but it exercises
         // the wait-and-return surface.
         var hostTask = SpekConsoleHost.RunAsync(
@@ -70,12 +70,12 @@ public class ConsoleHostTests
 
         var exitCode = await hostTask;
 
-        Assert.Equal(7, exitCode);          // default — actor's reply went to NoSender
+        Assert.Equal(7, exitCode);          // default: actor's reply went to NoSender
         Assert.True(entry.IsStopped);
     }
 
     [Fact]
-    public async Task ExitCodeReceiver_CapturesOptionDReply_ViaTellWithSender()
+    public async Task ExitCodeReceiver_CapturesOptionDReply_ViaTellWithSenderAsync()
     {
         // Direct test of the inner machinery: spawn the receiver,
         // give it a Tell-with-sender of an int, verify the holder
@@ -87,7 +87,7 @@ public class ConsoleHostTests
         var holder       = new SpekConsoleHost.ExitCodeHolder(99);
         var receiver     = system.Spawn<SpekConsoleHost.ExitCodeReceiverActor>(holder);
 
-        // Send an int directly — receiver pulls it into the holder.
+        // Send an int directly: receiver pulls it into the holder.
         receiver.Tell(42);
         await Task.Delay(100);
 
@@ -95,7 +95,7 @@ public class ConsoleHostTests
     }
 
     [Fact]
-    public async Task TellWithSender_RoutesReplyToSender_EndToEnd()
+    public async Task TellWithSender_RoutesReplyToSender_EndToEndAsync()
     {
         // Verifies the new public Tell(message, sender) overload on
         // ActorRef does what we need: when an actor in the middle

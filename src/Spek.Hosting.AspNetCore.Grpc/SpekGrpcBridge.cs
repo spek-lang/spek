@@ -12,7 +12,7 @@ namespace Spek.Hosting.AspNetCore.Grpc;
 /// <para>
 /// The compiler emits the bridge per channel as part of its
 /// gRPC-aware codegen. User code never instantiates
-/// these helpers directly — they're compiler-internal utilities
+/// these helpers directly: they're compiler-internal utilities
 /// exposed publicly so the generated bridges can call them.
 /// </para>
 /// </summary>
@@ -23,7 +23,7 @@ public static class SpekGrpcBridge
     /// and asks it with <paramref name="message"/>. Translates the
     /// reply into a tuple of (status, payload) for the bridge to
     /// map into a gRPC response. Replies that map to non-OK
-    /// statuses are returned with <c>null</c> payload — the bridge
+    /// statuses are returned with <c>null</c> payload - the bridge
     /// throws an <see cref="RpcException"/> to surface the status
     /// to the gRPC client.
     /// </summary>
@@ -54,7 +54,7 @@ public static class SpekGrpcBridge
     /// Throws an <see cref="RpcException"/> when the resolved
     /// status is non-OK. The bridge calls this after
     /// <see cref="AskAsync{TActor}"/> to translate Spek-side
-    /// "error" emit types into proper gRPC status codes — gRPC
+    /// "error" emit types into proper gRPC status codes - gRPC
     /// clients see the error via the standard status surface
     /// rather than a successful response with an error body.
     /// </summary>

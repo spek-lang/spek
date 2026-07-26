@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.LanguageServer;
 
 /// <summary>
-/// Coverage for <see cref="FileConventions"/> — the C#-style one-type-per-file
+/// Coverage for <see cref="FileConventions"/> - the C#-style one-type-per-file
 /// and file-name-matches-type editor hints (suggestions, not compiler
 /// diagnostics), and the exemptions that keep them from flagging files that
 /// can't be split.
@@ -41,7 +41,7 @@ public class FileConventionsTests
         Assert.NotEmpty(diags);
         Assert.All(diags, d => Assert.Equal(
             Spek.Compiler.Semantic.DiagnosticSeverity.Hint, d.Severity));
-        // No CE#### codes — these are tooling suggestions, not compiler diagnostics.
+        // No CE#### codes: these are tooling suggestions, not compiler diagnostics.
         Assert.All(diags, d => Assert.DoesNotContain("CE", d.Code));
     }
 
@@ -64,7 +64,7 @@ public class FileConventionsTests
     [Fact]
     public void NestedType_DoesNotCount()
     {
-        // One top-level module with a nested module — a single top-level type.
+        // One top-level module with a nested module - a single top-level type.
         Assert.DoesNotContain("CE0120", Codes("module Outer { module Inner { } }", "Outer"));
     }
 

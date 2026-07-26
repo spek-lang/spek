@@ -9,7 +9,7 @@ namespace Spek.Tests.ClusterIntegration.Membership;
 /// Coverage for cluster membership: state-machine transitions,
 /// event subscription, locality metadata, and leave-on-shutdown
 /// integration. Drives <see cref="SpekClusterNs.StaticSeedClusterMembership"/>
-/// directly (deterministic, no real gossip — full SWIM gossip is a
+/// directly (deterministic, no real gossip - full SWIM gossip is a
 /// follow-up that lives behind the same
 /// <see cref="SpekClusterNs.IClusterMembership"/> interface).
 /// </summary>
@@ -85,7 +85,7 @@ public class ClusterMembershipTests
     }
 
     [Fact]
-    public async Task LeaveAsync_TransitionsLocalToLeavingThenExiting()
+    public async Task LeaveAsync_TransitionsLocalToLeavingThenExitingAsync()
     {
         var local = new SpekClusterNs.NodeIdentity(Guid.NewGuid(), "self");
         var m = new SpekClusterNs.StaticSeedClusterMembership(local);
@@ -180,7 +180,7 @@ public class ClusterMembershipTests
     /// graceful Shutdown into clean cluster departure.
     /// </summary>
     [Fact]
-    public async Task Cluster_LeaveAsync_FiresLeavingThenExiting()
+    public async Task Cluster_LeaveAsync_FiresLeavingThenExitingAsync()
     {
         using var fabric = new InMemoryClusterFabric();
         using var system = new ActorSystem("a");

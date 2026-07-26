@@ -1,0 +1,88 @@
+<!-- Brand fonts, shared with the landing site (Inter + JetBrains Mono) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script>
+(function () {
+  var KEY = 'spek-reading-width';
+  var TKEY = 'spek-theme';
+  try { if (localStorage.getItem(KEY) === 'narrow') document.documentElement.classList.add('reading-narrow'); } catch (e) {}
+  // Daylight is the default; only an explicit 'dark' choice opts into night mode.
+  try { if (localStorage.getItem(TKEY) !== 'dark') document.documentElement.classList.add('theme-light'); } catch (e) { document.documentElement.classList.add('theme-light'); }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (document.documentElement.classList.contains('reading-narrow')) document.body.classList.add('reading-narrow');
+
+    // Give the GitHub aux link a real GitHub mark (inherits text colour).
+    var gh = document.querySelector('.aux-nav-list .site-button');
+    if (gh && !gh.querySelector('svg')) {
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 16 16');
+      svg.setAttribute('width', '15'); svg.setAttribute('height', '15');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.style.cssText = 'vertical-align:-2px;fill:currentColor';
+      var p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', 'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z');
+      svg.appendChild(p);
+      gh.setAttribute('aria-label', 'GitHub');   // stays accessible once the text label goes
+      gh.textContent = '';
+      gh.appendChild(svg);
+    }
+
+    // Reading-width toggle.
+    var list = document.querySelector('.aux-nav-list');
+    var host = list || document.querySelector('.aux-nav') || document.querySelector('.main-header');
+    if (host) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'spek-width-toggle';
+      // Two icons that swap on click: expand (arrows to corners) when narrow,
+      // collapse (arrows inward) when wide.
+      var SVG = 'viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+      var EXPAND   = '<svg ' + SVG + '><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+      var COLLAPSE = '<svg ' + SVG + '><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
+      function render() {
+        var narrow = document.body.classList.contains('reading-narrow');
+        btn.innerHTML = narrow ? EXPAND : COLLAPSE;
+        btn.title = narrow ? 'Use the full page width' : 'Center the text in a reading column';
+        btn.setAttribute('aria-pressed', narrow);
+        btn.setAttribute('aria-label', narrow ? 'Switch to full width' : 'Switch to narrow reading column');
+      }
+      render();
+      btn.addEventListener('click', function () {
+        var narrow = document.body.classList.toggle('reading-narrow');
+        document.documentElement.classList.toggle('reading-narrow', narrow);
+        try { localStorage.setItem(KEY, narrow ? 'narrow' : 'wide'); } catch (e) {}
+        render();
+      });
+      if (host.classList && host.classList.contains('aux-nav-list')) {
+        var li = document.createElement('li'); li.className = 'aux-nav-list-item'; li.appendChild(btn); host.appendChild(li);
+      } else { host.appendChild(btn); }
+
+      // Day/night theme toggle (sun/moon). Header stays dark; only content + menu change.
+      var SUN  = '<svg ' + SVG + '><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+      var MOON = '<svg ' + SVG + '><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+      var tbtn = document.createElement('button');
+      tbtn.type = 'button';
+      tbtn.className = 'spek-theme-toggle';
+      function trender() {
+        var light = document.documentElement.classList.contains('theme-light');
+        tbtn.innerHTML = light ? MOON : SUN;   // the button shows the mode you'd switch to
+        tbtn.title = light ? 'Switch to night mode' : 'Switch to daylight mode';
+        tbtn.setAttribute('aria-label', tbtn.title);
+      }
+      trender();
+      tbtn.addEventListener('click', function () {
+        var light = document.documentElement.classList.toggle('theme-light');
+        try { localStorage.setItem(TKEY, light ? 'light' : 'dark'); } catch (e) {}
+        trender();
+      });
+      if (host.classList && host.classList.contains('aux-nav-list')) {
+        var tli = document.createElement('li'); tli.className = 'aux-nav-list-item'; tli.appendChild(tbtn); host.appendChild(tli);
+      } else { host.appendChild(tbtn); }
+    }
+  });
+})();
+</script>

@@ -20,10 +20,10 @@ public record ActorDecl(
 /// A channel names a set of inputs (messages the implementing actor
 /// accepts) and emits (unprompted event messages the implementing actor
 /// may produce). Every type referenced is a pre-existing <c>message</c>
-/// decl — channels do not re-declare payloads.
+/// decl: channels do not re-declare payloads.
 ///
 /// Channels may inherit from other channels via
-/// <see cref="BaseChannels"/>. Inheritance is add-only — a derived
+/// <see cref="BaseChannels"/>. Inheritance is add-only - a derived
 /// channel adds inputs and emits to the base set without overriding
 /// or hiding inherited members. Diamond patterns are linearized:
 /// each input/emit appears once in the flattened set regardless of
@@ -41,7 +41,7 @@ public abstract record ChannelMember(SourceSpan Span) : AstNode(Span);
 public record ChannelInput(SourceSpan Span, QualifiedName MessageType) : ChannelMember(Span);
 
 /// <summary>
-/// <c>emits X;</c> — this channel declares that implementing actors may
+/// <c>emits X;</c>: this channel declares that implementing actors may
 /// produce an <c>X</c> unprompted. <c>emits any;</c> is the advisory
 /// escape hatch: anything can be emitted without a compile-time check.
 /// </summary>
@@ -135,7 +135,7 @@ public record InitBlock(
     SourceSpan Span,
     IReadOnlyList<Param> Parameters,
     BlockStmt Body,
-    // `: base(args)` — arguments chained to a base-class constructor. Null when
+    // `: base(args)`: arguments chained to a base-class constructor. Null when
     // the constructor has no base call (the common case). Empty list means
     // `: base()`. Only meaningful on a `class` that extends an abstract base.
     IReadOnlyList<Expr>? BaseArgs = null
@@ -144,7 +144,7 @@ public record InitBlock(
 // ─── Term block ────────────────────────────────────────────────────────────────
 //
 // `term { ... }` is the disposal counterpart to `init`. Runs at the
-// end of the actor stop sequence — after `on PostStop`, before the
+// end of the actor stop sequence: after `on PostStop`, before the
 // actor reference becomes invalid. Triggers `IAsyncDisposable`
 // emission on the generated actor class.
 //
@@ -168,11 +168,11 @@ public record BehaviorDecl(
 
 /// <summary>
 /// A single <c>on Foo => ...</c> arm inside a behavior. Each handler
-/// may carry a visibility modifier — <see cref="Visibility.Public"/>
+/// may carry a visibility modifier: <see cref="Visibility.Public"/>
 /// (default; reachable from any caller), <see cref="Visibility.Internal"/>
 /// (same-assembly only), or <see cref="Visibility.Private"/> (reachable
 /// only via <c>self.Tell</c>; the runtime dead-letters anything else
-/// targeting it) — and an optional <see cref="HandlerMode"/>:
+/// targeting it) - and an optional <see cref="HandlerMode"/>:
 /// <see cref="HandlerMode.Reader"/> (no field mutation; future
 /// runtime can run readers concurrently) or
 /// <see cref="HandlerMode.Writer"/> (default; full mutation rights;
@@ -194,7 +194,7 @@ public record OnHandler(
 
 /// <summary>
 /// Concurrency discipline an <see cref="OnHandler"/> opts into.
-/// Default is <see cref="Writer"/> — the
+/// Default is <see cref="Writer"/>: the
 /// "every handler serializes against every other" semantics.
 /// </summary>
 public enum HandlerMode { Writer, Reader }
@@ -260,7 +260,7 @@ public abstract record SuperviseOption(SourceSpan Span) : AstNode(Span);
 /// strategy. <see cref="ExceptionType"/> is null for the untyped catch-all
 /// form (<c>on Failure: Action</c>); when set it narrows the arm to only
 /// match causes that are <c>cause is ExceptionType</c>. Multiple arms in
-/// a single strategy are matched top-to-bottom — the first matching arm
+/// a single strategy are matched top-to-bottom - the first matching arm
 /// wins.
 /// </summary>
 public record OnFailureOption(
@@ -269,7 +269,7 @@ public record OnFailureOption(
     RestartAction Action
 ) : SuperviseOption(Span);
 // maxRetries / withinTime are named arguments (IDENTIFIER COLON expression). Their
-// values are expressions emitted verbatim — an int and a TimeSpan in practice, both
+// values are expressions emitted verbatim - an int and a TimeSpan in practice, both
 // type-checked by Roslyn. An unrecognized option name parses to UnknownSuperviseOption
 // and is reported as CE0117 in semantics (never reaches emit).
 public record MaxRetriesOption(SourceSpan Span, Expr Value) : SuperviseOption(Span);
@@ -289,7 +289,7 @@ public record MethodDecl(
     IReadOnlyList<WhereClause> WhereClauses,        // Generic constraints
     IReadOnlyList<Param> Parameters,
     // For an `abstract` method (no source body) this is a synthesized empty
-    // block — the emitter gates on IsAbstract and emits a `;` instead, so the
+    // block: the emitter gates on IsAbstract and emits a `;` instead, so the
     // block is never rendered. Keeping it non-null avoids nullable ripple
     // through every body-walking pass.
     BlockStmt Body,

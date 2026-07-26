@@ -108,7 +108,7 @@ public sealed class TaskResultRewriteTests(ITestOutputHelper output)
     [Fact]
     public void NonTaskResult_LeftAlone()
     {
-        // A user type with a plain `Result` property must NOT be rewritten —
+        // A user type with a plain `Result` property must NOT be rewritten;
         // the receiver isn't a Task.
         const string src = """
             public class Box { public int Result { get; set; } }
@@ -169,7 +169,7 @@ public sealed class TaskResultRewriteTests(ITestOutputHelper output)
     [Fact]
     public void UserDefinedFile_NotRewritten()
     {
-        // A non-System.IO `File.ReadAllText` must be left alone — the rewriter
+        // A non-System.IO `File.ReadAllText` must be left alone - the rewriter
         // binds the symbol and checks the containing type is System.IO.File.
         // Tested at the rewriter level (raw C#) since Spek's class grammar
         // doesn't allow the static method needed to express it in .spek source.

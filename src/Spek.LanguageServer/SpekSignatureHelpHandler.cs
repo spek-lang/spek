@@ -14,13 +14,13 @@ namespace Spek.LanguageServer;
 /// message's fields as the signature and highlights the parameter the cursor is
 /// on.
 ///
-/// Two design points make it work while you're mid-type — which is exactly when
+/// Two design points make it work while you're mid-type - which is exactly when
 /// you want it. First, it lexes the <em>live</em> source (the ANTLR lexer is
 /// tolerant of the half-typed call the parser rejects) to locate the enclosing
 /// call and count arguments. Second, it resolves the field list from the
 /// document's last good parse
 /// (<see cref="DocumentCache.Entry.LastGoodTree"/>), so an unclosed
-/// <c>new Deposit(</c> — which leaves the live parse null — still gets help,
+/// <c>new Deposit(</c> (which leaves the live parse null) still gets help,
 /// because the message <em>declaration</em> parsed fine earlier.
 /// </summary>
 internal sealed class SpekSignatureHelpHandler : SignatureHelpHandlerBase
@@ -47,7 +47,7 @@ internal sealed class SpekSignatureHelpHandler : SignatureHelpHandlerBase
         var tree  = entry?.Tree ?? entry?.LastGoodTree;
         if (entry is null || tree is null) return none;
 
-        // Lex the live source — tolerant of the unclosed call the parser chokes on.
+        // Lex the live source: tolerant of the unclosed call the parser chokes on.
         var lexer  = new SpekLexer(CharStreams.fromString(entry.Source));
         var stream = new CommonTokenStream(lexer);
         stream.Fill();
@@ -88,7 +88,7 @@ internal sealed class SpekSignatureHelpHandler : SignatureHelpHandlerBase
         }
         if (openIdx <= 0) return none;
 
-        // The token before '(' must be an identifier preceded by `new` — i.e. a
+        // The token before '(' must be an identifier preceded by `new` - i.e. a
         // `new Msg(` message construction. Anything else, we stay quiet.
         var nameTok = toks[openIdx - 1];
         if (nameTok.Type != SpekLexer.IDENTIFIER) return none;

@@ -12,12 +12,12 @@ public class DiagnosticMapperTests
     [Fact]
     public void ToLsp_ConvertsCodeLineAndMessage()
     {
-        var d = new SpekDiag("CE0011", 5, 10, "'become Foo' — Foo is not declared");
+        var d = new SpekDiag("CE0011", 5, 10, "'become Foo': Foo is not declared");
 
         var lsp = DiagnosticMapper.ToLsp(d);
 
         Assert.Equal("CE0011", lsp.Code?.String);
-        Assert.Equal("'become Foo' — Foo is not declared", lsp.Message);
+        Assert.Equal("'become Foo': Foo is not declared", lsp.Message);
         Assert.Equal("spek", lsp.Source);
         Assert.Equal(DiagnosticSeverity.Error, lsp.Severity);
     }
@@ -51,7 +51,7 @@ public class DiagnosticMapperTests
     [Fact]
     public void ToLsp_ClampsNegativePositions()
     {
-        // Synthetic edge case — the analyzer shouldn't produce these, but
+        // Synthetic edge case: the analyzer shouldn't produce these, but
         // the mapper clamps rather than throws.
         var d = new SpekDiag("CE9999", 0, 0, "synthetic");
 

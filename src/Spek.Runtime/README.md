@@ -16,27 +16,27 @@ stay in `Spek.Runtime`. Persistence types live in `Spek.Persistence`
 
 ### `namespace Spek` (user-facing)
 
-- `ActorBase` — base class for generated actor classes. Override lifecycle
+- `ActorBase`: base class for generated actor classes. Override lifecycle
   hooks (`OnPreStart`, `OnPostStop`, `OnRestore`, `OnPassivate`, `OnFailure`,
   `OnChildFailure`) to customise behavior.
-- `ActorRef` — stable reference to an actor. The underlying instance can be
+- `ActorRef`: stable reference to an actor. The underlying instance can be
   replaced on Restart or unloaded on passivation without invalidating refs.
   Also exposes `AttachIngressPolicy(...)` for `Spek.Resilience` policies.
-- `IRemoteEndpoint` — adapter contract for remote refs (implemented by the
+- `IRemoteEndpoint`: adapter contract for remote refs (implemented by the
   cluster layer).
-- `FailureDirective` — `Resume`, `Restart`, `Escalate`, `Stop`.
-- `Outcome<T,E>`, `Outcome<T>` — typed success/failure reply payloads.
-- `LamportClock`, `VectorClock` — logical clocks for distributed causality.
+- `FailureDirective`: `Resume`, `Restart`, `Escalate`, `Stop`.
+- `Outcome<T,E>`, `Outcome<T>`: typed success/failure reply payloads.
+- `LamportClock`, `VectorClock`: logical clocks for distributed causality.
 
 ### `namespace Spek.Runtime` (engine)
 
-- `ActorSystem` — root of an actor hierarchy; spawn top-level actors,
+- `ActorSystem`: root of an actor hierarchy; spawn top-level actors,
   configure the snapshot store and dead-letter sink, register a cluster
   adapter.
-- `IDeadLetterSink` (+ `ConsoleDeadLetterSink`, `RecordingDeadLetterSink`)
-  — observe unhandled and dropped messages.
-- `IClusterAdapter` — the runtime's hook for the cluster layer.
-- `InMemorySnapshotStore` — default in-memory implementation of
+- `IDeadLetterSink` (+ `ConsoleDeadLetterSink`, `RecordingDeadLetterSink`):
+  observe unhandled and dropped messages.
+- `IClusterAdapter`: the runtime's hook for the cluster layer.
+- `InMemorySnapshotStore`: default in-memory implementation of
   `ISnapshotStore` (the contract itself lives in
   `Spek.Persistence.Abstractions`).
 

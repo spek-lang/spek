@@ -6,10 +6,10 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Actor inheritance — the same reuse + abstract-only model as classes. An
+/// Actor inheritance: the same reuse + abstract-only model as classes. An
 /// <c>abstract actor</c> is a base that shares fields and methods and can
 /// declare <c>abstract</c> methods a derived actor must implement; a concrete
-/// actor is sealed. No <c>virtual</c>/<c>override</c> keyword — the emitter
+/// actor is sealed. No <c>virtual</c>/<c>override</c> keyword - the emitter
 /// infers <c>override</c> for a method implementing a base actor's abstract
 /// method. CE0122 guards abstract-method placement; CE0123 guards the base
 /// (only an abstract actor is extendable). Roslyn does the conformance check
@@ -75,6 +75,43 @@ public sealed class ActorInheritanceTests(ITestOutputHelper output)
         Assert.Contains("class Doubler : Worker", code);
         Assert.Contains("public override int Transform(int x)", code);   // override inferred
         AssertCompiles(code, "ActorInheritance");
+    }
+
+    // ── an abstract actor with a parameterized `init` and NO
+    //    behaviors must still emit its constructor, or a derived actor's
+    //    `init(...) : base(args)` fails to resolve (was CS1729 - the emitter
+    //    skipped the constructor whenever there were no behaviors). ──
+    [Fact]
+    public void AbstractActor_WithInitButNoBehaviors_EmitsConstructor_AndCompiles()
+    {
+        const string src = """
+            message Ping();
+
+            abstract actor Base
+            {
+                protected int seed;
+                init(int s) { seed = s; }
+            }
+
+            actor Derived : Base
+            {
+                init(int s) : base(s) { become Active; }
+                behavior Active { on Ping => { } }
+            }
+            """;
+        var code = EmitCSharp(src);
+        Assert.Contains("public Base(int s)", code);       // the dropped constructor
+        Assert.DoesNotContain("_behavior =", SecondHalf(code, "class Base"));  // no behavior default in Base
+        AssertCompiles(code, "AbstractActorInit");
+    }
+
+    // Text of `code` from the first occurrence of `marker` onward - used to
+    // scope a DoesNotContain to the Base class only.
+    private static string SecondHalf(string code, string marker)
+    {
+        var i = code.IndexOf(marker, System.StringComparison.Ordinal);
+        var end = code.IndexOf("class Derived", System.StringComparison.Ordinal);
+        return i < 0 ? code : code[i..(end < 0 ? code.Length : end)];
     }
 
     // ─── CE0123 / CE0122 ────────────────────────────────────────────────

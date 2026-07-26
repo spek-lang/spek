@@ -4,6 +4,8 @@
 // C# variants). `persist` snapshots; Spek auto-captures the actor's fields and
 // restores them when the second system rehydrates the same key.
 
+using Xunit;
+
 message Increment();
 message Get();
 message Reply(int n);
@@ -20,7 +22,7 @@ actor Counter
         on Get       => return new Reply(count);
     }
 
-    // No explicit `on Restore` — the emitter auto-generates a symmetric restore that
+    // No explicit `on Restore`: the emitter auto-generates a symmetric restore that
     // rehydrates `count` from the snapshot. State survives a restart with
     // no hand-written restore code; the StateSurvivesSystemRestart test below proves it.
 }
@@ -40,19 +42,19 @@ class PersistenceTests
         sys1.WhenIdleAsync();
         sys1.Dispose();
 
-        // Second lifetime: fresh system, same store — the count restores to 3.
+        // Second lifetime: fresh system, same store - the count restores to 3.
         var sys2 = new TestActorSystem("svc-2", store);
         var c2   = sys2.SpawnPersistent<Counter>("counter-A");
 
         Reply r = c2.Ask(new Get());
-        Xunit.Assert.Equal(3, r.n);
+        Assert.Equal(3, r.n);
 
         sys2.Dispose();
     }
 
     public void RestoresTheExactPersistedCount()
     {
-        // A second data point with a different count — guards against a restore that
+        // A second data point with a different count - guards against a restore that
         // hard-codes or over-counts, which the single count==3 case would not catch.
         var store = new Spek.Runtime.InMemorySnapshotStore();
 
@@ -67,7 +69,7 @@ class PersistenceTests
         var a2   = sysB.SpawnPersistent<Counter>("counter-B");
 
         Reply r2 = a2.Ask(new Get());
-        Xunit.Assert.Equal(2, r2.n);
+        Assert.Equal(2, r2.n);
 
         sysB.Dispose();
     }

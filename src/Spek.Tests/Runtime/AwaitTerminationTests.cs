@@ -46,7 +46,7 @@ public class AwaitTerminationTests
 
         Assert.True(result, "AwaitTermination should have returned true (idle achieved).");
         // With the old busy-loop this takes ~10ms minimum (the Thread.Sleep).
-        // With signaling, it should complete in well under that — typically
+        // With signaling, it should complete in well under that - typically
         // sub-millisecond on a hot path. We give generous headroom for CI.
         Assert.True(elapsed < TimeSpan.FromMilliseconds(200),
             $"Expected fast return; took {elapsed.TotalMilliseconds}ms.");
@@ -66,7 +66,7 @@ public class AwaitTerminationTests
     }
 
     [Fact]
-    public async Task AwaitTermination_Returns_AfterSlowWorkFinishes()
+    public async Task AwaitTermination_Returns_AfterSlowWorkFinishesAsync()
     {
         using var system = new ActorSystem("t");
         var actor = system.Spawn<SlowWorker>();

@@ -28,19 +28,17 @@ Each message frames as:
 ```
 
 Every field uses a fixed 4-byte big-endian length prefix (standard
-length-prefixed binary framing). Payloads are JSON-serialized by default
-(`JsonSpekSerializer`); a compact binary serializer (MemoryPack / MessagePack)
-is a planned swap-in at host-bootstrap time for cross-language clusters.
+length-prefixed binary framing). Payloads are JSON-serialized
+(`JsonSpekSerializer`).
 
 ## Authentication
 
-These are the **designed** modes; only `LoopbackOnly` is enforced today (see the
-security warning above):
+Only `LoopbackOnly` is enforced (see the security warning above):
 
 | Mode | When | Status |
 |---|---|---|
-| **mTLS** | Production. Each node carries a cert signed by the cluster CA. | designed, not implemented |
-| **Cluster shared-secret** | Dev / internal. PSK-style symmetric token (`ClusterSharedKey`). | **plumbed but not enforced**; setting it logs a warning |
+| **mTLS** | Production. Each node carries a cert signed by the cluster CA. | not implemented |
+| **Cluster shared-secret** | Dev / internal. PSK-style symmetric token (`ClusterSharedKey`). | **not enforced**; setting it logs a warning |
 | **Loopback-only** (`LoopbackOnly`) | Single-host. Refuses non-`127.0.0.1` connections. | enforced |
 
 This package depends on `Spek.Cluster.Abstractions` only. Add the

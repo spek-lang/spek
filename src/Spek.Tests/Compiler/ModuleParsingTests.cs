@@ -97,7 +97,7 @@ public sealed class ModuleParsingTests
     [Fact]
     public void NestedModules_Parse()
     {
-        // Modules nest as sub-namespacing — Erlang-style.
+        // Modules nest as sub-namespacing: Erlang-style.
         const string src = """
             module Outer
             {

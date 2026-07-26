@@ -5,7 +5,7 @@ namespace Spek.Compiler.Emit;
 /// <summary>
 /// Emits C# record declarations for Spek message types.
 ///
-/// Mapping (per CONTEXT.md):
+/// Mapping:
 ///   message Foo(T x)           → public record Foo(T x);
 ///   message Response&lt;T&gt;(T v)   → public record Response&lt;T&gt;(T v);
 ///   message Shutdown(string r = "normal") → public record Shutdown(string r = "normal");
@@ -26,7 +26,7 @@ public sealed class MessageEmitter
 
         // `abstract message` → an abstract record (a family base you can't
         // instantiate, only handle). A variant chains to the base's primary
-        // constructor: `: Base()` — empty because the abstract base carries no
+        // constructor: `: Base()`: empty because the abstract base carries no
         // fields (base-carries-fields is deferred; see CE0125).
         var abstractKw = msg.IsAbstract ? "abstract " : "";
         var baseClause = msg.BaseMessage is not null ? $" : {msg.BaseMessage}()" : "";

@@ -5,23 +5,23 @@ namespace Spek.LanguageServer;
 
 /// <summary>
 /// C#-style file-organization conventions, surfaced as editor <b>hints</b>
-/// (suggestions — <see cref="Spek.Compiler.Semantic.DiagnosticSeverity.Hint"/>).
+/// (suggestions: <see cref="Spek.Compiler.Semantic.DiagnosticSeverity.Hint"/>).
 /// These are tooling nudges, not compiler diagnostics: they carry no <c>CE</c>
 /// code, aren't in the error catalog, and never appear in <c>spekc</c> or a
 /// build. Two of them:
 ///
 /// <list type="bullet">
-///   <item><b>one-type-per-file</b> — a <c>.spek</c> file should declare a single
+///   <item><b>one-type-per-file</b>: a <c>.spek</c> file should declare a single
 ///     top-level "substantial" type (module / actor / enum / class / channel /
 ///     shared region). Extra ones should move to their own file.</item>
-///   <item><b>file-name-mismatch</b> — a single-purpose type file should be named
+///   <item><b>file-name-mismatch</b>: a single-purpose type file should be named
 ///     after the type it declares.</item>
 /// </list>
 ///
 /// <para><c>message</c> declarations are exempt: they're an actor's small value
 /// vocabulary and group freely, and single-file compilation (CE0010) often
 /// *requires* a message to sit beside the enum/type it references. Nested types
-/// are exempt too — they aren't top-level. So the hints only fire where a file
+/// are exempt too: they aren't top-level. So the hints only fire where a file
 /// genuinely could and should be split.</para>
 /// </summary>
 internal static class FileConventions

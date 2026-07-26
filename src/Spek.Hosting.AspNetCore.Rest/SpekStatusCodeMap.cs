@@ -25,7 +25,7 @@ public sealed class SpekStatusCodeMap
 
     /// <summary>
     /// Convenience constructor pre-populated with the built-in
-    /// mappings. The mapping table is a copy — extending it via
+    /// mappings. The mapping table is a copy - extending it via
     /// <see cref="Add{T}"/> doesn't affect other hosts.
     /// </summary>
     public static SpekStatusCodeMap WithBuiltInDefaults()
@@ -53,8 +53,8 @@ public sealed class SpekStatusCodeMap
 
     /// <summary>
     /// Resolve a status code by reply type. Returns
-    /// <see cref="StatusCodes.Status200OK"/> when no mapping exists
-    /// — the standard "this is a normal response" case.
+    /// <see cref="Microsoft.AspNetCore.Http.StatusCodes.Status200OK"/> when no mapping exists
+    ///: the standard "this is a normal response" case.
     /// </summary>
     public int ResolveFor(Type replyType)
         => _map.TryGetValue(replyType, out var code) ? code : 200;

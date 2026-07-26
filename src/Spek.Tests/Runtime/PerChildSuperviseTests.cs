@@ -10,7 +10,7 @@ namespace Spek.Tests.Runtime;
 /// <summary>
 /// End-to-end test for the per-child <c>supervise(fieldName, strategy: ...)</c>
 /// form. The emitter has always generated the per-child branch; this test
-/// verifies the runtime wiring works — specifically, that a per-child
+/// verifies the runtime wiring works - specifically, that a per-child
 /// override changes the policy for a specific child while other children
 /// still fall through to the default <c>supervise strategy: ...;</c> form.
 /// </summary>
@@ -28,7 +28,7 @@ public class PerChildSuperviseTests
         """;
 
     [Fact]
-    public async Task PerChildForm_OverridesDefault_ForTargetedChild()
+    public async Task PerChildForm_OverridesDefault_ForTargetedChildAsync()
     {
         // `hot` is supervised with Stop (per-child override).
         // `cold` falls through to the default (Restart).
@@ -113,6 +113,6 @@ public class PerChildSuperviseTests
         Assert.True(hot.IsStopped,
             "hot should be stopped by the per-child Stop override");
         Assert.False(cold.IsStopped,
-            "cold should be alive — default Restart policy applied");
+            "cold should be alive; default Restart policy applied");
     }
 }

@@ -8,13 +8,13 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Full-pipeline tests for Option D — handler-return-inferred reply types
+/// Full-pipeline tests for the inferred-reply convention; handler-return-inferred reply types
 /// on <c>ask</c> calls. Parses Spek source that uses
 /// <c>on Ping =&gt; return new Pong();</c>, emits C#, compiles via Roslyn,
 /// loads, and exercises the compiled actors to verify the reply is
 /// routed correctly and the reply type is inferred for the ask caller.
 /// </summary>
-public class OptionDAskTests
+public class InferredReplyAskTests
 {
     [Fact]
     public void InlineReturn_RoutesToSender_AskReceivesTypedReply()
@@ -59,7 +59,7 @@ public class OptionDAskTests
         var csharp = new FileEmitter().Emit(parse.Tree!);
 
         // Proof-of-inference: the emitted C# should contain AskAsync<Pong>
-        // (not AskAsync<Ping>). Pre-Option D would have emitted <Ping>.
+        // (not AskAsync<Ping>). Pre-the inferred-reply convention would have emitted <Ping>.
         Assert.Contains("AskAsync<Pong>", csharp);
 
         var assembly = RoslynCompileHelper.CompileAndLoad(csharp, "OptionDInline");
@@ -154,7 +154,7 @@ public class OptionDAskTests
     {
         // `ask<FastPong>` at the call site forces the reply type even when
         // other actors' handlers for the same message return different
-        // types. This is the Option B escape hatch on top of Option D's
+        // types. This is the explicit escape hatch on top of the inferred-reply convention's
         // default inference.
         const string src = """
             namespace ExplicitAsk;
@@ -198,7 +198,7 @@ public class OptionDAskTests
     public void AmbiguousReturnTypes_AcrossActors_FallsBackToObject()
     {
         // Two actors both handle `Ping` but return different reply types.
-        // Inference shouldn't silently pick one — it should fall back
+        // Inference shouldn't silently pick one; it should fall back
         // to `object` and let the caller disambiguate.
         const string src = """
             namespace Ambig;

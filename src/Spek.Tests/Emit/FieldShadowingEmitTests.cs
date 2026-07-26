@@ -7,9 +7,9 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// The field-aware expression emitter prefixes actor-field references with <c>_</c>. A
 /// parameter, handler binding, or local that shadows a field must NOT be <c>_</c>-prefixed
-/// — it binds to the param/local (C# scoping), not the field. Before this, the emitter did
+///: it binds to the param/local (C# scoping), not the field. Before this, the emitter did
 /// a flat <c>_fields.Contains(name)</c> check, so a method param named <c>value</c> on an
-/// actor with a <c>value</c> field was silently rewritten to <c>_value</c> — a latent
+/// actor with a <c>value</c> field was silently rewritten to <c>_value</c> - a latent
 /// correctness bug.
 /// </summary>
 public sealed class FieldShadowingEmitTests
@@ -61,7 +61,7 @@ public sealed class FieldShadowingEmitTests
     [Fact]
     public void Local_ShadowsField_UsesLocalAfterDeclaration()
     {
-        // The actor handles Reply too — otherwise the self-tell is provably
+        // The actor handles Reply too: otherwise the self-tell is provably
         // dead mail and (correctly) trips CE0126.
         const string src = """
             message Reply(int n);

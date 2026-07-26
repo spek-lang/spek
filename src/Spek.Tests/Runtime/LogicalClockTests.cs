@@ -105,7 +105,7 @@ public class VectorClockTests
     [Fact]
     public void IsConcurrentWith_DetectsParallelEdits()
     {
-        // Two independent edits — neither has seen the other.
+        // Two independent edits: neither has seen the other.
         var aOnly = VectorClock.Empty.Tick(NodeA);                         // A:1
         var bOnly = VectorClock.Empty.Tick(NodeB);                         // B:1
         Assert.True(aOnly.IsConcurrentWith(bOnly));
@@ -127,7 +127,7 @@ public class VectorClockTests
     [Fact]
     public void Equality_IgnoresAbsentNodesEquivalentToZero()
     {
-        // Two ways to express "A:1, B:0" — explicitly setting B:0 vs omitting B.
+        // Two ways to express "A:1, B:0": explicitly setting B:0 vs omitting B.
         var withB = new VectorClock(
             ImmutableDictionary<Guid, long>.Empty.SetItem(NodeA, 1).SetItem(NodeB, 0));
         var withoutB = VectorClock.Empty.Tick(NodeA);

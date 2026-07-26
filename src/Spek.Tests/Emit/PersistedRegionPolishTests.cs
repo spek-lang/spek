@@ -6,12 +6,12 @@ namespace Spek.Tests.Emit;
 
 /// <summary>
 /// Persisted-region polish. Two refinements:
-///   1. <c>transient</c> field keyword — opts a field out of
+///   1. <c>transient</c> field keyword - opts a field out of
 ///      <c>CaptureFields()</c> / <c>RestoreFields()</c>. Behaves
 ///      identically on non-persisted regions and on actor fields
 ///      (the keyword parses but the emitter ignores it where there
 ///      is no persistence shape to opt out of).
-///   2. CE0100 — semantic check that catches direct assignments of a
+///   2. CE0100: semantic check that catches direct assignments of a
 ///      shared-region read into an actor field. Forces an explicit
 ///      borrow through a local or a deep-copy call so the actor
 ///      doesn't hold a reference past the region's lock.
@@ -59,7 +59,7 @@ public sealed class PersistedRegionPolishTests
     [Fact]
     public void TransientField_OnPersistedRegion_KeepsInitialiser()
     {
-        // The transient field is still emitted as a normal C# field —
+        // The transient field is still emitted as a normal C# field;
         // it just doesn't participate in persistence. Initialiser holds.
         const string src = """
             shared MarketCache : Persisted
@@ -178,7 +178,7 @@ public sealed class PersistedRegionPolishTests
     [Fact]
     public void CE0100_RegionFieldThroughLocal_NoReport()
     {
-        // Routing the region read through a local sanitises the borrow —
+        // Routing the region read through a local sanitises the borrow;
         // the local is a snapshot the developer chose to copy out.
         const string src = """
             message Refresh();
@@ -208,7 +208,7 @@ public sealed class PersistedRegionPolishTests
     public void CE0100_RegionFieldThroughFunction_NoReport()
     {
         // Wrapping the read in a function/method call also signals
-        // intent — the developer is taking a deep copy or projecting.
+        // intent: the developer is taking a deep copy or projecting.
         const string src = """
             message Refresh();
             shared MarketCache

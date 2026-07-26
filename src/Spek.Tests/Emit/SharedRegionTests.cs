@@ -5,10 +5,10 @@ using Xunit;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Phase 1 — `shared X { fields... }` regions plus `use X foo;`
+/// Phase 1: `shared X { fields... }` regions plus `use X foo;`
 /// attachment in actor bodies. Reader/writer handlers acquire the
 /// region's RW lock around their body. Init blocks, persistence
-/// clauses, and CE0087 extensions are out of scope here — covered by
+/// clauses, and CE0087 extensions are out of scope here - covered by
 /// follow-up commits.
 /// </summary>
 public sealed class SharedRegionTests
@@ -126,7 +126,7 @@ public sealed class SharedRegionTests
             d => d.Code == "CE0097" && d.Message.Contains("NotARegion"));
     }
 
-    // ─── Phase 2 — init block ───────────────────────────────────────────
+    // ─── Phase 2: init block ───────────────────────────────────────────
 
     [Fact]
     public void SharedRegion_InitBlock_EmitsInitializeOverride()
@@ -179,7 +179,7 @@ public sealed class SharedRegionTests
             "Emitted C# did not compile:\n" + errors + "\n--- emitted ---\n" + code);
     }
 
-    // ─── Phase 2 — CE0087 extension ─────────────────────────────────────
+    // ─── Phase 2: CE0087 extension ─────────────────────────────────────
 
     [Fact]
     public void ReaderHandler_MutatingRegionField_TriggersCE0087()
@@ -204,7 +204,7 @@ public sealed class SharedRegionTests
     [Fact]
     public void WriterHandler_MutatingRegionField_OK()
     {
-        // Same shape as the CE0087 case but writer mode — must NOT
+        // Same shape as the CE0087 case but writer mode - must NOT
         // trigger the diagnostic.
         const string src = """
             message Tick();
@@ -226,7 +226,7 @@ public sealed class SharedRegionTests
     public void ReaderHandler_ReadingRegionField_OK()
     {
         // Reading a region field from a reader is the canonical
-        // intended pattern — no diagnostic.
+        // intended pattern: no diagnostic.
         const string src = """
             message Tick();
             message Reply(long v);
@@ -244,7 +244,7 @@ public sealed class SharedRegionTests
         Assert.DoesNotContain(parsed.Diagnostics, d => d.Code == "CE0087");
     }
 
-    // ─── Phase 3 — persistence (capability inheritance) ─────────────────
+    // ─── Phase 3: persistence (capability inheritance) ─────────────────
 
     [Fact]
     public void PersistedRegion_Parses()

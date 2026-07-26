@@ -8,7 +8,7 @@ namespace Spek.Compiler.Parser;
 
 /// <summary>
 /// Walks the ANTLR4 parse tree and produces a typed AST.
-/// Uses the visitor pattern as recommended in CONTEXT.md.
+/// Uses the visitor pattern.
 /// </summary>
 public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
 {
@@ -23,9 +23,34 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private static SourceSpan Span(ParserRuleContext ctx) =>
-        new(ctx.Start.Line, ctx.Start.Column + 1,
-            ctx.Stop?.Line ?? ctx.Start.Line, (ctx.Stop?.Column ?? ctx.Start.Column) + 1);
+    private static SourceSpan Span(ParserRuleContext ctx)
+    {
+        // EndColumn is 1-based exclusive (one past the stop token's last
+        // character), so a single-token span carries the token's true width.
+        // A stop token spanning lines (block text) has no meaningful end
+        // column on its end line; fall back to width 1 rather than guess.
+        var stop = ctx.Stop;
+        var stopLen = stop?.Text is { } t && !t.Contains('\n') ? t.Length : 1;
+        return new(ctx.Start.Line, ctx.Start.Column + 1,
+            stop?.Line ?? ctx.Start.Line, (stop?.Column ?? ctx.Start.Column) + 1 + stopLen);
+    }
+
+    /// <summary>Span from <paramref name="start"/>'s first character to one
+    /// past <paramref name="stop"/>'s last - same math as
+    /// <see cref="Span(ParserRuleContext)"/>, for spans that straddle rule
+    /// contexts (the collapsed name chains in VisitPostfixExpr).</summary>
+    private static SourceSpan SpanFrom(IToken start, IToken stop)
+    {
+        var stopLen = stop.Text is { } t && !t.Contains('\n') ? t.Length : 1;
+        return new(start.Line, start.Column + 1, stop.Line, stop.Column + 1 + stopLen);
+    }
+
+    // Token types the grammar's `softName` rule accepts - the names that may
+    // extend a qualified name. Keep in sync with SpekParser.g4.
+    private static bool IsSoftNameToken(int type) => type
+        is SpekLexer.IDENTIFIER or SpekLexer.ACTOR or SpekLexer.MESSAGE
+        or SpekLexer.CHANNEL or SpekLexer.INTERFACE or SpekLexer.AFTER
+        or SpekLexer.STRATEGY or SpekLexer.RESUME or SpekLexer.FLAGS;
 
     // The `///` doc-comment block written immediately above `ctx`, or null.
     // Whitespace is `-> skip`ped by the lexer, so the hidden channel holds only
@@ -40,7 +65,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         // Keep only the run of consecutive `///` lines that sits directly above
         // ctx. A plain comment, or a blank line (which the lexer skips, so it
         // shows as a line-number jump between hidden tokens), starts the run
-        // fresh — this stops a floating file-overview block from being merged
+        // fresh: this stops a floating file-overview block from being merged
         // into the first declaration's docs.
         var lines = new List<string>();
         int lastLine = -1;
@@ -181,7 +206,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
 
     public override AstNode VisitEnumDecl(EnumDeclContext ctx)
     {
-        // Default visibility is Public, not Private — enums are typically
+        // Default visibility is Public, not Private - enums are typically
         // used as `message` field types, which emit as public records.
         // An explicit modifier still wins (`internal enum X { }`).
         var visibility = ctx.visibility() != null
@@ -192,10 +217,27 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         if (ctx.enumMembers() != null)
         {
             foreach (var m in ctx.enumMembers().enumMember())
-                members.Add(new EnumMember(Span(m), m.IDENTIFIER().GetText())
+            {
+                long? value = null;
+                IReadOnlyList<string>? unionOf = null;
+                var v = m.enumMemberValue();
+                if (v != null)
+                {
+                    if (v.INTEGER_LITERAL() != null)
+                    {
+                        var parsed = ParseIntValue(v.INTEGER_LITERAL().GetText());
+                        value = v.MINUS() != null ? -parsed : parsed;
+                    }
+                    else
+                    {
+                        unionOf = v.IDENTIFIER().Select(i => i.GetText()).ToList();
+                    }
+                }
+                members.Add(new EnumMember(Span(m), m.IDENTIFIER().GetText(), value, unionOf)
                     { DocComment = DocBefore(m) });
+            }
         }
-        return new EnumDecl(Span(ctx), visibility, name, members)
+        return new EnumDecl(Span(ctx), visibility, name, members, ctx.FLAGS() != null)
             { DocComment = DocBefore(ctx) };
     }
 
@@ -219,7 +261,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
                   .Select(tp => new TypeParameter(Span(tp), tp.IDENTIFIER().GetText()))
                   .ToList()
             : (IReadOnlyList<TypeParameter>)[];
-        // `actor Foo : Bar, Ch1, Ch2 { }` — the colon list may contain a base
+        // `actor Foo : Bar, Ch1, Ch2 { }`: the colon list may contain a base
         // actor followed by one or more channel names. The builder splits
         // naively: first name → BaseActor (could turn out to be a channel after
         // symbol resolution; semantic analyzer fixes that up); remaining
@@ -243,7 +285,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         // `behavior Default { ... }` appended to the member list. The
         // name "Default" is fixed so stack traces and supervision logs
         // remain readable. Mixed mode (some bare, some inside an
-        // explicit `behavior X {}`) is allowed — bare handlers go to
+        // explicit `behavior X {}`) is allowed - bare handlers go to
         // Default, explicit behaviors keep their own names. In that
         // case the auto-become picks whichever behavior comes first
         // in source order (typically the explicit one); the user can
@@ -300,7 +342,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             }
         }
 
-        // Base list — `: Base, IFoo, ...`. An optional base class (first) plus
+        // Base list: `: Base, IFoo, ...`. An optional base class (first) plus
         // implemented interfaces; semantic analysis classifies each name.
         var bases = new List<QualifiedName>();
         if (ctx.classBases() is { } cbctx)
@@ -319,7 +361,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         var name       = ctx.IDENTIFIER().GetText();
         var typeParams = BuildTypeParams(ctx.typeParams());
 
-        // Base interfaces — `: Base, ...`. Cycle-checking happens in semantics.
+        // Base interfaces: `: Base, ...`. Cycle-checking happens in semantics.
         var bases = new List<QualifiedName>();
         if (ctx.interfaceBases() is { } bctx)
         {
@@ -392,7 +434,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         var visibility = ParseVisibility(ctx.visibility());
         var name       = ctx.IDENTIFIER().GetText();
 
-        // Inheritance list — `: Base1, Base2, ...`. Empty when
+        // Inheritance list: `: Base1, Base2, ...`. Empty when
         // the channel doesn't inherit from anything. Resolution and
         // cycle-checking happen in the semantic analyzer.
         var bases = new List<QualifiedName>();
@@ -510,7 +552,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             : (IReadOnlyList<Param>)[];
         var body = As<BlockStmt>(ctx.block());
 
-        // `: base(args)` — chained base-constructor call. Null when absent;
+        // `: base(args)`: chained base-constructor call. Null when absent;
         // an empty list means `: base()`.
         IReadOnlyList<Expr>? baseArgs = ctx.baseInit() is { } bctx
             ? BuildArgs(bctx.argList())
@@ -552,7 +594,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             : Visibility.Public;
 
         // Handlers may carry a reader/writer mode. Default
-        // (omitted) is Writer — the single-threaded
+        // (omitted) is Writer: the single-threaded
         // semantics where every handler runs alone.
         var mode = ctx.handlerMode() switch
         {
@@ -577,7 +619,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
 
             case BodyReturnContext br:
                 {
-                    // Inline `on X => return expr;` — wrap as a single-statement
+                    // Inline `on X => return expr;`: wrap as a single-statement
                     // block so the emitter's on-handler return-routing handles
                     // it identically to `on X => { return expr; }`.
                     var returnStmt = As<ReturnStmt>(br.returnStmt());
@@ -675,7 +717,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             var exceptionType = ctx.qualifiedName() is { } qn ? QName(qn) : null;
             return new OnFailureOption(Span(ctx), exceptionType, action);
         }
-        // Named option `name: expression` — dispatch on the option name. Unknown
+        // Named option `name: expression`: dispatch on the option name. Unknown
         // names parse here and are reported as CE0117 in semantics (a graceful
         // diagnostic, not a raw parse error / builder crash).
         var optionName = ctx.IDENTIFIER().GetText();
@@ -699,7 +741,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             ? ctx.params_().param().Select(p => As<Param>(p)).ToList()
             : (IReadOnlyList<Param>)[];
         var isAbstract = ctx.ABSTRACT() != null;
-        // A bodyless method (`abstract T M();` — or a stray `;` that semantics
+        // A bodyless method (`abstract T M();` - or a stray `;` that semantics
         // rejects) carries a synthesized empty block; IsAbstract gates emit.
         var body = ctx.block() != null
             ? As<BlockStmt>(ctx.block())
@@ -1100,7 +1142,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
     {
         if (ctx.postfixExpr() != null)
             return Visit(ctx.postfixExpr());
-        // Cast: (Type)operand  — the only unaryExpr alternative with a type_.
+        // Cast: (Type)operand : the only unaryExpr alternative with a type_.
         if (ctx.type_() != null)
             return new TypeOpExpr(Span(ctx), TypeOpKind.Cast,
                 As<Expr>(ctx.unaryExpr()), TypeRef(ctx.type_()));
@@ -1116,9 +1158,60 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
 
     public override AstNode VisitPostfixExpr(PostfixExprContext ctx)
     {
-        var result = As<Expr>(ctx.primaryExpr());
-        foreach (var opCtx in ctx.postfixOp())
+        var ops = ctx.postfixOp();
+        var start = 0;
+        Expr result;
+
+        // A leading run of `.name` member accesses on a softName primary is a
+        // qualified name, not a member-access chain: `a.b.c` is one
+        // NameExpr(a.b.c) and `a.b.c(x)` is a call on NameExpr(a.b). The
+        // grammar used to encode this with a greedy `qualifiedName` primary;
+        // since the SLL refactor the parse tree is a single-name atom plus
+        // postfix ops and the collapse happens here instead, so AST consumers
+        // see the exact same shapes as before. The run stops at the first op
+        // that isn't `.name`, or whose name isn't a legal softName
+        // (`x.Stop` was always a MemberAccessExpr).
+        if (ctx.primaryExpr().softName() is { } atom)
         {
+            var parts = new List<string> { atom.GetText() };
+            var stop  = atom.Stop;
+            while (start < ops.Length
+                   && ops[start] is MemberAccessOpContext ma
+                   && IsSoftNameToken(ma.memberName().Start.Type))
+            {
+                parts.Add(ma.memberName().GetText());
+                stop = ma.memberName().Stop;
+                start++;
+            }
+            var nameSpan = SpanFrom(atom.Start, stop);
+            result = new NameExpr(nameSpan, new QualifiedName(nameSpan, parts));
+
+            // `a.b.Foo<T>(x)`: a typed call ending a pure name chain used to
+            // match the `typedCallExpr` primary, whose AST spans differ from a
+            // postfix typed call's: the call node spans the whole
+            // `a.b.Foo<T>(x)` and the receiver NameExpr covers `a.b.Foo`
+            // (method name included). Reproduce that shape exactly.
+            if (start < ops.Length
+                && ops[start] is TypedMethodCallOpContext tc
+                && IsSoftNameToken(tc.memberName().Start.Type))
+            {
+                var qnSpan   = SpanFrom(atom.Start, tc.memberName().Stop);
+                var receiver = new NameExpr(qnSpan, new QualifiedName(qnSpan, parts));
+                result = MakeCallOrAsk(SpanFrom(atom.Start, tc.Stop),
+                    receiver, tc.memberName().GetText(),
+                    tc.typeArgs().type_().Select(TypeRef).ToList(),
+                    BuildArgs(tc.argList()));
+                start++;
+            }
+        }
+        else
+        {
+            result = As<Expr>(ctx.primaryExpr());
+        }
+
+        for (var i = start; i < ops.Length; i++)
+        {
+            var opCtx = ops[i];
             var span = Span(opCtx);
             result = opCtx switch
             {
@@ -1134,7 +1227,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
                     new MemberAccessExpr(span, result, ma.memberName().GetText()),
                 IndexAccessOpContext ia =>
                     new IndexExpr(span, result, As<Expr>(ia.expression())),
-                // null-conditional variants (?. / ?[ ) — same nodes, flag set
+                // null-conditional variants (?. / ?[ ) - same nodes, flag set
                 NullTypedMethodCallOpContext ntmc =>
                     new MethodCallExpr(span, result, ntmc.memberName().GetText(),
                         ntmc.typeArgs().type_().Select(TypeRef).ToList(),
@@ -1284,7 +1377,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             return new StringLiteralExpr(span, raw[1..^1], raw); // Value = inner; Raw = full lexeme
         }
         // Verbatim and raw strings emit from their verbatim lexeme; Value is
-        // the lexeme too (unused for parsed nodes — emit reads Raw).
+        // the lexeme too (unused for parsed nodes - emit reads Raw).
         if (ctx.VERBATIM_STRING() != null)
         {
             var raw = ctx.VERBATIM_STRING().GetText();
@@ -1300,14 +1393,17 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         if (ctx.INTERP_STRING() != null)
             return BuildInterpolated(span, ctx.INTERP_STRING().GetText());
 
-        // `default` / `default(T)` — first-class now that DEFAULT is a keyword.
+        // `default` / `default(T)`: first-class now that DEFAULT is a keyword.
         if (ctx.DEFAULT() != null)
             return new DefaultExpr(span, ctx.type_() != null ? TypeRef(ctx.type_()) : null);
 
-        if (ctx.qualifiedName() != null)
-            return new NameExpr(span, QName(ctx.qualifiedName()));
+        // A bare name atom. Dotted chains (`a.b.c`) are postfix member
+        // accesses collapsed back into a multi-part NameExpr by
+        // VisitPostfixExpr; this alt only produces the single-part form.
+        if (ctx.softName() != null)
+            return new NameExpr(span, new QualifiedName(span, [ctx.softName().GetText()]));
 
-        // `( ... )` — one expression is a parenthesized expr; two or more
+        // `( ... )`: one expression is a parenthesized expr; two or more
         // (comma-separated) is a tuple literal.
         var parenExprs = ctx.expression();
         if (parenExprs is { Length: > 0 })
@@ -1320,7 +1416,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         throw new InvalidOperationException($"Unknown primary expression at {span}");
     }
 
-    // Best-effort numeric value parse. Only used by hand-built test nodes —
+    // Best-effort numeric value parse. Only used by hand-built test nodes;
     // parsed literals emit from their verbatim `Raw` lexeme, so an overflow
     // or exotic form falling back to 0 here never affects emitted code.
     private static long ParseIntValue(string raw)
@@ -1398,7 +1494,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             else if (c == '}') { if (depth == 0) return i; depth--; }
             i++;
         }
-        return s.Length;   // unterminated — shouldn't happen for a lexed token
+        return s.Length;   // unterminated: shouldn't happen for a lexed token
     }
 
     /// <summary>Index just past the closing quote of the string at <paramref name="i"/>.</summary>
@@ -1418,13 +1514,34 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
     private static (string Expr, string Suffix) SplitHole(string hole)
     {
         var depth = 0;
+        // Open `?:` conditionals at the top level: their `:` belongs to the
+        // ternary, NOT the format specifier, so it must not split the hole
+        // (a regression: a bare ternary in a hole otherwise splits at its
+        // `:`, fails to re-parse, and falls through to verbatim CS8361 text).
+        var ternary = 0;
         for (var i = 0; i < hole.Length;)
         {
             var c = hole[i];
             if (c == '"') { i = SkipEmbeddedString(hole, i); continue; }
-            if (c is '(' or '[' or '{') depth++;
-            else if (c is ')' or ']' or '}') depth--;
-            else if (depth == 0 && (c == ':' || c == ',')) return (hole[..i], hole[i..]);
+            if (c is '(' or '[' or '{') { depth++; i++; continue; }
+            if (c is ')' or ']' or '}') { depth--; i++; continue; }
+            if (depth == 0)
+            {
+                // A ternary `?`: but not `?.` (null-conditional), `??`
+                // (null-coalescing), or `?[` (null-conditional index).
+                if (c == '?' && i + 1 < hole.Length && hole[i + 1] is not ('.' or '?' or '['))
+                {
+                    ternary++; i++; continue;
+                }
+                if (c == ':')
+                {
+                    // `::` is a namespace qualifier, never a format delimiter.
+                    if (i + 1 < hole.Length && hole[i + 1] == ':') { i += 2; continue; }
+                    if (ternary > 0) { ternary--; i++; continue; }   // ternary colon
+                    return (hole[..i], hole[i..]);                    // format specifier
+                }
+                if (c == ',' && ternary == 0) return (hole[..i], hole[i..]);   // alignment
+            }
             i++;
         }
         return (hole, "");
@@ -1433,40 +1550,58 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
     /// <summary>Sub-parses a hole's text as a Spek expression; null if it
     /// doesn't parse (caller falls back to verbatim text). Parses via the
     /// EOF-anchored <c>holeExpression</c> rule so the whole hole must be one
-    /// expression — without the anchor, prediction could lawfully stop early
-    /// and silently drop a trailing call (`p.ToString()` → `p.ToString`).</summary>
+    /// expression: without the anchor, prediction could lawfully stop early
+    /// and silently drop a trailing call (`p.ToString()` → `p.ToString`).
+    ///
+    /// Two-stage ALL(*) parse, mirroring <see cref="SpekCompiler.ParseToTree"/>:
+    /// stage 1 predicts in SLL mode: the cacheable, context-free
+    /// approximation, far cheaper in adaptive-prediction transients than full
+    /// LL: with a bail strategy; every valid hole finishes here. Stage 2
+    /// (rare) re-parses from scratch with a fresh lexer/parser in full LL,
+    /// because an SLL conflict can resolve to a different alternative than
+    /// full-context prediction would choose, so a bailed hole may still be a
+    /// valid expression. Only when full LL also rejects does the caller take
+    /// the verbatim-text fallback: the same outcome, hole by hole, as the
+    /// old single-stage full-LL parse (holes never emit diagnostics).</summary>
     private static Expr? ParseSpekExpression(string text)
     {
         var lexer = new SpekLexer(CharStreams.fromString(text));
         lexer.RemoveErrorListeners();
         var parser = new SpekParser(new CommonTokenStream(lexer));
         parser.RemoveErrorListeners();
-        var ctx = parser.holeExpression();
-        return parser.NumberOfSyntaxErrors > 0 ? null : new AstBuilder().Visit(ctx.expression()) as Expr;
+        parser.Interpreter.PredictionMode = Antlr4.Runtime.Atn.PredictionMode.SLL;
+        parser.ErrorHandler = new BailErrorStrategy();
+        try
+        {
+            var ctx = parser.holeExpression();
+            return new AstBuilder().Visit(ctx.expression()) as Expr;
+        }
+        catch (Antlr4.Runtime.Misc.ParseCanceledException)
+        {
+            // SLL guessed wrong, or the hole isn't an expression - stage 2 decides.
+        }
+
+        var lexer2 = new SpekLexer(CharStreams.fromString(text));
+        lexer2.RemoveErrorListeners();
+        var parser2 = new SpekParser(new CommonTokenStream(lexer2));
+        parser2.RemoveErrorListeners();
+        var ctx2 = parser2.holeExpression();
+        return parser2.NumberOfSyntaxErrors > 0 ? null : new AstBuilder().Visit(ctx2.expression()) as Expr;
     }
 
+    // `Foo<T>(args)`: a generic call on a single bare name, no receiver.
+    // The free-standing factory shape (`debounce<Reading>(500)` after
+    // `using Spek.Streams`), which is the explicitly-annotated form of the
+    // bare `debounce(500)`. Emitted verbatim for Roslyn to resolve, exactly
+    // like BareCallExpr. Qualified generic calls (`a.b.Foo<T>(x)`) never
+    // reach here since the SLL grammar refactor: they parse as a softName
+    // primary plus postfix ops and take the typed-call shape in
+    // VisitPostfixExpr.
     public override AstNode VisitTypedCallExpr(TypedCallExprContext ctx)
     {
-        var span = Span(ctx);
-        var qn = QName(ctx.qualifiedName());
-        // Split the qualified name into "target" (everything up to the last part)
-        // and "method" (the last part) so the AST represents `s.Get<T>(x)` as
-        // MethodCallExpr(target=NameExpr(s), method="Get", typeArgs=[T], args=[x]).
-        if (qn.Parts.Count < 2)
-            throw new InvalidOperationException(
-                $"typedCallExpr requires at least 'receiver.method' form (got '{qn}') at {span}");
-
-        var receiverParts = qn.Parts.Take(qn.Parts.Count - 1).ToList();
-        var method        = qn.Parts[^1];
-        var receiver      = new NameExpr(qn.Span,
-            new QualifiedName(qn.Span, receiverParts));
-
         var typeArgs = ctx.typeArgs().type_().Select(TypeRef).ToList();
-        var args = BuildArgs(ctx.argList());
-
-        // `receiver.Ask<Reply>(new Msg(..))` lowers to the ask expression here too
-        // (the generic form parses as this primary, not as a postfix op).
-        return MakeCallOrAsk(span, receiver, method, typeArgs, args);
+        return new InvocationExpr(
+            Span(ctx), ctx.softName().GetText(), BuildArgs(ctx.argList()), typeArgs);
     }
 
     // `name(args)`: a free-standing function call with no receiver.
@@ -1545,10 +1680,18 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
         var result = new List<Expr>(argList.arg().Length);
         foreach (var a in argList.arg())
         {
-            // `out var x` — inline out-variable declaration.
+            // `out var x`: inline out-variable declaration.
             if (a.VAR() != null)
             {
                 result.Add(new OutVarExpr(Span(a), a.IDENTIFIER().GetText()));
+                continue;
+            }
+
+            // `out T x`: explicitly typed inline out-variable declaration.
+            if (a.type_() != null)
+            {
+                result.Add(new OutVarExpr(
+                    Span(a), a.IDENTIFIER().GetText(), TypeRef(a.type_()).ToString()));
                 continue;
             }
 
@@ -1556,7 +1699,7 @@ public sealed class AstBuilder : SpekParserBaseVisitor<AstNode>
             var mod   = ParseParamModifier(a.paramModifier());
             Expr value = mod == ParamModifier.None ? inner : new RefArgExpr(Span(a), mod, inner);
 
-            // Named argument `name: value` — the `IDENTIFIER COLON` prefix.
+            // Named argument `name: value`: the `IDENTIFIER COLON` prefix.
             if (a.COLON() != null)
                 value = new NamedArgExpr(Span(a), a.IDENTIFIER().GetText(), value);
 

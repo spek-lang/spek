@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Persistence.Sqlite</RootNamespace>
     <AssemblyName>Spek.Persistence.Sqlite</AssemblyName>
     <PackageId>Spek.Persistence.Sqlite</PackageId>
-    <Description>Embedded SQLite snapshot store for Spek actors. Single-file durable persistence — boring, reliable, cross-platform. Targets single-node services and CLI tools that want crash-safe storage without running a separate database process.</Description>
+    <Description>Embedded SQLite snapshot store for Spek actors. Single-file durable persistence; boring, reliable, cross-platform. Targets single-node services and CLI tools that want crash-safe storage without running a separate database process.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

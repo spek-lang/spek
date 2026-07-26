@@ -62,7 +62,7 @@ public sealed class ModuleSemanticTests
     public void FunctionAndNestedModule_SameName_NoConflict()
     {
         // Functions and nested modules live in independent
-        // namespaces inside a module — same separation C# has
+        // namespaces inside a module: same separation C# has
         // between methods and nested types.
         const string src = """
             module Outer
@@ -95,7 +95,7 @@ public sealed class ModuleSemanticTests
             module Counter { }
             """;
         var parsed = SpekCompiler.Parse(src);
-        // Both decls parse and pass — no module-duplicate fires
+        // Both decls parse and pass: no module-duplicate fires
         // because they're different kinds. But CE0013 cross-kind
         // detection isn't wired for actor↔module today (only same-
         // kind dups are flagged at file scope). This test pins the

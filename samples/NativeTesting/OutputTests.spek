@@ -1,4 +1,4 @@
-// Per-test output capture + cleanup. `init` takes an `ITestOutputHelper` — xUnit
+// Per-test output capture + cleanup. `init` takes an `ITestOutputHelper` - xUnit
 // injects it per test (the standard xUnit pattern), so `output.WriteLine(...)` is
 // attributed to the right test (Console.WriteLine isn't, being async/shared). The
 // `TestActorSystem` field is disposed automatically after each test.

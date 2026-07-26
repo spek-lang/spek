@@ -6,10 +6,10 @@ namespace Spek.Tests.Runtime;
 /// <summary>
 /// Runtime paper-cuts from the codebase re-review:
 /// <list type="bullet">
-///   <item><see cref="ActorRef.AskAsync{TResponse}(object, TimeSpan)"/> — an
+///   <item><see cref="ActorRef.AskAsync{TResponse}(object, TimeSpan)"/> - an
 ///     ask with a deadline faults with <see cref="TimeoutException"/> instead
 ///     of hanging forever on a reply-less target.</item>
-///   <item><see cref="ActorSystem.GracefulShutdown"/> — drain + dispose in one
+///   <item><see cref="ActorSystem.GracefulShutdown"/> - drain + dispose in one
 ///     call, replacing the documented <c>AwaitTermination(); Dispose();</c>
 ///     two-step; safe on a system that never spawned (no infinite wait).</item>
 /// </list>
@@ -34,13 +34,13 @@ public class RuntimeErgonomicsTests
         protected override Task DispatchAsync(object message, ActorRef sender)
         {
             _currentSender = sender;
-            // Never replies — the pathological ask target.
+            // Never replies: the pathological ask target.
             return Task.CompletedTask;
         }
     }
 
     [Fact]
-    public async Task AskWithTimeout_RepliesInTime_ReturnsReply()
+    public async Task AskWithTimeout_RepliesInTime_ReturnsReplyAsync()
     {
         using var system = new ActorSystem("t");
         var actor = system.Spawn<Replier>();
@@ -51,13 +51,18 @@ public class RuntimeErgonomicsTests
     }
 
     [Fact]
-    public async Task AskWithTimeout_NoReply_FaultsWithTimeoutException()
+    public async Task AskWithTimeout_NoReply_FaultsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("t");
         var actor = system.Spawn<BlackHole>();
 
-        await Assert.ThrowsAsync<TimeoutException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(100)));
+        // The handler runs to completion without ever replying. Under the
+        // "fail fast on all" ask semantics that resolves the asker at once
+        // (an AskException naming the missing reply) rather than waiting out
+        // the deadline. A generous timeout proves the failure is fast: the
+        // test returns immediately, nowhere near the 5s window.
+        await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]
@@ -70,7 +75,7 @@ public class RuntimeErgonomicsTests
         var drained = system.GracefulShutdown(TimeSpan.FromSeconds(3));
 
         Assert.True(drained, "System should have drained before the timeout.");
-        // Dispose released the slots (it does not Stop actors — supervision
+        // Dispose released the slots (it does not Stop actors - supervision
         // owns stopping); a second dispose must be harmless.
         system.Dispose();
     }
@@ -83,7 +88,7 @@ public class RuntimeErgonomicsTests
         var system = new ActorSystem("t");
 
         var started = DateTime.UtcNow;
-        var drained = system.GracefulShutdown();   // no timeout — would hang without the guard
+        var drained = system.GracefulShutdown();   // no timeout: would hang without the guard
         var elapsed = DateTime.UtcNow - started;
 
         Assert.True(drained);

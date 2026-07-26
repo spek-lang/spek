@@ -40,7 +40,7 @@ public sealed class PrivateHandlerRuntimeTests
                 private on PrivateTick => privateCalls = privateCalls + 1;
 
                 // Public handler that re-tells PrivateTick from inside
-                // the actor — the only legal path to the private arm.
+                // the actor: the only legal path to the private arm.
                 public on Ping => self.Tell(new PrivateTick());
 
                 public on GetCount => sender.Tell(new Count(privateCalls));
@@ -117,7 +117,7 @@ public sealed class PrivateHandlerRuntimeTests
     {
         // The Ping handler does `self.Tell(new PrivateTick())`. The
         // private handler increments a counter on the actor instead
-        // of replying — this side-steps the fact that the private
+        // of replying: this side-steps the fact that the private
         // arm's `sender` is `self` (the original probe ref is no
         // longer in scope). We then poll the count via a separate
         // public GetCount handler.

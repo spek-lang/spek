@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Persistence.File</RootNamespace>
     <AssemblyName>Spek.Persistence.File</AssemblyName>
     <PackageId>Spek.Persistence.File</PackageId>
-    <Description>Local-disk snapshot store for Spek actors. JSON-per-actor with atomic write-then-rename — no database server required. Targets desktop apps, CLI tools, single-node services, and edge deployments.</Description>
+    <Description>Local-disk snapshot store for Spek actors. JSON-per-actor with atomic write-then-rename; no database server required. Targets desktop apps, CLI tools, single-node services, and edge deployments.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

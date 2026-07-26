@@ -18,7 +18,7 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         return code;
     }
 
-    // ─── 01 — Messages only ──────────────────────────────────────────────────
+    // ─── 01: Messages only ──────────────────────────────────────────────────
 
     [Fact]
     public void MessagesOnly_EmitsNamespaceAndRecords()
@@ -31,7 +31,7 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         Assert.Contains("public record Response<T>(T value);", code);
     }
 
-    // ─── 02 — Simple actor ───────────────────────────────────────────────────
+    // ─── 02: Simple actor ───────────────────────────────────────────────────
 
     [Fact]
     public void SimpleActor_EmitsClassAndBehavior()
@@ -42,10 +42,10 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         Assert.Contains("private async Task Waiting_HandleAsync", code);
         Assert.Contains("case Ping _:", code);
         // The reply carries the actor as its sender (implicit-sender convention).
-        Assert.Contains("_currentSender.Tell(new Pong(), _selfRef)", code);
+        Assert.Contains("_sender.Tell(new Pong(), _selfRef)", code);
     }
 
-    // ─── 03 — Become ─────────────────────────────────────────────────────────
+    // ─── 03: Become ─────────────────────────────────────────────────────────
 
     [Fact]
     public void Become_EmitsTwoBehaviors()
@@ -57,7 +57,7 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         Assert.Contains("_behavior = Off_HandleAsync;", code);
     }
 
-    // ─── 04 — Persist / passivate ────────────────────────────────────────────
+    // ─── 04: Persist / passivate ────────────────────────────────────────────
 
     [Fact]
     public void PersistPassivate_EmitsPersistAndCaptureFields()
@@ -69,7 +69,7 @@ public class EndToEndEmitTests(ITestOutputHelper output)
         Assert.Contains("protected override void OnRestore(Spek.Persistence.Snapshot s)", code);
     }
 
-    // ─── 05 — Full bank account ──────────────────────────────────────────────
+    // ─── 05: Full bank account ──────────────────────────────────────────────
 
     [Fact]
     public void FullBankAccount_EmitsCompleteFile()

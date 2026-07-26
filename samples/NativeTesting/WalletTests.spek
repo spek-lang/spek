@@ -1,5 +1,5 @@
 // Native tests by CONVENTION (module form): a `module` named `*Tests` is a test
-// container in a test project; each PUBLIC method is a test. Stateless — no
+// container in a test project; each PUBLIC method is a test. Stateless - no
 // shared setup. (See AccountTests.spek for the class form with per-test `init`.)
 
 message Deposit(decimal amount);

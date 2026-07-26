@@ -4,7 +4,7 @@ namespace Spek.Hosting;
 /// Emitted by the Spek compiler on every <c>channel</c>
 /// declaration. Carries the channel's input message types and emitted
 /// message types so hosting adapters (<c>Spek.Hosting.AspNetCore.Rest</c>,
-/// future gRPC / queue adapters) can discover what a channel accepts
+/// the hosting adapters (Spek.Hosting.AspNetCore.Rest, Spek.Hosting.AspNetCore.Grpc)) can discover what a channel accepts
 /// and produces via reflection.
 ///
 /// The compiler emits one marker interface per channel
@@ -14,7 +14,7 @@ namespace Spek.Hosting;
 /// finds the channel via its declared interfaces.
 ///
 /// The attribute is read-only metadata. It does not affect runtime
-/// dispatch — that still goes through the actor's mailbox the same
+/// dispatch: that still goes through the actor's mailbox the same
 /// way every other Spek message flows.
 /// </summary>
 [AttributeUsage(AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
@@ -37,7 +37,7 @@ public sealed class SpekChannelMetadataAttribute : Attribute
     public Type[] Emits { get; }
 
     /// <summary>
-    /// True when the channel declared <c>emits any;</c> — advisory
+    /// True when the channel declared <c>emits any;</c> - advisory
     /// mode in which the compiler does not constrain what implementing
     /// actors send. Hosting adapters that need a closed emit set
     /// (REST status-code mapping, gRPC response types) should treat

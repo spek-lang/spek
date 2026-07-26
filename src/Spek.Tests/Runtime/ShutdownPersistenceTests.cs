@@ -12,7 +12,7 @@ namespace Spek.Tests.Runtime;
 /// Durable shutdown for shared regions. A chain of actors all touch one
 /// <c>shared … : Persisted</c> region; the leaf triggers <c>self.System.Shutdown()</c>.
 /// The region's writer-exit saves are fire-and-forget, so shutdown flushes the
-/// final state (ActorSystem.Dispose → PersistedRegion.FlushSave) — without that,
+/// final state (ActorSystem.Dispose → PersistedRegion.FlushSave) - without that,
 /// the last save races teardown and is lost. A second system over the same store
 /// must rehydrate the final value.
 /// </summary>
@@ -58,7 +58,7 @@ public sealed class ShutdownPersistenceTests
         """;
 
     [Fact]
-    public async Task TenChainedActors_SharedPersistedRegion_FlushesOnShutdown_AndRehydrates()
+    public async Task TenChainedActors_SharedPersistedRegion_FlushesOnShutdown_AndRehydratesAsync()
     {
         var parsed = SpekCompiler.Parse(Src);
         Assert.True(parsed.Success,
@@ -71,7 +71,7 @@ public sealed class ShutdownPersistenceTests
         var totalType = asm.GetType("ShutdownPersistDemo.GetTotal")!;
 
         var inner = new InMemorySnapshotStore();
-        // Saves are *slow* — this is what makes the test prove the flush is
+        // Saves are *slow*: this is what makes the test prove the flush is
         // load-bearing: a fire-and-forget writer-exit save can't have landed by the
         // time shutdown returns, so only the synchronous shutdown flush makes the
         // final state durable. Loads stay fast.

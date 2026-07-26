@@ -98,7 +98,7 @@ public sealed class ImplicitDefaultBehaviorTests
     {
         // The motivating example from the design conversation. With
         // implicit Default, the actor reads as "just the handlers"
-        // — no behavior wrapper required.
+        //: no behavior wrapper required.
         const string src = """
             actor LogProcessor
             {
@@ -156,7 +156,7 @@ public sealed class ImplicitDefaultBehaviorTests
     {
         // Mixed mode (some bare handlers, some inside an explicit
         // `behavior X {}`) is allowed at parse, but the synthesized
-        // Default behavior must be reached via `become Default;` —
+        // Default behavior must be reached via `become Default;`;
         // otherwise CE0014 (the existing "behavior unreachable" rule)
         // fires. This is a clean signal: the user opted into multiple
         // behaviors so they need to disambiguate the entry point.

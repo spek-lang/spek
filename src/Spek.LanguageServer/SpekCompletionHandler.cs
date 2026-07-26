@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Completion — returns the static list of Spek keywords plus whatever
+/// Completion: returns the static list of Spek keywords plus whatever
 /// identifiers are in scope at the cursor position (actor fields, behavior
 /// names, pattern bindings, and every declared <c>message</c> / <c>actor</c>
 /// type in the current file).
@@ -25,7 +25,7 @@ internal sealed class SpekCompletionHandler : CompletionHandlerBase
     public static readonly string[] Keywords =
     [
         // Declaration-level
-        "actor", "abstract", "behavior", "channel", "class", "emits", "enum",
+        "actor", "abstract", "behavior", "channel", "class", "emits", "enum", "flags",
         "interface", "message", "module", "namespace", "shared", "using", "init",
         "program", "where",
 

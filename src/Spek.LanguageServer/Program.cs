@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 using Spek.LanguageServer;
 
-// Read from stdin, write to stdout — the LSP transport for most editors.
+// Read from stdin, write to stdout: the LSP transport for most editors.
 var server = await OmniSharp.Extensions.LanguageServer.Server.LanguageServer.From(options => options
     .WithInput(Console.OpenStandardInput())
     .WithOutput(Console.OpenStandardOutput())

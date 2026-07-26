@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Language-completeness — control flow: <c>foreach</c>, <c>do/while</c>,
+/// Language-completeness: control flow: <c>foreach</c>, <c>do/while</c>,
 /// <c>break</c>, <c>continue</c>. These lower verbatim to the matching C#
 /// constructs, so the round-trips prove the emitted C# actually compiles. The
 /// last test proves the analyzer's statement walkers descend into the new loop

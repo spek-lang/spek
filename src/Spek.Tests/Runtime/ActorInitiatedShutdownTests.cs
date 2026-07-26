@@ -7,7 +7,7 @@ namespace Spek.Tests.Runtime;
 /// <summary>
 /// Actor-initiated graceful shutdown via <c>self.System.Shutdown()</c>.
 /// The verb reaches the already-present <c>_system</c> back-reference (no
-/// injection — the slot wires it at spawn) and calls the non-blocking
+/// injection: the slot wires it at spawn) and calls the non-blocking
 /// <see cref="ActorSystem.RequestShutdown"/>, which funnels through the host's
 /// registered callback (the same path Ctrl+C / SIGTERM use) or, when hostless,
 /// falls back to a background <see cref="ActorSystem.GracefulShutdown"/>.
@@ -36,13 +36,13 @@ public class ActorInitiatedShutdownTests
         system.OnShutdownRequested(() => Interlocked.Increment(ref calls));
 
         system.RequestShutdown();
-        system.RequestShutdown();   // idempotent — only the first request fires
+        system.RequestShutdown();   // idempotent: only the first request fires
 
         Assert.Equal(1, calls);
     }
 
     [Fact]
-    public async Task SelfSystemShutdown_FromHandler_TriggersRegisteredShutdown()
+    public async Task SelfSystemShutdown_FromHandler_TriggersRegisteredShutdownAsync()
     {
         using var system = new ActorSystem("t");
         var fired = new TaskCompletionSource();
@@ -59,9 +59,9 @@ public class ActorInitiatedShutdownTests
     [Fact]
     public void AwaitTermination_AfterDispose_ReturnsPromptly()
     {
-        // Regression: once the system is torn down — which is what the
+        // Regression: once the system is torn down - which is what the
         // hostless self.System.Shutdown() path ends in (background
-        // GracefulShutdown → Dispose) — AwaitTermination must recognise the
+        // GracefulShutdown → Dispose) - AwaitTermination must recognise the
         // terminal state and return true. Pre-fix it could spin forever: the
         // `_slots.Count > 0` idle guard can never be satisfied by an empty,
         // disposed slot set, so "all actors finished and were cleaned up" was
@@ -79,7 +79,7 @@ public class ActorInitiatedShutdownTests
     }
 
     [Fact]
-    public async Task SelfSystemShutdown_Hostless_LetsAwaitTerminationReturn()
+    public async Task SelfSystemShutdown_Hostless_LetsAwaitTerminationReturnAsync()
     {
         // End-to-end of the footgun: a handler calls self.System.Shutdown() with
         // no host registered, while the "main thread" is parked in the no-arg
@@ -95,7 +95,7 @@ public class ActorInitiatedShutdownTests
 
         Assert.True(winner == termination,
             "no-arg AwaitTermination() must return after a handler-initiated shutdown, not hang");
-        Assert.True(termination.Result, "AwaitTermination() should report clean termination");
+        Assert.True(await termination, "AwaitTermination() should report clean termination");
     }
 
     /// One link in a 10-deep stack. A message propagates *down* the stack
@@ -119,16 +119,16 @@ public class ActorInitiatedShutdownTests
             return Task.CompletedTask;
         }
 
-        // The graceful-stop hook — must fire for every actor on a clean shutdown.
+        // The graceful-stop hook: must fire for every actor on a clean shutdown.
         protected override void OnPostStop() => _stopped[_depth] = 1;
     }
 
     [Fact]
-    public async Task TenStackedActors_LeafInitiatesShutdown_AllStopGracefully()
+    public async Task TenStackedActors_LeafInitiatesShutdown_AllStopGracefullyAsync()
     {
         // 10 actors stacked in a chain. A Boom propagates root → leaf; the leaf
-        // calls self.System.Shutdown(). Every one of the 10 must (a) stop —
-        // OnPostStop fires — and (b) the system must terminate (AwaitTermination
+        // calls self.System.Shutdown(). Every one of the 10 must (a) stop
+        // (OnPostStop fires) and (b) the system must terminate (AwaitTermination
         // returns). This is the deep-topology stress of the shutdown fix.
         var stopped = new ConcurrentDictionary<int, byte>();
         var system  = new ActorSystem("stack");
@@ -140,7 +140,7 @@ public class ActorInitiatedShutdownTests
 
         root.Tell(new Boom());                             // propagates down → leaf shuts the system down
 
-        // Wait on the graceful-stop completion itself — every actor's OnPostStop
+        // Wait on the graceful-stop completion itself - every actor's OnPostStop
         // adds its depth to `stopped`. (AwaitTermination can't be the wait signal
         // here: it returns on *transient* idle, which races the still-propagating
         // Boom before shutdown has even been triggered.)
@@ -157,7 +157,7 @@ public class ActorInitiatedShutdownTests
     public void RequestShutdown_NoHandler_IsNonBlocking()
     {
         // With no host callback, RequestShutdown falls back to a background
-        // GracefulShutdown — it must NOT drain on the caller's thread (the
+        // GracefulShutdown: it must NOT drain on the caller's thread (the
         // calling handler is itself keeping the system busy, so an inline
         // GracefulShutdown would deadlock waiting for idle). The contract under
         // test is that the call returns promptly and doesn't throw.

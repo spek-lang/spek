@@ -1,9 +1,9 @@
-# Publishes the public preview package set to NuGet — on demand.
+# Publishes the public preview package set to NuGet, on demand.
 #
 # Run it manually: Actions -> "release" -> Run workflow. CI computes the version
 # 0.<era>.<build> from github.run_number, packs the manifest below, pushes to
 # NuGet, and creates the matching git tag + GitHub Release. So the version, the
-# tag, and the build number are one value chosen by CI — nothing to pick by hand.
+# tag, and the build number are one value chosen by CI - nothing to pick by hand.
 # Tick "dry run" to pack only (no push, no tag) and smoke-test the build.
 #
 # Publishing uses NuGet Trusted Publishing (OIDC): no stored API key. The
@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Pack only — skip the NuGet push, tag, and release'
+        description: 'Pack only: skip the NuGet push, tag, and release'
         type: boolean
         default: false
 
@@ -50,7 +50,7 @@ jobs:
       - name: Build (Release)
         run: dotnet build src/Spek.slnx -c Release --no-restore -p:Version=$VERSION
 
-      # Releases are gated on a green suite — never publish a red build.
+      # Releases are gated on a green suite - never publish a red build.
       - name: Test
         run: dotnet test src/Spek.slnx -c Release --no-build
 
@@ -69,8 +69,8 @@ jobs:
             Spek.Persistence.File
             Spek.Persistence.Sqlite
             Spek.Persistence.Log
-            Spek.Resilience.Abstractions       # Runtime dep; impl ships as a later add-on
-            Spek.Observability.Abstractions     # Runtime dep; impl ships as a later add-on
+            Spek.Resilience.Abstractions       # Runtime dep; implementation packages are packed separately when added to this manifest
+            Spek.Observability.Abstractions     # Runtime dep; implementation packages are packed separately when added to this manifest
             Spek.Hosting.Abstractions
             Spek.Hosting.Console
             Spek.Hosting.WindowsService
@@ -97,7 +97,7 @@ jobs:
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
 
-      # Same value for the tag, the release, and the packages — created by CI.
+      # Same value for the tag, the release, and the packages - created by CI.
       - name: Tag + GitHub Release
         if: ${{ !inputs.dry_run }}
         env:

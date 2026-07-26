@@ -7,7 +7,7 @@ namespace Spek;
 /// caller's flow:
 /// <list type="bullet">
 ///   <item><see cref="TargetActorPath"/> and <see cref="MessageTypeName"/>
-///         identify *what* the asker tried to do — useful for logs
+///         identify *what* the asker tried to do - useful for logs
 ///         and observability.</item>
 ///   <item><see cref="Exception.InnerException"/> still carries the
 ///         original throw for debugging, but idiomatic Spek code
@@ -37,6 +37,20 @@ public sealed class AskException : Exception
         string messageTypeName,
         Exception inner)
         : base(BuildMessage(targetActorPath, messageTypeName, inner), inner)
+    {
+        TargetActorPath = targetActorPath;
+        MessageTypeName = messageTypeName;
+    }
+
+    /// <summary>
+    /// Creates an <see cref="AskException"/> for a terminal delivery failure
+    /// with no wrapped handler exception - the target was stopped, the message
+    /// was unhandled, or the handler returned without replying. Fails an
+    /// asker's reply cell so a no-timeout <c>AskAsync</c> faults with a
+    /// diagnostic instead of hanging (the "fail fast on all" ask semantics).
+    /// </summary>
+    public AskException(string targetActorPath, string messageTypeName, string reason)
+        : base($"Ask of '{messageTypeName}' to '{targetActorPath}' failed: {reason}")
     {
         TargetActorPath = targetActorPath;
         MessageTypeName = messageTypeName;

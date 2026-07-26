@@ -7,7 +7,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// CE0108. Field-level visibility modifiers on shared regions
 /// now flow through to the emitted C# class. The default (no
-/// modifier) is `public` — preserves the existing
+/// modifier) is `public`: preserves the existing
 /// "attaching actors can read/write" model. Explicit `private`
 /// makes the field internal to the region (set in init / used by
 /// other fields, not reachable from attaching actors).

@@ -6,11 +6,11 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Language-completeness — properties on a <c>class</c>: auto
+/// Language-completeness: properties on a <c>class</c>: auto
 /// (<c>{ get; set; }</c>), init-only (<c>{ get; init; }</c>), accessor
 /// visibility (<c>{ get; private set; }</c>), expression-bodied
 /// (<c>{ get =&gt; expr; }</c>), and auto + initializer (<c>= 0;</c>). The
-/// accessor keywords get/set/init are contextual — they never collide with C#
+/// accessor keywords get/set/init are contextual - they never collide with C#
 /// member names. Round-trips prove the emitted C# compiles.
 /// </summary>
 public sealed class PropertyTests(ITestOutputHelper output)

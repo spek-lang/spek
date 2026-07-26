@@ -20,7 +20,8 @@ public sealed class StatementEmitter
     /// <summary>
     /// When true, <c>return expr;</c> inside this context is the Spek
     /// reply idiom: the expression is sent to the current sender via
-    /// <c>_currentSender.Tell(...)</c> and then the handler returns
+    /// <c>_sender.Tell(...)</c> (the dispatch-local sender - never the
+    /// shared field, which concurrent readers would race on) and then the handler returns
     /// control. Set by <see cref="ActorEmitter"/> only while it's
     /// generating the body of an <c>on</c> handler in a
     /// <see cref="BehaviorDecl"/>. Methods, constructors, and lifecycle
@@ -35,7 +36,7 @@ public sealed class StatementEmitter
     /// </summary>
     public void SetShadowed(IEnumerable<string> names) => _expr.SetShadowed(names);
 
-    // Block nesting depth — when source mapping is on, the outermost block
+    // Block nesting depth: when source mapping is on, the outermost block
     // exit restores `#line default` so trailing generated scaffolding isn't
     // attributed to the last .spek statement.
     private int _blockDepth;
@@ -77,7 +78,7 @@ public sealed class StatementEmitter
                 break;
 
             case ReturnStmt r when InsideOnHandler:
-                // Option D: `return expr;` inside an on-handler sends
+                // the inferred-reply convention: `return expr;` inside an on-handler sends
                 // the expression back to whoever sent the message, then
                 // exits the handler. Callers using `ask` receive this
                 // value via AskAsync<TReply>; callers using Tell ignore
@@ -85,7 +86,7 @@ public sealed class StatementEmitter
                 // sink for a Tell without a real reply-to).
                 // The reply carries this actor as its sender (implicit-sender
                 // convention) so the asker/teller can itself reply onward.
-                _w.Line($"_currentSender.Tell({_expr.Emit(r.Value!)}, _selfRef);");
+                _w.Line($"_sender.Tell({_expr.Emit(r.Value!)}, _selfRef);");
                 _w.Line("return;");
                 break;
 
@@ -204,8 +205,11 @@ public sealed class StatementEmitter
             else
             {
                 var exTypeName = c.ExceptionType.ToString();
-                var binding   = c.Binding ?? "_spek_caught";
-                header = $"catch ({exTypeName} {binding})";
+                // No binding in the source → none in the emitted C#;
+                // a synthesized name would just be unused (CS0168).
+                header = c.Binding is null
+                    ? $"catch ({exTypeName})"
+                    : $"catch ({exTypeName} {c.Binding})";
                 if (c.When is not null)
                     header += $" when ({_expr.Emit(c.When)})";
             }

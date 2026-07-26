@@ -10,7 +10,7 @@ namespace Spek.Persistence.File;
 /// through a temp file plus an atomic rename so a crash mid-write
 /// never corrupts an existing snapshot.
 ///
-/// Thread-safe — concurrent saves to different keys are independent;
+/// Thread-safe: concurrent saves to different keys are independent;
 /// concurrent saves to the same key serialise via a per-key lock so
 /// the last write wins without races.
 /// </summary>
@@ -26,7 +26,7 @@ public sealed class FileSnapshotStore : ISnapshotStore
 
     // One lock per key so concurrent SaveAsync calls on different
     // actors don't contend on a global mutex. Per-key locks are
-    // created lazily and never reclaimed — the working set is bounded
+    // created lazily and never reclaimed - the working set is bounded
     // by the number of distinct persistence keys, which is bounded by
     // the number of persistent actors a host has ever seen.
     private readonly Dictionary<string, SemaphoreSlim> _keyLocks =
@@ -50,7 +50,7 @@ public sealed class FileSnapshotStore : ISnapshotStore
     /// <paramref name="key"/>, replacing any previous snapshot.
     /// Durable on return: the payload is flushed to disk before the
     /// atomic rename, so a crash at any point leaves either the old
-    /// snapshot intact or the new one complete — never a torn file.
+    /// snapshot intact or the new one complete - never a torn file.
     /// </summary>
     public async Task SaveAsync(string key, Snapshot snapshot)
     {
@@ -132,7 +132,7 @@ public sealed class FileSnapshotStore : ISnapshotStore
         var sb = new StringBuilder(segment.Length);
         foreach (var c in segment)
         {
-            // Conservative whitelist — letters, digits, '-', '_', '.'
+            // Conservative whitelist: letters, digits, '-', '_', '.'
             // pass through; everything else is percent-encoded.
             if (char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.')
                 sb.Append(c);

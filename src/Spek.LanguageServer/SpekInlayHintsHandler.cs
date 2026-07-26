@@ -9,9 +9,9 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Supplies <c>textDocument/inlayHint</c>. Spek's headline convenience — a
+/// Supplies <c>textDocument/inlayHint</c>. Spek's headline convenience - a
 /// handler replies by <c>return</c>ing a message, and a caller reads that reply
-/// straight out of <c>target.Ask(new Query())</c> — means the reply type is never
+/// straight out of <c>target.Ask(new Query())</c> - means the reply type is never
 /// written down. This surfaces it: after each <c>.Ask(…)</c> whose reply type the
 /// compiler infers, it renders a subtle <c>: ReplyType</c> annotation, the way a
 /// type-hint inlay reveals an inferred <c>var</c>. Asks written with an explicit
@@ -49,16 +49,19 @@ internal sealed class SpekInlayHintsHandler : InlayHintsHandlerBase
             var reply = symbols.InferReplyType(msg.Type);
             if (reply is null) continue;
 
-            // Span() sets EndColumn = stop-token(`)`).Column + 1; because ANTLR
-            // columns are 0-based, that value used as a 0-based LSP character lands
-            // just past the closing `)`, exactly where the annotation should read.
-            var pos = new Position(ask.Span.EndLine - 1, ask.Span.EndColumn);
+            // EndColumn is 1-based exclusive (one past the closing `)`), so as a
+            // 0-based LSP character it needs -1 - landing just past the `)`,
+            // exactly where the annotation should read.
+            var pos = new Position(ask.Span.EndLine - 1, ask.Span.EndColumn - 1);
             if (!InRange(pos, request.Range)) continue;
 
             hints.Add(new InlayHint
             {
                 Position    = pos,
-                Label       = $": {reply}",
+                // Explicit construction: the implicit string conversion is
+                // declared null-in/null-out, so assigning it directly to the
+                // non-nullable Label raises CS8601.
+                Label       = new StringOrInlayHintLabelParts($": {reply}"),
                 Kind        = InlayHintKind.Type,
                 PaddingLeft = false,
                 Tooltip     = new StringOrMarkupContent("Inferred reply type of this .Ask(…)"),

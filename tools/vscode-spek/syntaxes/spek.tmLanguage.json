@@ -26,7 +26,7 @@
     "comments": {
       "patterns": [
         {
-          "comment": "Doc comments (///) — carried through to the emitted C#.",
+          "comment": "Doc comments (///): carried through to the emitted C#.",
           "name": "comment.block.documentation.spek",
           "match": "///.*$"
         },
@@ -149,7 +149,7 @@
         {
           "comment": "Top-level and member declaration forms.",
           "name": "keyword.other.declaration.spek",
-          "match": "\\b(actor|behavior|channel|class|enum|interface|message|module|namespace|program|shared|init|term|use|using|interop)\\b"
+          "match": "\\b(actor|behavior|channel|class|enum|flags|interface|message|module|namespace|program|shared|init|term|use|using|interop)\\b"
         },
         {
           "comment": "Generic constraint clause.",
@@ -201,7 +201,7 @@
     "lifecycle-names": {
       "patterns": [
         {
-          "comment": "Lifecycle hooks — appear after `on`.",
+          "comment": "Lifecycle hooks: appear after `on`.",
           "name": "entity.name.function.lifecycle.spek",
           "match": "\\b(PreStart|PostStop|Restore)\\b"
         }
@@ -230,7 +230,7 @@
     "language-variables": {
       "patterns": [
         {
-          "comment": "Ambient references — colored like C#'s `this`.",
+          "comment": "Ambient references: colored like C#'s `this`.",
           "name": "variable.language.spek",
           "match": "\\b(self|sender|base)\\b"
         }
@@ -304,7 +304,7 @@
           "match": "\\b(void|bool|byte|sbyte|short|ushort|int|uint|long|ulong|float|double|decimal|char|string|object|ActorRef|ActorSystem|Snapshot|Outcome|Reason|LamportClock|VectorClock|TestActorSystem|TestProbe|Task|ValueTask|DateTime|DateTimeOffset|Guid|TimeSpan|Uri|Version)\\b"
         },
         {
-          "comment": "User-defined types — PascalCase identifiers (messages, actors, channels, classes, enums, interfaces).",
+          "comment": "User-defined types: PascalCase identifiers (messages, actors, channels, classes, enums, interfaces).",
           "name": "entity.name.type.spek",
           "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
         }

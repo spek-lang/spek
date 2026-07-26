@@ -10,10 +10,10 @@
 
   <ItemGroup>
     <!-- Spek.Runtime provides the actor system, mailbox, supervision, persistence, etc. -->
-    <PackageReference Include="Spek.Runtime" Version="0.1.0-alpha.*" />
+    <PackageReference Include="Spek.Runtime" Version="0.1.*" />
     <!-- Spek.Build compiles every *.spek into obj/ during `dotnet build`,
          like a source generator; nothing is written beside your source. -->
-    <PackageReference Include="Spek.Build" Version="0.1.0-alpha.*" PrivateAssets="all" />
+    <PackageReference Include="Spek.Build" Version="0.1.*" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>

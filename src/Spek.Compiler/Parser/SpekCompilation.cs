@@ -48,7 +48,7 @@ public sealed record SpekCompilation(
             foreach (var file in files)
                 diagnostics.AddRange(SemanticAnalyzer.Analyze(file, symbols));
 
-            // Cross-file CE0013 — names that collide across files.
+            // Cross-file CE0013: names that collide across files.
             diagnostics.AddRange(SemanticAnalyzer.CheckCrossFileDuplicates(files));
         }
 

@@ -10,7 +10,7 @@ namespace Spek.Tests.Runtime;
 /// Implicit sender on Tell (Akka convention). A fire-and-forget
 /// <c>peer.Tell(msg)</c> from inside an actor carries that actor as the
 /// sender, so the receiver's reply (<c>return reply;</c> or
-/// <c>sender.Tell(reply)</c>) routes back to the telling actor — the
+/// <c>sender.Tell(reply)</c>) routes back to the telling actor - the
 /// pattern every doc example (the getting-started bank) is written
 /// against. Before this fix the reply addressed NoSender and vanished
 /// silently; the HelloBank sample printed nothing.

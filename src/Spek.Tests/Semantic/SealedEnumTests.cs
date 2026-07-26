@@ -11,7 +11,7 @@ namespace Spek.Tests.Semantic;
 /// Headline rationale: cross-actor versioning during rolling deploys.
 /// When half the
 /// nodes have the old enum and half have the new one, exhaustiveness
-/// catches the mismatch on the new code at compile time — no silent
+/// catches the mismatch on the new code at compile time - no silent
 /// "default arm hit" surprises in production.
 /// </summary>
 public sealed class SealedEnumTests
@@ -70,7 +70,7 @@ public sealed class SealedEnumTests
     public void NonExhaustiveSwitch_WithDiscard_NoReport()
     {
         // The `_` discard arm is the explicit opt-out. Adding it
-        // makes the switch trivially exhaustive — the developer has
+        // makes the switch trivially exhaustive - the developer has
         // signalled "I know this isn't covering every variant and
         // that's fine."
         const string src = """
@@ -198,7 +198,7 @@ public sealed class SealedEnumTests
     {
         // A `when` guard means the arm matches conditionally. The
         // compiler can't prove the guard is always true, so the arm
-        // doesn't count as a definitive cover for the variant —
+        // doesn't count as a definitive cover for the variant;
         // exhaustiveness still requires either a `_` arm or another
         // unguarded arm for the same variant.
         const string src = """

@@ -9,7 +9,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Compiles every fixture's emitted C# with Roslyn and asserts it produces
 /// no errors. This is the first test tier that would catch a bug where the
-/// emitter produces syntactically-plausible but invalid C# — the substring
+/// emitter produces syntactically-plausible but invalid C# - the substring
 /// assertions in <see cref="EndToEndEmitTests"/> can't detect that.
 /// </summary>
 public class EmittedCodeCompilesTests(ITestOutputHelper output)

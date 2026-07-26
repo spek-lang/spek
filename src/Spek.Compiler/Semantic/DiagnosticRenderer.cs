@@ -3,7 +3,7 @@ using System.Text;
 namespace Spek.Compiler.Semantic;
 
 /// <summary>
-/// Renders a <see cref="Diagnostic"/> in the Rust-style framed format —
+/// Renders a <see cref="Diagnostic"/> in the Rust-style framed format;
 /// a header (<c>error[CE0020]: …</c>), a <c>--&gt;</c> location line, and the
 /// offending source line with a caret underline pointing at the exact span:
 ///
@@ -17,8 +17,9 @@ namespace Spek.Compiler.Semantic;
 /// </code>
 ///
 /// The underline width comes from <see cref="Diagnostic.Span"/> when present
-/// (start → last-token start, per the parser's span construction); diagnostics
-/// that only know a point (e.g. ANTLR syntax errors) get a single caret.
+/// (EndColumn is 1-based exclusive, so width = End - Start); diagnostics
+/// that only know a point (e.g. ANTLR syntax errors) get a single caret,
+/// widened to the identifier under it.
 /// </summary>
 public static class DiagnosticRenderer
 {

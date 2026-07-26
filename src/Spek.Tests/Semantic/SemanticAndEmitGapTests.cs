@@ -12,17 +12,17 @@ namespace Spek.Tests.Semantic;
 /// Each test pairs an existing "error case" with the missing happy-path
 /// contrast, or exercises a branch the existing suites skip:
 /// <list type="bullet">
-///   <item>CE0112 happy path — an *immutable*-typed shared-region field
+///   <item>CE0112 happy path: an *immutable*-typed shared-region field
 ///         (message / primitive) is accepted (only the mutable-class error
 ///         case is covered in <c>ClassConfinementTests</c>).</item>
 ///   <item>CE0087 over an index assignment (<c>field[i] = x</c>) from a
-///         reader handler — the existing tests only cover bare-field and
+///         reader handler: the existing tests only cover bare-field and
 ///         <c>field.member</c> assignment, not index mutation.</item>
 ///   <item>Generics with two type parameters, each carrying its own
-///         <c>where</c> clause — existing emit tests only do single-param
+///         <c>where</c> clause: existing emit tests only do single-param
 ///         constraints.</item>
 ///   <item>A <c>switch</c> expression arm combining a relational pattern AND
-///         a <c>when</c> guard — existing tests cover each in isolation.</item>
+///         a <c>when</c> guard: existing tests cover each in isolation.</item>
 /// </list>
 /// </summary>
 public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
@@ -65,18 +65,18 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
         Assert.True(ok, $"Emitted C# did not compile:\n{summary}");
     }
 
-    // ─── Scenario 1 — CE0112 HAPPY PATH ──────────────────────────────────────
+    // ─── Scenario 1: CE0112 HAPPY PATH ──────────────────────────────────────
     // ClassConfinementTests pins only the *error* case (a mutable `class` as a
     // shared-region field). CE0112 fires solely when the field type resolves to
     // a declared `class` (SemanticAnalyzer.CheckRegionFieldsArentMutableClasses
-    // → symbols.ResolveClass(...)). An immutable field type — a `message` or a
-    // primitive — must therefore be ACCEPTED with no CE0112.
+    // → symbols.ResolveClass(...)). An immutable field type - a `message` or a
+    // primitive: must therefore be ACCEPTED with no CE0112.
 
     [Fact]
     public void CE0112_PrimitiveRegionField_Accepted()
     {
         // A primitive field never resolves to a class symbol, so CE0112
-        // cannot fire — sharing a primitive is exactly what regions are for.
+        // cannot fire: sharing a primitive is exactly what regions are for.
         const string src = """
             shared Counters
             {
@@ -92,7 +92,7 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
     public void CE0112_MessageTypedRegionField_Accepted()
     {
         // A `message` is immutable by construction (its own fields are CE0010-
-        // checked). Holding one in a shared region is safe — no CE0112.
+        // checked). Holding one in a shared region is safe - no CE0112.
         const string src = """
             message Snapshot(int version, string label);
             shared Cache
@@ -104,7 +104,7 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
         AssertParsesClean(src);
     }
 
-    // ─── Scenario 2 — CE0087 over an INDEX assignment from a reader handler ───
+    // ─── Scenario 2: CE0087 over an INDEX assignment from a reader handler ───
     // SemanticAnalyzerTests covers `field = X` and `field.member = X`. The rule
     // (TryGetActorFieldRoot) also claims to cover `field[i] = X` (IndexExpr
     // rooted at a field). These tests prove that branch is live for both an
@@ -113,7 +113,7 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
     [Fact]
     public void CE0087_ReaderHandler_ActorFieldIndexAssign_Reported()
     {
-        // `buf[0] = 5` mutates the actor's array field from a reader handler —
+        // `buf[0] = 5` mutates the actor's array field from a reader handler;
         // an index write is still a write to actor state.
         const string src = """
             message Tick();
@@ -157,7 +157,7 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
     [Fact]
     public void CE0087_WriterHandler_ActorFieldIndexAssign_Clean()
     {
-        // Contrast: the identical index write from a writer handler is fine —
+        // Contrast: the identical index write from a writer handler is fine;
         // writers hold the exclusive lock. (Confirms the reader-mode gate, not
         // a blanket ban on index writes.)
         const string src = """
@@ -174,7 +174,7 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
         Assert.DoesNotContain(Diagnose(src), d => d.Code == "CE0087");
     }
 
-    // ─── Scenario 3 — two type params, each with its OWN where clause ────────
+    // ─── Scenario 3: two type params, each with its OWN where clause ────────
     // GenericEmitTests does single-param constraints and `class, new()` on one
     // param. This pins the multi-clause form `where T : ... where U : ...` on
     // both a function and a class, and round-trips through Roslyn.
@@ -216,9 +216,9 @@ public sealed class SemanticAndEmitGapTests(ITestOutputHelper output)
         AssertCompiles(src, "TwoParamConstrainedClass");
     }
 
-    // ─── Scenario 4 — relational pattern + `when` guard on one arm ───────────
+    // ─── Scenario 4: relational pattern + `when` guard on one arm ───────────
     // SwitchExpressionTests covers relational patterns and `when` guards
-    // separately. This combines them: `>= 80 when score < 90 => "B"` — a
+    // separately. This combines them: `>= 80 when score < 90 => "B"` - a
     // banded grader that needs both the relational lower bound and the guard.
 
     [Fact]

@@ -1,12 +1,12 @@
-# Publishes the VS Code extension to the Visual Studio Marketplace — on demand.
+# Publishes the VS Code extension to the Visual Studio Marketplace, on demand.
 #
 # Run it manually: Actions -> "extension" -> Run workflow. Tick "dry run" to
 # package only (the .vsix is uploaded as a workflow artifact to install and
-# smoke-test locally). The published version is whatever package.json says —
+# smoke-test locally). The published version is whatever package.json says;
 # bump it there, in a normal commit, before running this live.
 #
 # Prerequisite (unlike NuGet, the Marketplace has no OIDC trusted publishing):
-# a VSCE_PAT repository secret — an Azure DevOps personal access token for the
+# a VSCE_PAT repository secret: an Azure DevOps personal access token for the
 # spek-lang publisher with the "Marketplace: Manage" scope.
 #
 # Publish order note: run the NuGet release first. The extension's README tells
@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Package only — skip the Marketplace publish'
+        description: 'Package only: skip the Marketplace publish'
         type: boolean
         default: false
 

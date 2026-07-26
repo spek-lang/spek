@@ -139,7 +139,7 @@ public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
 
     // ── A return AFTER a deferred local → joined before that exit ──
     [Fact]
-    public void ReturnAfterDeferral_JoinsBeforeEarlyExit()
+    public async Task ReturnAfterDeferral_JoinsBeforeEarlyExitAsync()
     {
         const string src = """
             module M
@@ -163,13 +163,13 @@ public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
         // Runtime: both paths produce the right answer (and `a` completes).
         var asm = RoslynCompileHelper.CompileAndLoad(code, "ReturnAfterDeferralRun");
         var run = asm.GetType("M")!.GetMethod("Run")!;
-        Assert.Equal(0, ((System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { true })!).GetAwaiter().GetResult());
-        Assert.Equal(6, ((System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { false })!).GetAwaiter().GetResult());
+        Assert.Equal(0, await (System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { true })!);
+        Assert.Equal(6, await (System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { false })!);
     }
 
     // ── Multiple early exits after a deferred local → each gets a join ──
     [Fact]
-    public void MultipleExits_EachJoinedBeforeReturn()
+    public async Task MultipleExits_EachJoinedBeforeReturnAsync()
     {
         const string src = """
             module M
@@ -190,11 +190,11 @@ public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
 
         var asm = RoslynCompileHelper.CompileAndLoad(code, "MultiExitRun");
         var run = asm.GetType("M")!.GetMethod("Run")!;
-        int Run(int mode) =>
-            ((System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { mode })!).GetAwaiter().GetResult();
-        Assert.Equal(110, Run(0));
-        Assert.Equal(1,   Run(1));
-        Assert.Equal(2,   Run(2));
+        System.Threading.Tasks.Task<int> RunAsync(int mode) =>
+            (System.Threading.Tasks.Task<int>)run.Invoke(null, new object[] { mode })!;
+        Assert.Equal(110, await RunAsync(0));
+        Assert.Equal(1,   await RunAsync(1));
+        Assert.Equal(2,   await RunAsync(2));
     }
 
     // ── A Task bound inside a loop → eager fallback (and no out-of-scope join) ──
@@ -245,7 +245,7 @@ public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
 
     // ── End-to-end: deferred + joined code runs and returns the right value ──
     [Fact]
-    public void EndToEnd_LazyVar_RunsAndCompletes()
+    public async Task EndToEnd_LazyVar_RunsAndCompletesAsync()
     {
         const string src = """
             module Calc
@@ -268,6 +268,6 @@ public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
         var run  = calc.GetMethod("Run")!;
         // Run lowered to async Task<int>; await the result and assert completion.
         var task = (System.Threading.Tasks.Task<int>)run.Invoke(null, null)!;
-        Assert.Equal(42, task.GetAwaiter().GetResult());
+        Assert.Equal(42, await task);
     }
 }

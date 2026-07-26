@@ -9,6 +9,14 @@ public sealed class ActorSystem : IDisposable
     private readonly string _name;
     private readonly List<ActorSlot> _slots = [];
     private readonly Dictionary<string, ActorRef> _namedRoots = new(StringComparer.Ordinal);
+    // Reverse of _namedRoots (ref → path), maintained in lockstep under _lock.
+    // Exists so PathOfNamedRoot: on the cluster send path for every
+    // Tell-with-sender: is a dictionary hit instead of a linear scan of every
+    // named root while holding the system lock. Keyed by reference
+    // identity: ActorRef intentionally has no value equality, and the scan it
+    // replaces compared with ReferenceEquals.
+    private readonly Dictionary<ActorRef, string> _namedRootPaths =
+        new(ReferenceEqualityComparer.Instance);
     // Per-system registry of `shared` regions. Lazily populated
     // on first access via GetSharedRegion<T>; one instance per type per
     // ActorSystem (matches the locked "per-ActorSystem scope, like ETS"
@@ -52,7 +60,7 @@ public sealed class ActorSystem : IDisposable
     private readonly ManualResetEventSlim _slotActivityChanged = new(initialState: true);
 
     // Set once the system has been torn down (Dispose ran). AwaitTermination
-    // treats this as a terminal state and returns true — distinguishing
+    // treats this as a terminal state and returns true - distinguishing
     // "no slots yet" (still starting) from "no slots anymore" (disposed), which
     // the bare `_slots.Count > 0` idle check can't. Set *inside* Dispose, after
     // the drain, so GracefulShutdown's own internal AwaitTermination still drains
@@ -68,12 +76,69 @@ public sealed class ActorSystem : IDisposable
     public ActorSystem(
         string name,
         ISnapshotStore? snapshotStore = null,
-        IDeadLetterSink? deadLetterSink = null)
+        IDeadLetterSink? deadLetterSink = null,
+        TimeProvider? timeProvider = null,
+        ChaosPlan? chaos = null,
+        FlightRecorder? trace = null)
     {
         _name = name;
         _snapshotStore  = snapshotStore   ?? new InMemorySnapshotStore();
-        _deadLetterSink = deadLetterSink ?? new ConsoleDeadLetterSink();
+        // Guarded: a throwing user sink must never escalate a report into
+        // a new failure (see GuardedSinks.cs).
+        _deadLetterSink = new GuardedDeadLetterSink(deadLetterSink ?? new ConsoleDeadLetterSink());
+        Clock           = timeProvider   ?? TimeProvider.System;
+        Chaos           = chaos;
+        Trace           = trace;
+        if (chaos is not null)
+        {
+            // Loud on purpose: a fault plan must be impossible to leave
+            // enabled by accident.
+            Console.Error.WriteLine(
+                $"[spek] CHAOS ENABLED on system '{name}'; fault injection is " +
+                "active. This configuration must never reach production.");
+        }
+        SpekIntrospectionEventSource.Register(this);   // spekc observe attach surface
     }
+
+    /// <summary>The fault-injection plan, when one was attached at construction.</summary>
+    internal ChaosPlan? Chaos { get; }
+
+    /// <summary>Per-system ask-reply counters (issued / delivered / duplicate
+    /// / failed), scoped to asks against THIS system's actors - the sound
+    /// basis for "every ask completed exactly once" invariants under parallel
+    /// test collections, where the process-global
+    /// <see cref="ReplyDiagnostics"/> statics see everyone's asks at once.</summary>
+    internal ReplyDiagnosticsScope ReplyScope { get; } = new();
+
+    /// <summary>The ingress flight recorder, when one was attached at construction.</summary>
+    internal FlightRecorder? Trace { get; }
+
+    /// <summary>
+    /// When true, slots never self-schedule dispatch (TryProcess no-ops);
+    /// an external coordinator (the deterministic simulator) single-steps
+    /// them via <see cref="ActorSlot.SimDispatchOneAsync"/>.
+    /// </summary>
+    internal bool ExternalDispatch { get; set; }
+
+    /// <summary>Deterministically-ordered snapshot of tracked slots (spawn order).</summary>
+    internal ActorSlot[] SlotsSnapshot()
+    {
+        lock (_lock) return _slots.ToArray();
+    }
+
+    /// <summary>True when this system was constructed with a chaos plan.</summary>
+    public bool ChaosEnabled => Chaos is not null;
+
+    /// <summary>
+    /// The system's time source. Every semantic use of time in the runtime;
+    /// passivation idleness, restart-budget windows, wall-clock reads via
+    /// <c>self.Clock</c>: routes through it, so a test-supplied provider
+    /// controls time deterministically. Defaults to
+    /// <see cref="TimeProvider.System"/>. Internal scheduling micro-backoffs
+    /// deliberately stay on real time: an un-advanced virtual clock must
+    /// never deadlock the dispatcher.
+    /// </summary>
+    public TimeProvider Clock { get; }
 
     /// <summary>The snapshot store this system writes through on <c>persist</c>.</summary>
     public ISnapshotStore SnapshotStore => _snapshotStore;
@@ -81,7 +146,32 @@ public sealed class ActorSystem : IDisposable
     /// <summary>The sink that receives unhandled / dropped messages.</summary>
     public IDeadLetterSink DeadLetterSink => _deadLetterSink;
 
-    /// <summary>The system's logical name — used by the cluster layer to
+    /// <summary>
+    /// Attach a passive observer to a local actor's inbox - tcpdump for a
+    /// mailbox. The actor is untouched: no recompile, no redeploy, and
+    /// nothing the observer does can change program behavior (messages are
+    /// immutable, the callback runs off the dispatch path, an observer that
+    /// throws is routed to the dead-letter sink, and a slow observer sheds
+    /// load into <see cref="InboxObserverHandle.Dropped"/> instead of ever
+    /// stalling the actor). Dispose the returned handle to detach.
+    /// Local-node only: a tap on a remote ref would observe nothing and
+    /// therefore throws instead.
+    /// </summary>
+    public InboxObserverHandle Observe(
+        ActorRef actor, Action<ObservedMessage> onMessage, int bufferCapacity = 1024)
+    {
+        ArgumentNullException.ThrowIfNull(actor);
+        ArgumentNullException.ThrowIfNull(onMessage);
+        ArgumentOutOfRangeException.ThrowIfLessThan(bufferCapacity, 1);
+        if (actor.Slot is not { } slot)
+            throw new InvalidOperationException(
+                "Inbox observers attach to local actors only; this ref has no " +
+                "local mailbox (remote ref or NoSender). Attach on the actor's " +
+                "home node.");
+        return slot.AttachObserver(onMessage, bufferCapacity);
+    }
+
+    /// <summary>The system's logical name - used by the cluster layer to
     /// label this node in observability tools.</summary>
     public string Name => _name;
 
@@ -102,7 +192,11 @@ public sealed class ActorSystem : IDisposable
     /// metrics may not be observed by the new sink.</summary>
     public ActorSystem UseMetricSink(IMetricSink sink)
     {
-        _metricSink = sink ?? throw new ArgumentNullException(nameof(sink));
+        ArgumentNullException.ThrowIfNull(sink);
+        // Guarded: metric calls run inside the dispatch try - a throwing
+        // sink would otherwise be mis-attributed as a handler failure and
+        // trip supervision (see GuardedSinks.cs).
+        _metricSink = new GuardedMetricSink(sink);
         return this;
     }
 
@@ -162,7 +256,7 @@ public sealed class ActorSystem : IDisposable
     }
 
     /// <summary>
-    /// Internal lookup for <see cref="Spek.PersistedRegion"/> —
+    /// Internal lookup for <see cref="Spek.PersistedRegion"/>;
     /// returns the per-region store override for <paramref name="regionType"/>
     /// if one was registered, else <c>null</c> (caller falls back to
     /// the system default).
@@ -173,7 +267,7 @@ public sealed class ActorSystem : IDisposable
             return _regionStores.GetValueOrDefault(regionType);
     }
 
-    // ─── Named roots — wire-addressable top-level actors ────────────────────
+    // ─── Named roots: wire-addressable top-level actors ────────────────────
 
     /// <summary>
     /// Spawns a top-level actor and registers it under <paramref name="path"/>
@@ -182,27 +276,45 @@ public sealed class ActorSystem : IDisposable
     /// system remembers the name → ref binding and routes inbound
     /// <c>RemoteEnvelope.TargetPath = path</c> traffic here.
     /// </summary>
-    public ActorRef SpawnNamed<TActor>(string path, params object[] args)
+    public ActorRef SpawnNamed<TActor>(string path, params object?[] args)
         where TActor : ActorBase
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         var actor = Spawn<TActor>(args);
-        lock (_lock) _namedRoots[path] = actor;
+        RegisterNamedRoot(path, actor);
         return actor;
     }
 
     /// <summary>
-    /// Non-generic <see cref="SpawnNamed{TActor}"/> — useful when the
+    /// Non-generic <see cref="SpawnNamed{TActor}"/> - useful when the
     /// actor type is known at runtime (e.g. located-actor auto-activation
     /// in <c>Spek.Cluster</c>'s <c>Locate&lt;T&gt;</c> machinery).
     /// </summary>
-    public ActorRef SpawnNamed(Type actorType, string path, params object[] args)
+    public ActorRef SpawnNamed(Type actorType, string path, params object?[] args)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         EnsureSpekActor(actorType);
         var actor = Spawn(actorType, args);
-        lock (_lock) _namedRoots[path] = actor;
+        RegisterNamedRoot(path, actor);
         return actor;
+    }
+
+    /// <summary>
+    /// Binds <paramref name="path"/> → <paramref name="actor"/> in the
+    /// named-root map and mirrors the reverse binding. Re-registering a path
+    /// unbinds the previous actor's reverse entry so
+    /// <see cref="PathOfNamedRoot"/> keeps the contract: only a ref
+    /// that is <i>currently</i> a named root resolves to a path.
+    /// </summary>
+    private void RegisterNamedRoot(string path, ActorRef actor)
+    {
+        lock (_lock)
+        {
+            if (_namedRoots.TryGetValue(path, out var previous))
+                _namedRootPaths.Remove(previous);
+            _namedRoots[path] = actor;
+            _namedRootPaths[actor] = path;
+        }
     }
 
     /// <summary>Resolves a previously-named local root, or null if not bound.</summary>
@@ -212,7 +324,7 @@ public sealed class ActorSystem : IDisposable
     }
 
     /// <summary>
-    /// Reverse lookup — returns the path that <paramref name="actor"/> was
+    /// Reverse lookup: returns the path that <paramref name="actor"/> was
     /// registered under via <see cref="SpawnNamed{TActor}"/>, or
     /// <c>null</c> if it's anonymous. Used by the cluster layer to put
     /// the local actor's path into the wire envelope's sender field so
@@ -221,19 +333,14 @@ public sealed class ActorSystem : IDisposable
     public string? PathOfNamedRoot(ActorRef actor)
     {
         if (actor is null) return null;
-        lock (_lock)
-        {
-            foreach (var (path, r) in _namedRoots)
-                if (ReferenceEquals(r, actor)) return path;
-            return null;
-        }
+        lock (_lock) return _namedRootPaths.GetValueOrDefault(actor);
     }
 
     // ─── Cluster layer plug-in points ───────────────────────────────────────
 
     /// <summary>
     /// Wired by <c>Spek.Cluster</c> when a transport registers with this
-    /// system. The runtime stays remoting-agnostic — it knows there's
+    /// system. The runtime stays remoting-agnostic - it knows there's
     /// "something" that can resolve remote refs and dispatch outbound
     /// envelopes, but it doesn't know what protocol or even that there's
     /// a wire involved (in-memory transports plug into the same hook).
@@ -272,19 +379,19 @@ public sealed class ActorSystem : IDisposable
     }
 
     /// <summary>
-    /// Spawns an actor without a stable persistence key — <c>persist</c> writes
+    /// Spawns an actor without a stable persistence key - <c>persist</c> writes
     /// are scoped to this process and won't be recovered across restarts. Use
     /// <see cref="SpawnPersistent{TActor}"/> when you need cross-run durability.
     /// </summary>
-    public ActorRef Spawn<TActor>(params object[] args)
+    public ActorRef Spawn<TActor>(params object?[] args)
         where TActor : ActorBase
         => SpawnInternal(typeof(TActor), persistenceKey: null, args);
 
     /// <summary>
-    /// Non-generic spawn — useful when the actor type is only known at runtime
+    /// Non-generic spawn: useful when the actor type is only known at runtime
     /// (e.g. dynamically-compiled Spek code loaded via reflection).
     /// </summary>
-    public ActorRef Spawn(Type actorType, params object[] args)
+    public ActorRef Spawn(Type actorType, params object?[] args)
     {
         EnsureSpekActor(actorType);
         return SpawnInternal(actorType, persistenceKey: null, args);
@@ -297,18 +404,18 @@ public sealed class ActorSystem : IDisposable
     /// <see cref="FailureDirective.Restart"/> directive, the rebuilt instance
     /// also reloads from the latest snapshot.
     /// </summary>
-    public ActorRef SpawnPersistent<TActor>(string persistenceKey, params object[] args)
+    public ActorRef SpawnPersistent<TActor>(string persistenceKey, params object?[] args)
         where TActor : ActorBase
         => SpawnInternal(typeof(TActor), persistenceKey, args);
 
     /// <summary>Non-generic <see cref="SpawnPersistent{TActor}"/>.</summary>
-    public ActorRef SpawnPersistent(Type actorType, string persistenceKey, params object[] args)
+    public ActorRef SpawnPersistent(Type actorType, string persistenceKey, params object?[] args)
     {
         EnsureSpekActor(actorType);
         return SpawnInternal(actorType, persistenceKey, args);
     }
 
-    private ActorRef SpawnInternal(Type actorType, string? persistenceKey, object[] args)
+    private ActorRef SpawnInternal(Type actorType, string? persistenceKey, object?[] args)
     {
         var slot = BuildSlot(actorType, persistenceKey, args);
         var selfRef = new ActorRef(slot);
@@ -317,31 +424,31 @@ public sealed class ActorSystem : IDisposable
         return selfRef;
     }
 
-    /// <summary>Async spawn — use when your <see cref="ISnapshotStore"/> does real I/O.</summary>
-    public async Task<ActorRef> SpawnAsync<TActor>(params object[] args)
+    /// <summary>Async spawn: use when your <see cref="ISnapshotStore"/> does real I/O.</summary>
+    public async Task<ActorRef> SpawnAsync<TActor>(params object?[] args)
         where TActor : ActorBase
         => await SpawnInternalAsync(typeof(TActor), persistenceKey: null, args).ConfigureAwait(false);
 
     /// <summary>Async spawn (non-generic variant).</summary>
-    public async Task<ActorRef> SpawnAsync(Type actorType, params object[] args)
+    public async Task<ActorRef> SpawnAsync(Type actorType, params object?[] args)
     {
         EnsureSpekActor(actorType);
         return await SpawnInternalAsync(actorType, persistenceKey: null, args).ConfigureAwait(false);
     }
 
-    /// <summary>Async persistent spawn — <c>OnRestore</c> fires after the snapshot loads.</summary>
-    public async Task<ActorRef> SpawnPersistentAsync<TActor>(string persistenceKey, params object[] args)
+    /// <summary>Async persistent spawn: <c>OnRestore</c> fires after the snapshot loads.</summary>
+    public async Task<ActorRef> SpawnPersistentAsync<TActor>(string persistenceKey, params object?[] args)
         where TActor : ActorBase
         => await SpawnInternalAsync(typeof(TActor), persistenceKey, args).ConfigureAwait(false);
 
     /// <summary>Async persistent spawn (non-generic variant).</summary>
-    public async Task<ActorRef> SpawnPersistentAsync(Type actorType, string persistenceKey, params object[] args)
+    public async Task<ActorRef> SpawnPersistentAsync(Type actorType, string persistenceKey, params object?[] args)
     {
         EnsureSpekActor(actorType);
         return await SpawnInternalAsync(actorType, persistenceKey, args).ConfigureAwait(false);
     }
 
-    private async Task<ActorRef> SpawnInternalAsync(Type actorType, string? persistenceKey, object[] args)
+    private async Task<ActorRef> SpawnInternalAsync(Type actorType, string? persistenceKey, object?[] args)
     {
         var slot = BuildSlot(actorType, persistenceKey, args);
         var selfRef = new ActorRef(slot);
@@ -350,7 +457,7 @@ public sealed class ActorSystem : IDisposable
         return selfRef;
     }
 
-    private ActorSlot BuildSlot(Type actorType, string? persistenceKey, object[] args) =>
+    private ActorSlot BuildSlot(Type actorType, string? persistenceKey, object?[] args) =>
         new(
             factory: () => (ActorBase)Activator.CreateInstance(actorType, args)!,
             system: this,
@@ -367,8 +474,41 @@ public sealed class ActorSystem : IDisposable
 
     internal void TrackSlot(ActorSlot slot)
     {
-        lock (_lock) _slots.Add(slot);
+        lock (_lock)
+        {
+            _slots.Add(slot);
+            // Stable display identity for introspection. Persistence keys
+            // are already stable; anonymous actors get TypeName / TypeName#N
+            // so successive samples correlate.
+            if (slot.PersistenceKey is { } key) slot.DisplayName = key;
+            else
+            {
+                var typeName = slot.Current?.GetType().Name ?? "Actor";
+                var n = _displayNameCounts.TryGetValue(typeName, out var c) ? c + 1 : 1;
+                _displayNameCounts[typeName] = n;
+                slot.DisplayName = n == 1 ? typeName : $"{typeName}#{n}";
+            }
+        }
+        // Slow-handler watchdog: created lazily on the first tracked slot;
+        // a system that never spawns pays for no timer.
+        EnsureHandlerWatchdog();
         SignalSlotActivity();  // a new slot might make us not-idle
+    }
+
+    private readonly Dictionary<string, int> _displayNameCounts = new();
+
+    /// <summary>
+    /// Point-in-time, read-only introspection view of every tracked actor;
+    /// the data behind <c>spekc observe</c> and dashboard panes. Sampling is
+    /// non-perturbing: counters and cheap queue reads only, no mailbox
+    /// locks, no messages injected. Metadata only - actor field contents
+    /// are never included.
+    /// </summary>
+    public IReadOnlyList<ActorSnapshot> SnapshotActors()
+    {
+        ActorSlot[] slots;
+        lock (_lock) slots = _slots.ToArray();
+        return slots.Select(s => s.Snapshot()).ToArray();
     }
 
     /// <summary>
@@ -394,7 +534,7 @@ public sealed class ActorSystem : IDisposable
     /// Blocks until every tracked actor is idle (mailbox empty, not
     /// processing). Returns immediately if the condition is already
     /// satisfied at call time. Requires at least one slot to have been
-    /// tracked — a system with no spawns blocks forever, matching the
+    /// tracked: a system with no spawns blocks forever, matching the
     /// original semantics.
     /// <para>
     /// Pass <paramref name="timeout"/> to cap the wait; returns
@@ -430,7 +570,7 @@ public sealed class ActorSystem : IDisposable
             }
             catch (ObjectDisposedException)
             {
-                // Dispose() disposed the activity event out from under us — the
+                // Dispose() disposed the activity event out from under us - the
                 // system has terminated. Treat as a clean return rather than
                 // surfacing the race as an exception.
                 return true;
@@ -447,11 +587,11 @@ public sealed class ActorSystem : IDisposable
     /// <summary>
     /// Drains and shuts down in one call: waits for every tracked actor to go
     /// idle (bounded by <paramref name="timeout"/> if given), then disposes
-    /// the system — actors stop and shared regions run their <c>term { }</c>
+    /// the system: actors stop and shared regions run their <c>term { }</c>
     /// blocks in reverse construction order. Returns <c>true</c> when the
     /// system drained cleanly, <c>false</c> when the timeout elapsed first
     /// (shutdown still proceeds). A system that never spawned an actor skips
-    /// the wait — there is nothing to drain. Replaces the
+    /// the wait: there is nothing to drain. Replaces the
     /// <c>AwaitTermination(); Dispose();</c> two-step.
     /// </summary>
     public bool GracefulShutdown(TimeSpan? timeout = null)
@@ -477,7 +617,7 @@ public sealed class ActorSystem : IDisposable
     private int _shutdownRequested;
 
     // Invisible cooperative-cancellation root. Cancelled when shutdown turns
-    // *forceful* — a graceful drain that timed out, or teardown — never on the
+    // *forceful* (a graceful drain that timed out, or teardown) never on the
     // first RequestShutdown (a clean drain lets in-flight messages finish, which
     // is what "graceful" means). The emitter threads this token into auto-awaited,
     // cancellation-accepting calls inside actor handlers (never visible in Spek
@@ -487,7 +627,7 @@ public sealed class ActorSystem : IDisposable
     private readonly CancellationTokenSource _shutdownCts = new();
 
     /// <summary>
-    /// The system's cooperative-cancellation token — fires when shutdown turns
+    /// The system's cooperative-cancellation token - fires when shutdown turns
     /// forceful (drain timeout or teardown). Reached from emitted handler code via
     /// <c>ActorBase.ShutdownToken</c>; it is never written in Spek source.
     /// </summary>
@@ -503,7 +643,7 @@ public sealed class ActorSystem : IDisposable
 
     /// <summary>
     /// Registered by the hosting adapter to define what "shut down" means for
-    /// this process — e.g. the Console host Tells the entry actor its
+    /// this process: e.g. the Console host Tells the entry actor its
     /// <c>Shutdown</c> message, the same path Ctrl+C / SIGTERM use. When set,
     /// <see cref="RequestShutdown"/> invokes it; when unset (a bare
     /// <see cref="ActorSystem"/>, tests), RequestShutdown falls back to a
@@ -512,11 +652,11 @@ public sealed class ActorSystem : IDisposable
     public void OnShutdownRequested(Action handler) => _onShutdownRequested = handler;
 
     /// <summary>
-    /// Actor-reachable, <b>non-blocking</b> shutdown trigger — what
+    /// Actor-reachable, <b>non-blocking</b> shutdown trigger - what
     /// <c>self.System.Shutdown()</c> calls. It must not drain inline: the
     /// calling handler is itself keeping the system busy, so calling
     /// <see cref="GracefulShutdown"/> here would deadlock waiting for idle.
-    /// Idempotent — only the first request fires.
+    /// Idempotent: only the first request fires.
     /// </summary>
     public void RequestShutdown()
     {
@@ -538,7 +678,7 @@ public sealed class ActorSystem : IDisposable
     /// Tears the system down. Signals forceful cancellation to unstick in-flight
     /// handlers, stops every actor gracefully (running <c>OnPostStop</c> and any
     /// <c>term { }</c> block), disposes the slots, then exits shared regions in
-    /// reverse construction order — flushing persisted regions so a graceful
+    /// reverse construction order: flushing persisted regions so a graceful
     /// shutdown is durable. Idempotent.
     /// </summary>
     public void Dispose()
@@ -550,7 +690,7 @@ public sealed class ActorSystem : IDisposable
         {
             // Stop actors gracefully before tearing the slots down: run
             // each actor's OnPostStop and term { } block. Without this, a system
-            // shutdown — including the hostless self.System.Shutdown() path —
+            // shutdown (including the hostless self.System.Shutdown() path)
             // disposed the slots (just flipping a flag) and silently skipped every
             // actor's cleanup. Runs before the region term blocks below, since an
             // actor's cleanup may still touch a shared region.
@@ -602,5 +742,98 @@ public sealed class ActorSystem : IDisposable
         try { _slotActivityChanged.Set(); } catch (ObjectDisposedException) { }
         _slotActivityChanged.Dispose();
         _shutdownCts.Dispose();
+        // After the drain above no reply can ever arrive, so any ask still
+        // waiting on a deadline fails now rather than running out its window.
+        _askDeadlines?.Dispose();
+        // The slot list is cleared, so the watchdog has nothing left to
+        // watch; a handler still wedged at teardown was the shutdown
+        // token's problem, not a sweep's.
+        _handlerWatchdog?.Dispose();
+        SpekIntrospectionEventSource.Unregister(this);
+    }
+
+    // ─── Ask deadlines ────────────────────────────────────────────
+
+    private AskDeadlineSweeper? _askDeadlines;
+
+    /// <summary>The system-wide deadline timer behind timeout-carrying asks.
+    /// Created on the first such ask; systems that never use ask timeouts
+    /// never pay for the timer.</summary>
+    internal AskDeadlineSweeper AskDeadlines
+    {
+        get
+        {
+            var existing = Volatile.Read(ref _askDeadlines);
+            if (existing is not null) return existing;
+            var fresh = new AskDeadlineSweeper();
+            var winner = Interlocked.CompareExchange(ref _askDeadlines, fresh, null);
+            if (winner is not null) { fresh.Dispose(); return winner; }
+            return fresh;
+        }
+    }
+
+    // ─── Slow-handler watchdog (detection only) ─────────────────────────────
+
+    private HandlerWatchdog? _handlerWatchdog;
+    // Threshold in milliseconds; -1 encodes null/disabled. A long (not a
+    // TimeSpan?) so the watchdog's timer thread and the property accessors
+    // read/write it tearlessly via Interlocked.
+    private long _slowHandlerThresholdMs = 30_000;
+
+    /// <summary>Watchdog sweep period in milliseconds - internal test hook
+    /// (reached from Spek.Tests through Spek.Testing). The watchdog reads it
+    /// once, when the first tracked slot creates it, so set it before the
+    /// first spawn; production systems have no reason to tune it.</summary>
+    internal long SlowHandlerSweepPeriodMs = HandlerWatchdog.DefaultSweepPeriodMs;
+
+    /// <summary>Threshold snapshot for the watchdog's sweep; -1 means
+    /// detection is disabled.</summary>
+    internal long SlowHandlerThresholdMs => Interlocked.Read(ref _slowHandlerThresholdMs);
+
+    /// <summary>
+    /// How long a handler may run before the slow-handler watchdog reports
+    /// it as a possible wedge: one dead-letter entry (a
+    /// <see cref="SlowHandlerReport"/> naming the actor) plus a
+    /// <see cref="Spek.Observability.SpekMetricNames.SlowHandler"/> counter
+    /// tick, once per occurrence. Detection only - the runtime never cancels
+    /// or kills the handler, and dispatch is unchanged by a report; the
+    /// point is that a handler stuck forever (awaiting a reply that cannot
+    /// come, blocked on a dead resource) is loud instead of silent.
+    /// <para>
+    /// The threshold is wall-clock: a wedge is a real-time phenomenon, so
+    /// virtual-time tests advancing the manual <see cref="Clock"/> by hours
+    /// do not trip it, and sweeps are skipped while a debugger is attached.
+    /// The default is a generous 30 seconds because the target is handlers
+    /// stuck forever, not slow work. Set to null to disable detection.
+    /// Reader arms are tracked per phase, not per handler - see
+    /// <see cref="HandlerWatchdog"/> for the approximation.
+    /// </para>
+    /// </summary>
+    public TimeSpan? SlowHandlerThreshold
+    {
+        get
+        {
+            var ms = Interlocked.Read(ref _slowHandlerThresholdMs);
+            return ms < 0 ? null : TimeSpan.FromMilliseconds(ms);
+        }
+        set
+        {
+            if (value is { } t && t <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(value),
+                    "SlowHandlerThreshold must be positive; use null to disable detection.");
+            Interlocked.Exchange(ref _slowHandlerThresholdMs,
+                value is { } v ? (long)v.TotalMilliseconds : -1L);
+            // A null threshold parks the watchdog's timer; re-enabling must
+            // un-park it.
+            if (value is not null) Volatile.Read(ref _handlerWatchdog)?.Wake();
+        }
+    }
+
+    private void EnsureHandlerWatchdog()
+    {
+        if (Volatile.Read(ref _handlerWatchdog) is not null) return;
+        var fresh = new HandlerWatchdog(this);
+        if (Interlocked.CompareExchange(ref _handlerWatchdog, fresh, null) is not null)
+            fresh.Dispose();   // lost the race: the winner's timer is live
     }
 }

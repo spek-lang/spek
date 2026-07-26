@@ -5,13 +5,13 @@ using Xunit;
 namespace Spek.Tests.LanguageServer;
 
 /// <summary>
-/// Coverage for <see cref="SpekEmitCSharpHandler"/> — the custom
+/// Coverage for <see cref="SpekEmitCSharpHandler"/> - the custom
 /// <c>spek/emitCSharp</c> request behind the extension's experimental
 /// "Show emitted C#" command.
 /// </summary>
 public class EmitCSharpTests
 {
-    private static async Task<EmitCSharpResult> Emit(string? source)
+    private static async Task<EmitCSharpResult> EmitAsync(string? source)
     {
         var cache = new DocumentCache();
         var uri   = DocumentUri.From("file:///emit.spek");
@@ -22,9 +22,9 @@ public class EmitCSharpTests
     }
 
     [Fact]
-    public async Task ValidSource_ReturnsEmittedCSharp()
+    public async Task ValidSource_ReturnsEmittedCSharpAsync()
     {
-        var result = await Emit("""
+        var result = await EmitAsync("""
             message Ping();
             actor Server
             {
@@ -39,18 +39,18 @@ public class EmitCSharpTests
     }
 
     [Fact]
-    public async Task BrokenSource_ReturnsError()
+    public async Task BrokenSource_ReturnsErrorAsync()
     {
-        var result = await Emit("actor {{{ this is not valid");
+        var result = await EmitAsync("actor {{{ this is not valid");
 
         Assert.Null(result.CSharp);
         Assert.NotNull(result.Error);
     }
 
     [Fact]
-    public async Task UnopenedDocument_ReturnsError()
+    public async Task UnopenedDocument_ReturnsErrorAsync()
     {
-        var result = await Emit(source: null);   // nothing put in the cache
+        var result = await EmitAsync(source: null);   // nothing put in the cache
 
         Assert.Null(result.CSharp);
         Assert.NotNull(result.Error);

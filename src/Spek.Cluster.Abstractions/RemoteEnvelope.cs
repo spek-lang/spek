@@ -9,9 +9,8 @@ namespace Spek.Cluster;
 /// </summary>
 /// <param name="TargetPath">
 /// Logical path identifying the recipient actor on the receiving
-/// node. Currently a flat name (the actor's <c>NamedRoot</c> registration
-/// label); a later release extends this to hierarchical paths once cluster
-/// sharding lands.
+/// node. A flat name (the actor's <c>NamedRoot</c> registration
+/// label); the envelope carries no hierarchical paths.
 /// </param>
 /// <param name="Message">
 /// The user-defined Spek <c>message</c> instance. In-memory transports

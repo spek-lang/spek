@@ -21,7 +21,7 @@ public sealed class ChannelToProtoEmitterTests
     /// <summary>
     /// Parses a Spek source string and pulls out the named channel
     /// plus a name→MessageDecl map for every message in the file.
-    /// Throws if the source doesn't parse — tests that want to
+    /// Throws if the source doesn't parse - tests that want to
     /// exercise error paths construct AST nodes manually.
     /// </summary>
     private static (ChannelDecl Channel, IReadOnlyDictionary<string, MessageDecl> Messages)
@@ -204,7 +204,7 @@ public sealed class ChannelToProtoEmitterTests
     [Fact]
     public void Emitted_Proto_ReParsesViaGoogleProtobuf()
     {
-        // Sanity check — Google.Protobuf can compile our output. If
+        // Sanity check: Google.Protobuf can compile our output. If
         // protoc would reject it, that's a synthesis bug.
         var (ch, msgs) = ParseFixture(
             """
@@ -215,7 +215,7 @@ public sealed class ChannelToProtoEmitterTests
 
         var protoText = new ChannelToProtoEmitter().Emit(ch, msgs, "src/UserApi.spek");
 
-        // We don't have a proto3 *parser* in Google.Protobuf — only
+        // We don't have a proto3 *parser* in Google.Protobuf - only
         // a compiled-descriptor reader. So this test is a string-level
         // sanity check rather than a true round-trip. It verifies the
         // shape is plausibly proto3 syntax (presence of syntax, package,

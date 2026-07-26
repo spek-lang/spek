@@ -11,24 +11,24 @@ namespace Spek.Tests.Docs;
 /// <summary>
 /// Compiles the Spek code snippets embedded in <c>docs/**/*.md</c> so the
 /// published documentation can never silently drift from the language. Every
-/// fenced <c>```spek</c> block is extracted and — depending on its mode — run
+/// fenced <c>```spek</c> block is extracted and (depending on its mode) run
 /// through <see cref="SpekCompiler.Parse"/> and, for full programs, emitted to
 /// C# and Roslyn-compiled via <see cref="RoslynCompileHelper"/>.
 ///
 /// Mode is chosen per block:
 /// <list type="bullet">
-///   <item><b>parse</b> (syntax-only) — the default for any block whose first
+///   <item><b>parse</b> (syntax-only) - the default for any block whose first
 ///     declaration is a top-level keyword (<c>program</c>/<c>module</c>/
 ///     <c>actor</c>/<c>message</c>/<c>enum</c>/<c>shared</c>/<c>channel</c>/
 ///     <c>using</c>/<c>namespace</c>). It must parse without a grammar error
-///     (<see cref="SpekCompiler.ParseToTree"/>, no semantic pass) — this
+///     (<see cref="SpekCompiler.ParseToTree"/>, no semantic pass) - this
 ///     catches the common doc rot (renamed keywords, changed syntax) without
 ///     false positives from fragments that reference declarations defined
 ///     elsewhere in the prose.</item>
-///   <item><b>compile</b> — opt-in via <c>&lt;!-- spek-test: compile --&gt;</c>
+///   <item><b>compile</b>: opt-in via <c>&lt;!-- spek-test: compile --&gt;</c>
 ///     for self-contained snippets: full parse + semantic + emit + Roslyn
 ///     compile, the end-to-end guarantee.</item>
-///   <item><b>ignore</b> — fragments (not starting with a top-level keyword),
+///   <item><b>ignore</b>: fragments (not starting with a top-level keyword),
 ///     snippets with an ellipsis placeholder (<c>{ ... }</c>), and anything
 ///     tagged <c>&lt;!-- spek-test: ignore --&gt;</c>.</item>
 /// </list>
@@ -90,7 +90,7 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
         var readme = Path.Combine(Path.GetDirectoryName(root)!, "README.md");
         var snippets = new List<Snippet>();
 
-        // Also scan the repo-root README — it's the front door, so keep its
+        // Also scan the repo-root README: it's the front door, so keep its
         // ```spek example honest (compile-tested) rather than letting it rot.
         var files = DocsPresent()
             ? Directory.EnumerateFiles(root, "*.md", SearchOption.AllDirectories).ToList()
@@ -102,7 +102,7 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
             var rel   = path == readme ? "README.md" : Path.GetRelativePath(root, path).Replace('\\', '/');
             var lines = File.ReadAllLines(path);
 
-            // Design docs hold aspirational / parked syntax — skip by default.
+            // Design docs hold aspirational / parked syntax - skip by default.
             var fileDefault = rel.StartsWith("design/", StringComparison.Ordinal) ? Mode.Ignore : Mode.Auto;
             Mode? pending = null;   // a per-block directive awaiting the next fence
 
@@ -152,7 +152,7 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
     private static Mode Classify(string source)
     {
         // Illustrative placeholders (`{ ... }`, `// ...`, `/* ... */`) are not
-        // valid Spek — any snippet with an ellipsis is prose, not a program.
+        // valid Spek: any snippet with an ellipsis is prose, not a program.
         if (source.Contains("...", StringComparison.Ordinal)) return Mode.Ignore;
 
         foreach (var raw in source.Split('\n'))
@@ -192,21 +192,21 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
         if (s.Mode == Mode.Parse)
         {
             // Syntax-only: must parse as valid Spek grammar. Semantic errors
-            // (e.g. a message defined elsewhere in the doc) are NOT failures —
+            // (e.g. a message defined elsewhere in the doc) are NOT failures;
             // a doc fragment legitimately references things from its prose.
             var (tree, diags) = SpekCompiler.ParseToTree(s.Source);
             Assert.True(tree is not null && diags.Count == 0,
-                $"{file}:{line} — snippet has a syntax error:\n" +
+                $"{file}:{line}: snippet has a syntax error:\n" +
                 string.Join("\n", diags.Select(d => $"  {d.Code} ({d.Line}:{d.Column}) {d.Message}")) +
                 $"\n--- snippet ---\n{s.Source}");
             return;
         }
 
-        // Mode.Compile — the full end-to-end guarantee.
+        // Mode.Compile: the full end-to-end guarantee.
         var parsed = SpekCompiler.Parse(s.Source);
         var errors = parsed.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
         Assert.True(parsed.Success,
-            $"{file}:{line} — snippet did not parse/analyze cleanly:\n" +
+            $"{file}:{line}: snippet did not parse/analyze cleanly:\n" +
             string.Join("\n", errors.Select(d => $"  {d.Code} ({d.Line}:{d.Column}) {d.Message}")) +
             $"\n--- snippet ---\n{s.Source}");
 
@@ -215,7 +215,7 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
         var csharp = new FileEmitter().Emit(parsed.Tree!, emitTests: true);
         var (ok, summary, _) = RoslynCompileHelper.TryCompile(csharp, "DocSnippet");
         Assert.True(ok,
-            $"{file}:{line} — emitted C# did not compile:\n{summary}\n--- snippet ---\n{s.Source}");
+            $"{file}:{line}: emitted C# did not compile:\n{summary}\n--- snippet ---\n{s.Source}");
     }
 
     /// <summary>Reports coverage and guards against the extractor silently
@@ -228,11 +228,11 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
         var parse   = all.Count(s => s.Mode == Mode.Parse);
         var ignore  = all.Count(s => s.Mode == Mode.Ignore);
 
-        output.WriteLine($"doc spek snippets: {all.Count} total — " +
+        output.WriteLine($"doc spek snippets: {all.Count} total; " +
                          $"{compile} compile, {parse} parse, {ignore} ignored");
 
         // With the docs tree relocated out of this repo, only the README's
-        // snippets remain — the floor drops to "the extractor found something."
+        // snippets remain: the floor drops to "the extractor found something."
         var floor = DocsPresent() ? 30 : 1;
         Assert.True(compile + parse >= floor,
             $"doc-snippet coverage collapsed: only {compile + parse} snippets checked. " +

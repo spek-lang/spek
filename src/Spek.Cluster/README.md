@@ -12,14 +12,14 @@ parties can depend on the contracts without pulling in the bootstrap.
 
 ## What ships in this package
 
-- **`Cluster`** — the composition root. `Cluster.Bind(system,
+- **`Cluster`**: the composition root. `Cluster.Bind(system,
   transport, membership, placement)` registers a transport with an
   `ActorSystem` and exposes `ResolveRemote(...)` /
   located-actor activation.
-- **`StaticSeedClusterMembership`** — the simplest membership
+- **`StaticSeedClusterMembership`**: the simplest membership
   implementation: a fixed peer list supplied at bootstrap. Good for
   tests and small fleets.
-- **`ConsistentHashPlacement`** — the default
+- **`ConsistentHashPlacement`**: the default
   `IPlacementStrategy`. Routes a given actor key to a peer using
   consistent hashing so peer-set churn moves a minimum number of
   actors.

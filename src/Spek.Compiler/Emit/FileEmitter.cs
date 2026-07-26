@@ -17,6 +17,9 @@ public sealed class FileEmitter
     /// <param name="asyncReferencePaths">Extra assembly paths fed to the
     /// invisible-async pass so it can auto-await Task-returning APIs from
     /// outside the BCL (e.g. AspNetCore). Null uses the BCL alone.</param>
+    /// <param name="emitTests">When true (test projects), a module/class whose
+    /// name ends in <c>Tests</c> compiles as a test container - its public
+    /// methods emit as <c>[SpekTest]</c> xUnit facts.</param>
     public string Emit(SpekFile file, SymbolTable? symbols = null, string? sourceFileName = null,
         IReadOnlyList<string>? asyncReferencePaths = null, bool emitTests = false)
     {
@@ -26,11 +29,11 @@ public sealed class FileEmitter
         symbols ??= SymbolTable.Build(file);
 
         // Convention: in a test project (emitTests), a module/class whose name ends
-        // in `Tests` is a test container — its public methods emit as tests.
+        // in `Tests` is a test container: its public methods emit as tests.
         var hasConventionTests = emitTests && file.Declarations.Any(IsTestContainer);
 
-        // Pure-data files — only enums and messages whose fields name no Spek
-        // runtime type — reference nothing from the Spek namespaces, so skip the
+        // Pure-data files: only enums and messages whose fields name no Spek
+        // runtime type: reference nothing from the Spek namespaces, so skip the
         // Spek usings. That lets a dependency-light DTO/enum package be authored
         // in Spek without taking a reference on Spek.Runtime purely to satisfy an
         // otherwise-unused `using`. Anything richer (an actor, class, module,
@@ -56,8 +59,8 @@ public sealed class FileEmitter
         writer.Line("using System.Threading.Tasks;");
         if (needsSpekUsings)
         {
-            writer.Line("using Spek;");              // Fundamentals — ActorBase, ActorRef, FailureDirective, Outcome, clocks
-            writer.Line("using Spek.Runtime;");      // engine internals — ActorSystem, runtime types
+            writer.Line("using Spek;");              // Fundamentals: ActorBase, ActorRef, FailureDirective, Outcome, clocks
+            writer.Line("using Spek.Runtime;");      // engine internals: ActorSystem, runtime types
             writer.Line("using Spek.Persistence;");  // Snapshot, ISnapshotStore (used in `on Restore` handlers)
         }
         if (hasConventionTests)
@@ -136,12 +139,12 @@ public sealed class FileEmitter
                 case ChannelDecl ch:
                     // Channels emit as marker interfaces with
                     // [SpekChannelMetadata] attached so hosting
-                    // adapters (REST, future gRPC) can reflect over
+                    // adapters (REST, gRPC) can reflect over
                     // the channel's input/emit message sets at
                     // runtime. Channels remain compile-time contracts
-                    // for the most part — there are no methods on the
+                    // for the most part: there are no methods on the
                     // emitted interface, no inheritance to enforce
-                    // at runtime — but the metadata is real C# the
+                    // at runtime: but the metadata is real C# the
                     // adapters can read.
                     EmitChannel(ch, symbols, writer);
                     break;
@@ -164,12 +167,11 @@ public sealed class FileEmitter
 
     /// <summary>
     /// Emits a `shared X { ... }` region as a C# class deriving
-    /// from <c>Spek.SharedRegion</c>. Phase 1 just emits the field list
-    /// with public visibility (so attached actors can reach the fields
-    /// through the lazy-property accessor on the actor). Init blocks,
-    /// persistence clauses, and reader/writer-only modes are deferred
-    /// to follow-up commits — the generated class is ready to receive
-    /// them additively.
+    /// from <c>Spek.SharedRegion</c> (or <c>Spek.PersistedRegion</c> for
+    /// <c>: Persisted</c>): fields with their declared visibility, the
+    /// optional <c>init</c> block, and the persistence capture/restore
+    /// shape. Attached actors reach the fields through the lazy-property
+    /// accessor on the actor.
     /// </summary>
     private static void EmitSharedRegion(SharedRegionDecl sr, CSharpWriter w)
     {
@@ -182,11 +184,9 @@ public sealed class FileEmitter
             _                    => "internal",
         };
 
-        // Phase 3 — pick the runtime base class based on the
-        // optional capability marker. Unknown markers fall through to
-        // SharedRegion; semantic analysis will eventually surface
-        // them as a CE (not implemented in Phase 3 — Persisted is
-        // the only capability we know).
+        // Pick the runtime base class from the optional capability
+        // marker. Persisted is the only capability; unknown markers
+        // fall through to SharedRegion.
         var baseType = sr.BaseCapability switch
         {
             "Persisted"   => "Spek.PersistedRegion",
@@ -211,8 +211,8 @@ public sealed class FileEmitter
         // CE0108: region field visibility now flows through to
         // the emitted C# class. A field declared `private` is private
         // to the region (set in init or used by other fields, not
-        // accessible to attaching actors). The default — when the
-        // user wrote no modifier — is `public` so attaching actors
+        // accessible to attaching actors). The default - when the
+        // user wrote no modifier: is `public` so attaching actors
         // can read/write the field as before. `internal` /
         // `protected` emit verbatim.
         //
@@ -228,16 +228,16 @@ public sealed class FileEmitter
             if (f.Initializer is not null)
                 w.Line($"{fieldVis} {f.Type} {f.Name} = {exprEmitter.Emit(f.Initializer)};");
             else
-                // Phase 3 — class fields without explicit
+                // Class fields without explicit
                 // initializers default to `new()` so missing-from-
                 // snapshot restores fall back to a constructed
-                // instance (per Q1(b) decision in the design conv).
+                // instance (by design).
                 // For value types, target-typed `new()` produces
                 // `default(T)` which is what users expect.
                 w.Line($"{fieldVis} {f.Type} {f.Name} = new();");
         }
 
-        // Phase 2 — emit the optional `init { ... }` block as an
+        // Emit the optional `init { ... }` block as an
         // Initialize() override. The runtime calls it once on first
         // reader/writer access; concurrent first-callers wait until
         // it completes, so user code may freely mutate region fields
@@ -250,7 +250,7 @@ public sealed class FileEmitter
             stmtEmitter.EmitBlock(sr.Init);
         }
 
-        // Phase 3 — emit the persistence shape for : Persisted
+        // Emit the persistence shape for : Persisted
         // regions: CaptureFields() returns every field as a key/value
         // pair; RestoreFields(Snapshot) overwrites only the keys that
         // are present in the snapshot. Missing keys keep the
@@ -336,13 +336,13 @@ public sealed class FileEmitter
 
         var inputArr = inputs.Count > 0
             ? "new global::System.Type[] { " + string.Join(", ", inputs.Select(i => $"typeof({i})")) + " }"
-            // Empty *array creation* (not Array.Empty<>(), a method call) —
+            // Empty *array creation* (not Array.Empty<>(), a method call);
             // attribute arguments only allow constants, typeof, and array
             // creation, so a method call here is a CS0182 in the emitted C#.
             : "new global::System.Type[] { }";
         var emitArr = emits.Count > 0
             ? "new global::System.Type[] { " + string.Join(", ", emits.Select(e => $"typeof({e})")) + " }"
-            // Empty *array creation* (not Array.Empty<>(), a method call) —
+            // Empty *array creation* (not Array.Empty<>(), a method call);
             // attribute arguments only allow constants, typeof, and array
             // creation, so a method call here is a CS0182 in the emitted C#.
             : "new global::System.Type[] { }";
@@ -506,7 +506,7 @@ public sealed class FileEmitter
     {
         // Default to public so enums can flow through `message` field
         // types, which always emit as public records. An explicit
-        // `internal enum` modifier still emits internal — but anyone
+        // `internal enum` modifier still emits internal - but anyone
         // using it on a message field would trip CS0051 in the
         // generated C#, which is a useful signal at that point.
         var vis = e.Visibility switch
@@ -519,13 +519,51 @@ public sealed class FileEmitter
         };
 
         w.DocComment(e.DocComment);
+        if (e.IsFlags)
+        {
+            // The attribute is the C#-interop footnote; the guarantees live
+            // in the analyzer (validated values, gated operators). Emitting
+            // it keeps ToString() ("Read, Write") and Enum.Parse correct for
+            // every consumer.
+            w.Line("[System.Flags]");
+        }
         w.Line($"{vis} enum {e.Name}");
         w.Line("{");
         w.Indent();
-        foreach (var m in e.Members)
+        if (e.IsFlags)
         {
-            w.DocComment(m.DocComment);
-            w.Line($"{m.Name},");
+            // Provided zero member: the empty set. User zero members are a
+            // CE (the HasFlag(None) trap), so this is always safe to add.
+            w.Line("None = 0,");
+            var used = new HashSet<long>(
+                e.Members.Where(m => m.Value is not null).Select(m => m.Value!.Value));
+            long nextPow = 1;
+            foreach (var m in e.Members)
+            {
+                w.DocComment(m.DocComment);
+                if (m.UnionOf is not null)
+                {
+                    w.Line($"{m.Name} = {string.Join(" | ", m.UnionOf)},");
+                }
+                else if (m.Value is not null)
+                {
+                    w.Line($"{m.Name} = {m.Value},");
+                }
+                else
+                {
+                    while (used.Contains(nextPow)) nextPow <<= 1;
+                    used.Add(nextPow);
+                    w.Line($"{m.Name} = {nextPow},");
+                }
+            }
+        }
+        else
+        {
+            foreach (var m in e.Members)
+            {
+                w.DocComment(m.DocComment);
+                w.Line(m.Value is not null ? $"{m.Name} = {m.Value}," : $"{m.Name},");
+            }
         }
         w.Dedent();
         w.Line("}");
@@ -534,7 +572,7 @@ public sealed class FileEmitter
 
     private static void EmitProgram(ProgramDecl prog, CSharpWriter w)
     {
-        // All fields in program scope are local variables — empty field set.
+        // All fields in program scope are local variables - empty field set.
         // Program bodies don't currently use `ask`, so no SymbolTable is
         // threaded here; if that changes, accept it as a parameter.
         var exprEmitter = new ExpressionEmitter(new HashSet<string>());
@@ -568,7 +606,7 @@ public sealed class FileEmitter
         var stmtEmitter = new StatementEmitter(w, exprEmitter);
 
         // `TestActorSystem` fields are disposed per test (xUnit disposes the test
-        // instance after each test), so leaked systems don't accumulate over a run —
+        // instance after each test), so leaked systems don't accumulate over a run;
         // cleanup without author discipline.
         var disposables = decl is ClassDecl dc
             ? dc.Fields.Where(f => $"{f.Type}".EndsWith("TestActorSystem", StringComparison.Ordinal)).ToList()
@@ -577,7 +615,7 @@ public sealed class FileEmitter
         w.Line($"public class {name}{(disposables.Count > 0 ? " : System.IDisposable" : "")}");
         w.Line("{");
         w.Indent();
-        // A sync test body leaves the async method awaitless — fine for tests.
+        // A sync test body leaves the async method awaitless - fine for tests.
         w.Line("#pragma warning disable CS1998");
         w.Line();
 
@@ -634,7 +672,7 @@ public sealed class FileEmitter
             var mwhere = ExpressionEmitter.FormatWhereClauses(meth.WhereClauses);
             if (meth.Visibility == Visibility.Public)
             {
-                // A test — public method → an xUnit fact; the method name is the test name.
+                // A test: public method → an xUnit fact; the method name is the test name.
                 w.Line("[Spek.Testing.SpekTest]");
                 w.Line($"public async System.Threading.Tasks.Task {meth.Name}{tps}({mparams}){mwhere}");
                 stmtEmitter.EmitBlock(meth.Body);

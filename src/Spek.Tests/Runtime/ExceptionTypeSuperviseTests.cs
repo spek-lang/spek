@@ -41,7 +41,7 @@ public class ExceptionTypeSuperviseTests
         """;
 
     [Fact]
-    public async Task TypedArms_RouteByExceptionType()
+    public async Task TypedArms_RouteByExceptionTypeAsync()
     {
         // Strategy:
         //   on Failure(System.IO.IOException): Restart
@@ -106,7 +106,7 @@ public class ExceptionTypeSuperviseTests
         var getChildTy    = assembly.GetType("ExceptionTypeDemo.GetChild")!;
         var childRefTy    = assembly.GetType("ExceptionTypeDemo.ChildRef")!;
 
-        // Scenario A — IOException arm says Restart: child stays alive.
+        // Scenario A: IOException arm says Restart: child stays alive.
         {
             using var system = new TestActorSystem("exn-type-ioexception");
             var probe  = system.CreateProbe();
@@ -125,7 +125,7 @@ public class ExceptionTypeSuperviseTests
                 "IOException arm should Restart → child stays alive");
         }
 
-        // Scenario B — InvalidOperationException arm says Stop: child stops.
+        // Scenario B: InvalidOperationException arm says Stop: child stops.
         {
             using var system = new TestActorSystem("exn-type-invalidop");
             var probe  = system.CreateProbe();
@@ -152,7 +152,7 @@ public class ExceptionTypeSuperviseTests
         //   on Failure(System.IO.IOException): Stop
         //   on Failure: Restart                      // catch-all
         //
-        // Child throws InvalidOperationException — neither matches
+        // Child throws InvalidOperationException - neither matches
         // IOException, so the untyped catch-all fires: Restart → alive.
         const string src = """
             namespace ExceptionTypeDemo;

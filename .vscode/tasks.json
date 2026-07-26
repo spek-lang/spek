@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build-elevators",
+      "type": "shell",
+      "command": "dotnet build demos/elevators/Elevators.Harness -c Debug",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "build-fleet",
+      "type": "shell",
+      "command": "dotnet build demos/fleet/Fleet.Harness -c Debug",
+      "problemMatcher": "$msCompile"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Coverage for <see cref="ActorRef.Forward{T}"/> — the helper
+/// Coverage for <see cref="ActorRef.Forward{T}"/> - the helper
 /// that bridges C# events into an actor's mailbox without lambda
 /// boilerplate.
 /// </summary>
@@ -38,7 +38,7 @@ public sealed class ForwardTests
     }
 
     [Fact]
-    public async Task Forward_routes_event_payload_to_actor_via_Tell()
+    public async Task Forward_routes_event_payload_to_actor_via_TellAsync()
     {
         CapturingActor.Received.Clear();
         using var system = new ActorSystem("forward-1");
@@ -74,9 +74,9 @@ public sealed class ForwardTests
     }
 
     [Fact]
-    public async Task Forward_unsubscribes_cleanly_on_minus_assign()
+    public async Task Forward_unsubscribes_cleanly_on_minus_assignAsync()
     {
-        // Standard EventHandler<T> idiom — capturing the handler ref
+        // Standard EventHandler<T> idiom: capturing the handler ref
         // on attach lets the user detach it cleanly. Verifies the
         // returned delegate is the real registered handler, not a
         // wrapper that breaks identity.

@@ -6,7 +6,7 @@ namespace Spek.Tests.Parser;
 /// <summary>
 /// Guards the <c>Spek.Templates</c> template file against grammar drift.
 /// If this test fails, the template contains syntax the parser no longer
-/// accepts — fix the template (or the parser regression) before shipping.
+/// accepts: fix the template (or the parser regression) before shipping.
 /// </summary>
 public class TemplateFixtureParseTest
 {

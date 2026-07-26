@@ -1,9 +1,9 @@
-// Watchdog.spek — supervision strategies, failure budgets, and passivation.
+// Watchdog.spek: supervision strategies, failure budgets, and passivation.
 //
 // Run: dotnet run
 //
 // A Foreman supervises two kinds of workers. Flaky workers crash on bad
-// input; the Foreman's `supervise` declaration decides their fate — typed
+// input; the Foreman's `supervise` declaration decides their fate - typed
 // exception arms match top-to-bottom, a restart budget degrades to Stop when
 // exhausted, and a per-child override gives one worker a stricter policy.
 // A Cache actor passivates after going idle and wakes fresh on next use.
@@ -53,7 +53,7 @@ actor Cache
     int hits = 0;
 
     // Idle for 2 seconds -> unload. Session-scoped, so the next message
-    // rematerializes it fresh from init (hits resets) — transparent to
+    // rematerializes it fresh from init (hits resets) - transparent to
     // senders, visible in the printed hit counts.
     passivate after TimeSpan.FromSeconds(2);
 

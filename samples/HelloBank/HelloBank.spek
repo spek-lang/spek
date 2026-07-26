@@ -1,4 +1,4 @@
-// HelloBank.spek — a self-contained, runnable Spek program.
+// HelloBank.spek: a self-contained, runnable Spek program.
 //
 // Run:       dotnet run
 
@@ -48,7 +48,7 @@ actor Account
     }
 }
 
-// ─── Root actor — spawns children and drives the demo ────────────────────────
+// ─── Root actor: spawns children and drives the demo ────────────────────────
 
 actor Root
 {

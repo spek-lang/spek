@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Runtime</RootNamespace>
     <AssemblyName>Spek.Runtime</AssemblyName>
     <PackageId>Spek.Runtime</PackageId>
-    <Description>Runtime for the Spek actor language — scheduler, mailbox, supervision, persistence, and passivation. Required by any assembly compiled from `.spek` source.</Description>
+    <Description>Runtime for the Spek actor language; scheduler, mailbox, supervision, persistence, and passivation. Required by any assembly compiled from `.spek` source.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

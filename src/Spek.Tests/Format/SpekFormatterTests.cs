@@ -28,7 +28,7 @@ public sealed class SpekFormatterTests
             }
             """;
         var formatted = Format(src);
-        // Trailing newline is canonical — assert the rest matches.
+        // Trailing newline is canonical: assert the rest matches.
         Assert.EndsWith("\n", formatted);
         Assert.Contains("namespace Demo;", formatted);
         Assert.Contains("message Ping();", formatted);
@@ -39,7 +39,7 @@ public sealed class SpekFormatterTests
     public void GenericTypeArgs_Hug_ButComparisonsStaySpaced()
     {
         // Regression: the formatter used to space generic type arguments like
-        // comparison operators — `peer.Ask<Balance>(...)` became
+        // comparison operators: `peer.Ask<Balance>(...)` became
         // `peer.Ask < Balance > (...)`. Type-args must hug; a genuine `<`
         // comparison must keep its spaces.
         const string src = """
@@ -66,7 +66,7 @@ public sealed class SpekFormatterTests
     [Fact]
     public void NullConditional_StaysTight()
     {
-        // Regression: `?.` / `?[` must hug the receiver — the formatter
+        // Regression: `?.` / `?[` must hug the receiver - the formatter
         // used to print `obj ?.Field` and `arr ? [0]`.
         const string src = """
             module M
@@ -86,7 +86,7 @@ public sealed class SpekFormatterTests
     [Fact]
     public void Ternary_KeepsSpacedQuestion()
     {
-        // The ternary `?` keeps its surrounding spaces — the lookahead
+        // The ternary `?` keeps its surrounding spaces - the lookahead
         // that tightens `?.`/`?[` must not affect `cond ? a : b`.
         const string src = """
             module M

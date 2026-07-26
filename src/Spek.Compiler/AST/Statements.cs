@@ -39,7 +39,7 @@ public record ForeachStmt(SourceSpan Span, TypeRef? Type, string Name, Expr Coll
 // `do Body while (Condition);`
 public record DoWhileStmt(SourceSpan Span, BlockStmt Body, Expr Condition) : Stmt(Span);
 
-// `break;` / `continue;` (leaf statements; valid only inside a loop —
+// `break;` / `continue;` (leaf statements; valid only inside a loop;
 // the emitted C# is the arbiter, so a stray one is a C# error, not a Spek CE).
 public record BreakStmt(SourceSpan Span) : Stmt(Span);
 public record ContinueStmt(SourceSpan Span) : Stmt(Span);

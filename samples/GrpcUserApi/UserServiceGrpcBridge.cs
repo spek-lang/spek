@@ -1,4 +1,4 @@
-// UserServiceGrpcBridge.cs — hand-written bridge between protoc's
+// UserServiceGrpcBridge.cs: hand-written bridge between protoc's
 // gRPC service base and Spek's actor.
 //
 // For now the bridge is hand-written. Each RPC override does
@@ -8,12 +8,12 @@
 //   3. translate the Spek reply → protoc response, mapping the
 //      reply *type* to a gRPC status code via SpekGrpcStatusMap
 //
-// In a follow-up minor the Spek compiler will auto-generate this
-// class from the channel decl + the proto. For now it serves as
-// the canonical example of "what the codegen should produce."
+// This bridge is written by hand: the glue between the
+// protoc-generated service base and the Spek actor, and the
+// canonical example of the bridge shape.
 //
 // Type aliases disambiguate between Spek-side and protoc-side
-// message types — both have a `User` named type but they live
+// message types: both have a `User` named type but they live
 // in different namespaces and have different C# shapes (Spek
 // records vs protoc Google.Protobuf classes).
 

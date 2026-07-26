@@ -14,9 +14,9 @@ namespace Spek.LanguageServer;
 /// (each shown as the message it receives, detailed by its actor), and the edges
 /// are message sends:
 /// <list type="bullet">
-///   <item><b>incoming</b> — the handlers that send the message this handler
+///   <item><b>incoming</b>: the handlers that send the message this handler
 ///         receives (every <c>new Msg(…)</c> that flows in via Tell/Ask/return);</item>
-///   <item><b>outgoing</b> — the handlers that receive the messages this handler
+///   <item><b>outgoing</b>: the handlers that receive the messages this handler
 ///         sends.</item>
 /// </list>
 /// Prepare anchors on the message under the cursor and offers its handlers as the
@@ -37,18 +37,18 @@ internal sealed class SpekCallHierarchyHandler : CallHierarchyHandlerBase
         CallHierarchyPrepareParams request, CancellationToken cancellationToken)
     {
         var tree = Tree(request.TextDocument.Uri);
-        if (tree is null) return Null<CallHierarchyItem>();
+        if (tree is null) return NullAsync<CallHierarchyItem>();
 
         var (kind, name, _) = SymbolUnderCursor.Resolve(
             tree, (int)request.Position.Line + 1, (int)request.Position.Character + 1);
         if (kind != ReferenceFinder.Kind.Message || name is null)
-            return Null<CallHierarchyItem>();
+            return NullAsync<CallHierarchyItem>();
 
         var items = HandlersFor(tree, name)
             .Select(h => ItemFor(h, request.TextDocument.Uri))
             .ToList();
         return items.Count == 0
-            ? Null<CallHierarchyItem>()
+            ? NullAsync<CallHierarchyItem>()
             : Task.FromResult<Container<CallHierarchyItem>?>(new Container<CallHierarchyItem>(items));
     }
 
@@ -58,7 +58,7 @@ internal sealed class SpekCallHierarchyHandler : CallHierarchyHandlerBase
     {
         var uri  = request.Item.Uri;
         var tree = Tree(uri);
-        if (tree is null) return Null<CallHierarchyIncomingCall>();
+        if (tree is null) return NullAsync<CallHierarchyIncomingCall>();
 
         var received = request.Item.Name;   // the message this handler receives
         var calls = new List<CallHierarchyIncomingCall>();
@@ -83,7 +83,7 @@ internal sealed class SpekCallHierarchyHandler : CallHierarchyHandlerBase
     {
         var uri  = request.Item.Uri;
         var tree = Tree(uri);
-        if (tree is null) return Null<CallHierarchyOutgoingCall>();
+        if (tree is null) return NullAsync<CallHierarchyOutgoingCall>();
 
         var self = AllHandlers(tree).FirstOrDefault(
             h => h.Actor.Name == request.Item.Detail && h.Message == request.Item.Name);
@@ -116,7 +116,7 @@ internal sealed class SpekCallHierarchyHandler : CallHierarchyHandlerBase
         return entry?.Tree ?? entry?.LastGoodTree;
     }
 
-    private static Task<Container<T>?> Null<T>() => Task.FromResult<Container<T>?>(null);
+    private static Task<Container<T>?> NullAsync<T>() => Task.FromResult<Container<T>?>(null);
 
     private sealed record HandlerSite(ActorDecl Actor, OnHandler Handler, string Message);
 
@@ -131,7 +131,7 @@ internal sealed class SpekCallHierarchyHandler : CallHierarchyHandlerBase
     private static IEnumerable<HandlerSite> HandlersFor(SpekFile tree, string message) =>
         AllHandlers(tree).Where(h => h.Message == message);
 
-    // Every `new <message>(…)` this handler constructs — a Tell/Ask/return send.
+    // Every `new <message>(…)` this handler constructs - a Tell/Ask/return send.
     private static IEnumerable<SourceSpan> SendSites(OnHandler handler, string message) =>
         AstWalk.EnumerateAll(handler)
             .OfType<NewExpr>()

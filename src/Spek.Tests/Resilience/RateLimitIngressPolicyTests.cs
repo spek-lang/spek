@@ -10,13 +10,13 @@ public sealed class RateLimitIngressPolicyTests
         new("test/actor", "Channel", new object(), DateTimeOffset.UtcNow);
 
     [Fact]
-    public async Task TokenBucket_allows_within_burst_then_defers()
+    public async Task TokenBucket_allows_within_burst_then_defersAsync()
     {
         await using var policy = RateLimitIngressPolicy.TokenBucket(
             permitsPerSecond: 1,
             burstCapacity:    3);
 
-        // Drain the burst — three Allows in quick succession.
+        // Drain the burst: three Allows in quick succession.
         for (int i = 0; i < 3; i++)
         {
             var d = await policy.EvaluateAsync(Context());
@@ -25,7 +25,7 @@ public sealed class RateLimitIngressPolicyTests
 
         // Fourth must be denied. Token-bucket surfaces RetryAfter only
         // when AutoReplenishment is on and the bucket is non-empty
-        // soon — for a freshly-drained bucket, accept either Defer
+        // soon: for a freshly-drained bucket, accept either Defer
         // (with hint) or Reject (no hint), both signal "not now".
         var denied = await policy.EvaluateAsync(Context());
         Assert.NotEqual(PolicyDecisionKind.Allow, denied.Kind);
@@ -33,7 +33,7 @@ public sealed class RateLimitIngressPolicyTests
     }
 
     [Fact]
-    public async Task FixedWindow_rejects_after_quota_exhausted()
+    public async Task FixedWindow_rejects_after_quota_exhaustedAsync()
     {
         await using var policy = RateLimitIngressPolicy.FixedWindow(
             permits: 2,
@@ -47,12 +47,12 @@ public sealed class RateLimitIngressPolicyTests
     }
 
     [Fact]
-    public async Task Concurrency_allows_up_to_permit_count()
+    public async Task Concurrency_allows_up_to_permit_countAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 2);
 
         // Concurrency policy releases on lease dispose (immediate) so
-        // calls in serial all succeed — this exercises the "permit
+        // calls in serial all succeed: this exercises the "permit
         // available" path.
         for (int i = 0; i < 5; i++)
         {

@@ -1,7 +1,7 @@
 namespace Spek.Runtime;
 
 /// <summary>
-/// Receives notifications about messages the runtime couldn't deliver —
+/// Receives notifications about messages the runtime couldn't deliver;
 /// unhandled message types, messages sent to a stopped actor, and messages
 /// dropped because their handler threw. Tests use this to assert on what
 /// went wrong; production deployments wire it to structured logging.
@@ -20,7 +20,7 @@ public interface IDeadLetterSink
     void DeadLetter(object message, string reason, Exception? cause);
 }
 
-/// <summary>Default sink — one line per event to <see cref="Console.Error"/>.</summary>
+/// <summary>Default sink: one line per event to <see cref="Console.Error"/>.</summary>
 public sealed class ConsoleDeadLetterSink : IDeadLetterSink
 {
     /// <inheritdoc />
@@ -28,11 +28,11 @@ public sealed class ConsoleDeadLetterSink : IDeadLetterSink
     {
         Console.Error.WriteLine(
             $"[spek] dead-letter {message.GetType().Name}: {reason}" +
-            (cause is null ? "" : $" — {cause.GetType().Name}: {cause.Message}"));
+            (cause is null ? "" : $"; {cause.GetType().Name}: {cause.Message}"));
     }
 }
 
-/// <summary>In-memory sink for tests — records every event for later assertion.</summary>
+/// <summary>In-memory sink for tests - records every event for later assertion.</summary>
 public sealed class RecordingDeadLetterSink : IDeadLetterSink
 {
     private readonly List<DeadLetterRecord> _records = new();

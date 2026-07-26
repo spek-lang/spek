@@ -1,4 +1,4 @@
-// Modules.spek — demonstrates these language features:
+// Modules.spek: demonstrates these language features:
 //   * `module` declarations holding stateless `method`s
 //   * nested modules (sub-namespacing)
 //   * `in` / `ref` / `out` parameter modifiers
@@ -14,19 +14,19 @@ module MathUtil
 {
     public int Double(int n) { return n + n; }
 
-    // `out` parameter — the callee assigns it; the call site restates `out`.
+    // `out` parameter: the callee assigns it; the call site restates `out`.
     public void SumInto(int a, int b, out int result)
     {
         result = a + b;
     }
 
-    // `ref` parameter — aliased, must be assigned before the call.
+    // `ref` parameter: aliased, must be assigned before the call.
     public void Accumulate(in int addend, ref int total)
     {
         total = total + addend;
     }
 
-    // Nested module — pure sub-namespacing, emits as a nested static class.
+    // Nested module: pure sub-namespacing, emits as a nested static class.
     module Stats
     {
         public int Max(int a, int b) { return a > b ? a : b; }
@@ -72,7 +72,7 @@ actor Demo
 
             Console.WriteLine(MathUtil.Stats.Max(10, 20)); // 20
 
-            // Calling an (implicitly) async method — auto-awaited.
+            // Calling an (implicitly) async method - auto-awaited.
             Console.WriteLine(AsyncUtil.DelayedDouble(5));  // 10
         }
     }

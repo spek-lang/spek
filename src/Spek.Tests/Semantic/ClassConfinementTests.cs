@@ -12,11 +12,11 @@ namespace Spek.Tests.Semantic;
 ///
 /// Rules exercised here:
 /// <list type="bullet">
-///   <item>CE0013 — duplicate class / field / method names.</item>
-///   <item>CE0087 (extended) — a reader handler calling a *mutating* class
+///   <item>CE0013: duplicate class / field / method names.</item>
+///   <item>CE0087 (extended) - a reader handler calling a *mutating* class
 ///     method on a confined field. Pure methods + writer handlers are fine.</item>
-///   <item>CE0112 — a mutable class as a shared-region field (escape).</item>
-///   <item>CE0010 — a mutable class in a message field (escape — already free
+///   <item>CE0112: a mutable class as a shared-region field (escape).</item>
+///   <item>CE0010: a mutable class in a message field (escape - already free
 ///     because a class isn't immutable).</item>
 /// </list>
 /// </summary>
@@ -143,7 +143,7 @@ public sealed class ClassConfinementTests
     [Fact]
     public void CE0087_TransitiveMutatingMethod_Errors()
     {
-        // AddTwice doesn't write a field directly — it calls Add (which does),
+        // AddTwice doesn't write a field directly - it calls Add (which does),
         // so the fixpoint classifies AddTwice as mutating too.
         const string src = """
             class Acc
@@ -178,7 +178,7 @@ public sealed class ClassConfinementTests
         AssertHas(src, "CE0112");
     }
 
-    // ── CE0010 message escape (already free — a class isn't immutable) ──
+    // ── CE0010 message escape (already free - a class isn't immutable) ──
     [Fact]
     public void CE0010_MutableClassInMessageField_Errors()
     {

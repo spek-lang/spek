@@ -17,7 +17,7 @@ actor Greeter
         on Greet g =>
         {
             // `ask` and `Tell` are only valid inside `on` handlers.
-            // Here we just print — nothing fancy.
+            // Here we just print.
             Console.WriteLine($"Hello, {g.name}!");
         }
 

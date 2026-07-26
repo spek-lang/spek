@@ -10,7 +10,7 @@ namespace Spek.Persistence.Sqlite;
 /// and the durability story matches what serious single-node services
 /// expect.
 ///
-/// Thread-safe — SQLite serialises writers internally; the store
+/// Thread-safe: SQLite serialises writers internally; the store
 /// pools its own connections so concurrent <see cref="SaveAsync"/> /
 /// <see cref="LoadAsync"/> calls scale up to the SQLite engine's
 /// limits.
@@ -29,7 +29,7 @@ public sealed class SqliteSnapshotStore : ISnapshotStore, IDisposable
     /// Opens (creating if needed) the database file at
     /// <paramref name="databasePath"/>, creating parent directories,
     /// enabling WAL mode, and ensuring the <c>snapshots</c> table
-    /// exists — the store is ready to save and load on return.
+    /// exists: the store is ready to save and load on return.
     /// </summary>
     public SqliteSnapshotStore(string databasePath)
     {
@@ -55,7 +55,7 @@ public sealed class SqliteSnapshotStore : ISnapshotStore, IDisposable
 
     /// <summary>
     /// Upserts the JSON-encoded snapshot into the row for
-    /// <paramref name="key"/> — one row per key, last write wins —
+    /// <paramref name="key"/> (one row per key, last write wins)
     /// stamped with an updated-at timestamp. The write is committed on
     /// return; under <c>synchronous = NORMAL</c> an app crash cannot
     /// lose it, though an ill-timed power loss can roll the database
@@ -115,10 +115,10 @@ public sealed class SqliteSnapshotStore : ISnapshotStore, IDisposable
 
     /// <summary>
     /// Releases the database file by clearing SQLite's connection
-    /// pools — pooled connections otherwise keep the file open and
+    /// pool: pooled connections otherwise keep the file open and
     /// locked after the store is done, blocking moves and deletes.
-    /// Note this clears every SQLite pool in the process, not just
-    /// this store's.
+    /// Scoped to this store's connection string; other SQLite pools in
+    /// the process are untouched.
     /// </summary>
     public void Dispose()
     {
@@ -126,7 +126,8 @@ public sealed class SqliteSnapshotStore : ISnapshotStore, IDisposable
         // handles to the DB until the pool is cleared. Clearing here
         // releases the file lock so the DB can be moved/deleted in
         // tests + tooling.
-        SqliteConnection.ClearAllPools();
+        using var conn = new SqliteConnection(_connectionString);
+        SqliteConnection.ClearPool(conn);
     }
 
     private SqliteConnection OpenConnection() => new(_connectionString);

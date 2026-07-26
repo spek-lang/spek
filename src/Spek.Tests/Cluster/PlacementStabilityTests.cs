@@ -4,7 +4,7 @@ using Xunit;
 namespace Spek.Tests.ClusterIntegration.LocatedActors;
 
 /// <summary>
-/// The rendezvous-hash "minimum disruption on membership change" invariant — the
+/// The rendezvous-hash "minimum disruption on membership change" invariant - the
 /// whole justification for <see cref="SpekClusterNs.ConsistentHashPlacement"/>.
 /// Existing tests cover determinism, dispersion, and Down-skipping but never the
 /// *stability* property: a modulo-hash regression would pass those yet reshuffle
@@ -27,7 +27,9 @@ public class PlacementStabilityTests
     {
         var map = new Dictionary<string, string>(keyCount);
         for (int k = 0; k < keyCount; k++)
-            map[$"key-{k}"] = p.ResolveOwner("Actor", $"key-{k}", members)!.Label;
+            // ResolveOwner never returns null for a non-empty member list,
+            // and every member here is built by Node(i) with an "n{i}" label.
+            map[$"key-{k}"] = p.ResolveOwner("Actor", $"key-{k}", members)!.Label!;
         return map;
     }
 
@@ -59,7 +61,7 @@ public class PlacementStabilityTests
         }
 
         // Sanity: n4 owned roughly a quarter of the keys (dispersion), so a
-        // meaningful number moved — not zero (which would mean n4 owned nothing).
+        // meaningful number moved: not zero (which would mean n4 owned nothing).
         Assert.InRange(moved, keys / 8, keys / 2);
     }
 
@@ -81,13 +83,13 @@ public class PlacementStabilityTests
             if (after[key] != ownerBefore)
             {
                 migrated++;
-                // A moved key may ONLY have moved to the newly-added node — never
+                // A moved key may ONLY have moved to the newly-added node - never
                 // reshuffled between two pre-existing nodes.
                 Assert.Equal("n5", after[key]);
             }
         }
 
-        // ~1/5 of keys should migrate to the new node — bounded, not a reshuffle.
+        // ~1/5 of keys should migrate to the new node - bounded, not a reshuffle.
         Assert.InRange(migrated, keys / 12, keys / 2);
     }
 }

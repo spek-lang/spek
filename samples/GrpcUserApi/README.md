@@ -84,7 +84,6 @@ builder.Services.AddSpekGrpcStatusMap(map =>
 
 The hand-written bridge class is mechanical: every method does the same three
 steps, translating the request, asking the actor, then translating the response.
-A follow-up minor will auto-generate `UserServiceGrpcBridge` from the channel
-decl plus the proto, the same way Spek already auto-generates the actor's
-dispatch machinery. Until then, the manual bridge serves as the canonical
-example of what the codegen will produce.
+`UserServiceGrpcBridge` is written by hand from the channel
+declaration plus the proto; it is the one hand-written C# file in this
+sample, and the canonical example of the bridge shape.

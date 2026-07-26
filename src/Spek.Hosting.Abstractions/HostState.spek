@@ -8,7 +8,7 @@ namespace Spek.Hosting;
 /// failover kicks in).
 ///
 /// <para>SCM (Windows Services), systemd (Linux), and launchd
-/// (macOS) consume these via their adapter packages — each maps
+/// (macOS) consume these via their adapter packages - each maps
 /// the enum value to whatever the underlying init system expects
 /// (`SetServiceStatus`, `sd_notify STATUS=`, etc.).</para>
 /// </summary>

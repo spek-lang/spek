@@ -3,7 +3,7 @@ namespace AlertHub;
 /// Actor inheritance follows the same model as classes: an `abstract actor`
 /// shares protected fields and helper methods, declares abstract methods, and
 /// names an `abstract behavior` the derived actor must fill in with
-/// `override behavior`. Behaviors themselves live on the derived actor —
+/// `override behavior`. Behaviors themselves live on the derived actor;
 /// inheritance shares fields and methods, not the dispatch table.
 abstract actor NotifierBase
 {

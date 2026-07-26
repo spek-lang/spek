@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Native Spek tests — the behavioral test suite written IN Spek, dogfooding the
+    Native Spek tests: the behavioral test suite written IN Spek, dogfooding the
     `*Tests` convention + Spek.Testing.Xunit. Tests of actor behavior observable
     through the public messaging / supervision / probe API live here; compiler and
     runtime-internal (white-box) tests stay in Spek.Tests (C#).
 
-    Imports build/Spek.targets, so spekc (Spek.Cli) must build first — the
+    Imports build/Spek.targets, so spekc (Spek.Cli) must build first; the
     ReferenceOutputAssembly=false ProjectReference forces that order without linking
     the CLI assembly into this project.
   -->

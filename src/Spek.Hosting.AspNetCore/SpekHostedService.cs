@@ -13,7 +13,7 @@ namespace Spek.Hosting.AspNetCore;
 /// drives the same shutdown when triggered externally.
 ///
 /// Spek actor exit codes flow into the Generic Host the same way a
-/// regular `IHostedService` propagates errors — we don't currently
+/// regular `IHostedService` propagates errors - we don't currently
 /// surface Option-D return values into <c>Environment.ExitCode</c>
 /// because the Generic Host owns that decision via
 /// <c>HostOptions.BackgroundServiceExceptionBehavior</c>.
@@ -71,7 +71,7 @@ public sealed class SpekHostedService<TActor> : IHostedService, IAsyncDisposable
     }
 
     /// <summary>
-    /// Receiver for the entry actor's Option-D reply. ASP.NET Core
+    /// Receiver for the entry actor's return-value reply. ASP.NET Core
     /// hosting doesn't surface the int return as Environment.ExitCode
     /// (the Generic Host owns that decision), so we just absorb it
     /// to keep replies out of the dead-letter sink.
@@ -84,7 +84,7 @@ public sealed class SpekHostedService<TActor> : IHostedService, IAsyncDisposable
 }
 
 /// <summary>
-/// DI registration helpers — the idiomatic way for users to wire a
+/// DI registration helpers: the idiomatic way for users to wire a
 /// Spek actor into <c>builder.Services</c>.
 /// </summary>
 public static class SpekHostingServiceCollectionExtensions

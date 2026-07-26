@@ -85,7 +85,7 @@ public class ChannelInheritanceParseTests
 
             channel Outer.Inner { on Shutdown; }
             """;
-        // `Outer.Inner` is not a legal Spek identifier — we expect this
+        // `Outer.Inner` is not a legal Spek identifier - we expect this
         // to fail parsing, confirming that channel names are simple
         // identifiers (qualified-name resolution applies to references
         // only, not declaration names).

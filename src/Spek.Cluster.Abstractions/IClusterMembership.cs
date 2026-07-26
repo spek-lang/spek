@@ -2,21 +2,21 @@ namespace Spek.Cluster;
 
 /// <summary>
 /// Pluggable cluster-membership contract. The default implementation
-/// is <c>StaticSeedClusterMembership</c> — upfront-configured peers,
+/// is <c>StaticSeedClusterMembership</c> - upfront-configured peers,
 /// no dynamic discovery, but a real state machine + leave-on-shutdown
 /// + cluster-view subscription.
 ///
-/// Later releases will add gossip-based implementations:
+/// Alternative implementations plug into the same interface:
 /// <list type="bullet">
-///   <item><c>SwimClusterMembership</c> — SWIM gossip, phi-accrual
+///   <item><c>SwimClusterMembership</c> - SWIM gossip, phi-accrual
 ///         failure detection.</item>
-///   <item><c>KubernetesServiceDiscoveryMembership</c> — auto-discover
+///   <item><c>KubernetesServiceDiscoveryMembership</c> - auto-discover
 ///         peers via K8s headless service DNS / API.</item>
-///   <item><c>ConsulMembership</c>, <c>EtcdMembership</c> — external
+///   <item><c>ConsulMembership</c>, <c>EtcdMembership</c> - external
 ///         registry adapters.</item>
 /// </list>
 ///
-/// All sit behind this same interface — switching membership strategies
+/// All sit behind this same interface - switching membership strategies
 /// is config, not code.
 /// </summary>
 public interface IClusterMembership : IAsyncDisposable
@@ -36,7 +36,7 @@ public interface IClusterMembership : IAsyncDisposable
 
     /// <summary>
     /// Subscribe to membership events. The returned token unsubscribes
-    /// when disposed — pass it through a <c>using</c> at the call site
+    /// when disposed: pass it through a <c>using</c> at the call site
     /// for scoped lifetime, or hold it for the lifetime of the
     /// subscriber.
     /// </summary>

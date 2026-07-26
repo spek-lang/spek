@@ -13,15 +13,15 @@ namespace Spek.Tests.Persistence;
 /// Robustness coverage for <c>shared … : Persisted</c> regions beyond the
 /// happy-path save/restore loop:
 ///
-///   1. <b>Schema evolution</b> — restoring a snapshot whose key-set no longer
+///   1. <b>Schema evolution</b>: restoring a snapshot whose key-set no longer
 ///      matches the region's fields. A field the snapshot is missing keeps its
 ///      compiler-emitted default ("graceful additive"); an extra snapshot key
 ///      that has no matching field is silently ignored (and may trigger the
-///      <c>WarnOnDroppedKeys</c> stderr warning — not asserted on).
-///   2. <b>transient field</b> — a <c>transient</c> region field is never
+///      <c>WarnOnDroppedKeys</c> stderr warning - not asserted on).
+///   2. <b>transient field</b>: a <c>transient</c> region field is never
 ///      captured, so on restore it resets to its initialiser default while the
 ///      neighbouring persisted field is restored.
-///   3. <b>Store failure → dead-letter</b> — when <c>SaveAsync</c> throws, the
+///   3. <b>Store failure → dead-letter</b> - when <c>SaveAsync</c> throws, the
 ///      region's catch routes a "save failed" record to the system's
 ///      <see cref="IDeadLetterSink"/>, and the region stays readable afterward.
 ///
@@ -75,7 +75,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task SchemaEvolution_MissingFieldKeepsDefault_ExtraKeyIgnored()
+    public async Task SchemaEvolution_MissingFieldKeepsDefault_ExtraKeyIgnoredAsync()
     {
         var asm = Compile(SchemaSrc, "SchemaEvo");
         var viewerType = asm.GetType("SchemaEvo.Viewer")!;
@@ -89,8 +89,8 @@ public sealed class PersistenceRobustnessTests
         {
             ["DisplayName"] = "ada",
             ["LoginCount"]  = 42,
-            ["legacyFlag"]  = true,   // extra key — no matching field on the region
-            // "Score" intentionally absent — added after this snapshot was written
+            ["legacyFlag"]  = true,   // extra key: no matching field on the region
+            // "Score" intentionally absent: added after this snapshot was written
         }));
 
         using var system = new ActorSystem("schema-rehydrate", snapshotStore: store);
@@ -107,7 +107,7 @@ public sealed class PersistenceRobustnessTests
         // resetting the whole region.
         Assert.Equal(0, Prop<int>(reply, "score"));
 
-        // The extra "legacyFlag" key caused no failure — restore completed and
+        // The extra "legacyFlag" key caused no failure - restore completed and
         // the region is fully usable. (WarnOnDroppedKeys may have written a
         // stderr warning; we deliberately don't assert on Console.)
     }
@@ -156,7 +156,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task TransientField_NotCaptured_ResetsToDefaultOnRestore()
+    public async Task TransientField_NotCaptured_ResetsToDefaultOnRestoreAsync()
     {
         var asm = Compile(TransientSrc, "TransientEvo");
         var workerType = asm.GetType("TransientEvo.Worker")!;
@@ -190,7 +190,7 @@ public sealed class PersistenceRobustnessTests
         Assert.Equal(5, saved.Get<int>("Durable"));
 
         // Second lifetime: fresh system + same store. The region rehydrates on
-        // first access — Durable restores to 5, Ephemeral resets to its
+        // first access: Durable restores to 5, Ephemeral resets to its
         // initialiser default (7), NOT the 107 it reached at runtime.
         using var system2 = new ActorSystem("transient-life-2", snapshotStore: store);
         var reader = system2.Spawn(workerType, System.Array.Empty<object>());
@@ -242,7 +242,7 @@ public sealed class PersistenceRobustnessTests
         """;
 
     [Fact]
-    public async Task StoreFailure_OnSave_RecordsDeadLetter_RegionStaysUsable()
+    public async Task StoreFailure_OnSave_RecordsDeadLetter_RegionStaysUsableAsync()
     {
         var asm = Compile(StoreFailureSrc, "StoreFail");
         var tellerType  = asm.GetType("StoreFail.Teller")!;
@@ -286,7 +286,7 @@ public sealed class PersistenceRobustnessTests
         Assert.Equal(30, Prop<int>(reply, "balance"));
 
         // A second mutation also still works (read-after-write through the
-        // failing store) — the failed save did not wedge the region's lock.
+        // failing store) - the failed save did not wedge the region's lock.
         teller.Tell(System.Activator.CreateInstance(depositType, new object[] { 12 })!);
         var afterDeadline = System.DateTime.UtcNow + System.TimeSpan.FromSeconds(10);
         int balance = -1;
@@ -346,7 +346,7 @@ public sealed class PersistenceRobustnessTests
 
     /// <summary>An <see cref="ISnapshotStore"/> whose <c>SaveAsync</c> always throws.
     /// Loads return null (nothing pre-seeded), so restore is a clean no-op and the
-    /// region inits from its field defaults — leaving SaveAsync as the only failure
+    /// region inits from its field defaults - leaving SaveAsync as the only failure
     /// point under test.</summary>
     private sealed class ThrowingOnSaveStore : ISnapshotStore
     {

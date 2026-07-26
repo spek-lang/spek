@@ -36,7 +36,7 @@ public sealed class DiagnosticRendererTests
     [Fact]
     public void Span_Underline_Has_Span_Width()
     {
-        // "x = aaaa + bbbb" — underline cols 5..9 (the `aaaa`), width 4.
+        // "x = aaaa + bbbb": underline cols 5..9 (the `aaaa`), width 4.
         var outp = DiagnosticRenderer.Render("x = aaaa + bbbb", "f.spek",
             Diagnostic.At("CE0001", new SourceSpan(1, 5, 1, 9), "msg"));
         Assert.Equal(4, CaretLine(outp).Count(c => c == '^'));

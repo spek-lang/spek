@@ -2,10 +2,10 @@
 
 Telemetry contract for Spek runtimes. Three small interfaces:
 
-- `IMetricSink` — counters, gauges, histograms.
-- `ITraceContext` — W3C trace ID / span ID / baggage, propagated
+- `IMetricSink`: counters, gauges, histograms.
+- `ITraceContext`: W3C trace ID / span ID / baggage, propagated
   through every Tell.
-- `IStructuredLogger` — structured event sink for lifecycle and
+- `IStructuredLogger`: structured event sink for lifecycle and
   user-emitted log records.
 
 Plus the well-known metric names the runtime emits

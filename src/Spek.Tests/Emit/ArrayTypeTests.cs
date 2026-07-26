@@ -91,7 +91,7 @@ public sealed class ArrayTypeTests(ITestOutputHelper output)
     public void ArrayMessageField_StillRejectedByCe0010()
     {
         // Arrays are mutable, so even though `int[]` now parses, it must not be
-        // allowed as a message field — the immutability guarantee holds.
+        // allowed as a message field: the immutability guarantee holds.
         const string src = "message Batch(int[] ids);";
         var diags = SpekCompiler.Parse(src).Diagnostics;
         Assert.Contains(diags, d => d.Code == "CE0010");

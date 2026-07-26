@@ -28,7 +28,7 @@ public sealed class OpenTelemetryAdapterTests
     }
 
     [Fact]
-    public async Task MeterListener_ObservesMailboxDispatchCounter()
+    public async Task MeterListener_ObservesMailboxDispatchCounterAsync()
     {
         // ─── Arrange: hook a listener onto the Spek.Runtime meter ──────
         long observed = 0;
@@ -63,7 +63,7 @@ public sealed class OpenTelemetryAdapterTests
     }
 
     [Fact]
-    public async Task ActivityListener_ObservesDispatchSpansForEachMessage()
+    public async Task ActivityListener_ObservesDispatchSpansForEachMessageAsync()
     {
         // ─── Arrange: hook an ActivityListener onto Spek.Runtime ───────
         int spanCount = 0;
@@ -98,10 +98,10 @@ public sealed class OpenTelemetryAdapterTests
     }
 
     [Fact]
-    public async Task TraceContext_PropagatesAcrossTellBoundary()
+    public async Task TraceContext_PropagatesAcrossTellBoundaryAsync()
     {
         // Verify that an Activity active when Tell() is called becomes
-        // the parent of the receiving handler's dispatch span — that's
+        // the parent of the receiving handler's dispatch span - that's
         // the headline trace-propagation guarantee.
         //
         // ActivityListeners are process-wide, so tests running in

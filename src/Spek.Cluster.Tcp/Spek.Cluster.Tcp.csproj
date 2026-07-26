@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Add-on package — not part of the initial public package set; flip to true
+    <!-- Add-on package: not part of the initial public package set; flip to true
          (and add to release.yml's manifest) when this add-on ships. -->
     <IsPackable>false</IsPackable>
     <TargetFramework>net10.0</TargetFramework>
@@ -10,7 +10,7 @@
     <RootNamespace>Spek.Cluster.Tcp</RootNamespace>
     <AssemblyName>Spek.Cluster.Tcp</AssemblyName>
     <PackageId>Spek.Cluster.Tcp</PackageId>
-    <Description>Default Spek cluster transport. Spek-native binary protocol over TCP, modeled after Akka Artery and Orleans 3.0's Bedrock-based silo wire. Pluggable behind the `ISpekTransport` abstraction. Note: wire encryption / mTLS are not yet implemented — trusted-network use only for now.</Description>
+    <Description>Default Spek cluster transport. Spek-native binary protocol over TCP, modeled after Akka Artery and Orleans 3.0's Bedrock-based silo wire. Pluggable behind the `ISpekTransport` abstraction. Unencrypted transport: use on trusted networks only.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

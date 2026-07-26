@@ -11,7 +11,7 @@ namespace Spek.Tests.Persistence;
 /// End-to-end coverage that the full
 /// <c>ActorSystem → SpawnPersistent → persist → restart → OnRestore</c>
 /// loop works through both file-system and SQLite snapshot stores.
-/// This is the strongest correctness check for the persistence loop — the
+/// This is the strongest correctness check for the persistence loop - the
 /// scenario the packages were built to enable.
 /// </summary>
 public sealed class EndToEndPersistenceTests : IDisposable
@@ -56,11 +56,11 @@ public sealed class EndToEndPersistenceTests : IDisposable
     }
 
     [Fact]
-    public async Task FileStore_State_Survives_System_Restart()
+    public async Task FileStore_State_Survives_System_RestartAsync()
     {
         var store = new FileSnapshotStore(_tempDir);
 
-        // First lifetime — increment three times.
+        // First lifetime: increment three times.
         using (var system = new ActorSystem("svc-1", snapshotStore: store))
         {
             var actor = system.SpawnPersistent<CounterActor>("counter-A");
@@ -70,7 +70,7 @@ public sealed class EndToEndPersistenceTests : IDisposable
             Assert.True(system.AwaitTermination(TimeSpan.FromSeconds(10)));
         }
 
-        // Second lifetime — fresh system + same store; count restores.
+        // Second lifetime: fresh system + same store; count restores.
         using (var system = new ActorSystem("svc-2", snapshotStore: store))
         {
             var rehydrated = await system.SpawnPersistentAsync<CounterActor>("counter-A");
@@ -82,7 +82,7 @@ public sealed class EndToEndPersistenceTests : IDisposable
     }
 
     [Fact]
-    public async Task SqliteStore_State_Survives_System_Restart()
+    public async Task SqliteStore_State_Survives_System_RestartAsync()
     {
         var dbPath = Path.Combine(_tempDir, "spek.db");
         Directory.CreateDirectory(_tempDir);
@@ -118,7 +118,7 @@ public sealed class EndToEndPersistenceTests : IDisposable
     {
         var tcs = new TaskCompletionSource<Reply>();
 
-        // Spin up a tiny ad-hoc system to host the capture actor —
+        // Spin up a tiny ad-hoc system to host the capture actor;
         // actors can't span systems, so the capture lives next to the
         // sender in our test code, but the *target* may live in a
         // different ActorSystem since AskAsync is local-only and the

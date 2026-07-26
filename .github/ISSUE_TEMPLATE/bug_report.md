@@ -16,7 +16,7 @@ The smallest `.spek` (or C# host) snippet that reproduces it:
 ```
 
 **Expected vs actual**
-What you expected, and what happened instead — include the exact `CE####` /
+What you expected, and what happened instead; include the exact `CE####` /
 `CS####` code or stack trace if there is one.
 
 **Environment**

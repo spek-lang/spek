@@ -4,9 +4,9 @@ The contracts that concrete Spek persistence providers implement.
 
 ## Surface
 
-- **`Snapshot`** — immutable per-actor state-bag passed to
+- **`Snapshot`**: immutable per-actor state-bag passed to
   `on Restore(Snapshot s)` handlers in `.spek` source.
-- **`ISnapshotStore`** — pluggable contract for persistence
+- **`ISnapshotStore`**: pluggable contract for persistence
   providers. Default `InMemorySnapshotStore` lives in
   `Spek.Runtime`; durable providers (`Spek.Persistence.File`,
   `Spek.Persistence.Sqlite`) ship as separate packages and

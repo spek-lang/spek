@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Message/record inheritance — the polymorphic dispatch contract. An
+/// Message/record inheritance: the polymorphic dispatch contract. An
 /// <c>abstract message</c> is a family base a handler keys on (<c>on Base</c>
 /// receives every variant); variants name it after the field list. Lowers to
 /// abstract/derived C# records, so <c>case Base</c> in the generated dispatch

@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Resilience</RootNamespace>
     <AssemblyName>Spek.Resilience.Abstractions</AssemblyName>
     <PackageId>Spek.Resilience.Abstractions</PackageId>
-    <Description>Contracts for Spek resilience policies (ingress admission control, execution wrappers). Concrete policies — rate limiting, retry, circuit breakers, timeouts, bulkheads — ship in their own packages and depend only on this assembly.</Description>
+    <Description>Contracts for Spek resilience policies (ingress admission control, execution wrappers). Concrete policies (such as Spek.Resilience.RateLimiting) ship in their own packages and depend only on this assembly.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

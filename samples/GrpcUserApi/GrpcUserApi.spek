@@ -1,14 +1,13 @@
-// GrpcUserApi.spek — Spek-side of the gRPC sample.
+// GrpcUserApi.spek: Spek-side of the gRPC sample.
 //
 // The actor handlers use Spek-shape records. The bridge class
 // in UserServiceGrpcBridge.cs converts between the protoc-
 // generated request/response types (which the gRPC wire format
 // uses) and these Spek records.
 //
-// Once the compiler-side bridge codegen lands in a follow-up
-// minor, the bridge class will be auto-generated from the
-// channel + .proto pair, and you'll only need to write the
-// actor itself.
+// The bridge class in UserServiceGrpcBridge.cs is written by
+// hand; it converts between the protoc-generated types and
+// these records.
 
 namespace GrpcUserApi;
 
@@ -43,9 +42,9 @@ actor UserService : UserApi
 }
 
 // ─── Host ────────────────────────────────────────────────────────────────────
-// Folded in from the old Program.cs as a `program Main` block, so the sample is
-// pure Spek — the same host shape RestUserApi uses. The only remaining C# is the
-// bridge (UserServiceGrpcBridge.cs), which the gRPC codegen will eventually emit.
+// The host is a `program Main` block, the same shape RestUserApi uses, so the sample is
+// pure Spek: the same host shape RestUserApi uses. The only remaining C# is the
+// bridge (UserServiceGrpcBridge.cs), the bridge (UserServiceGrpcBridge.cs), the one hand-written C# file in this sample.
 
 program Main
 {
@@ -56,7 +55,7 @@ program Main
 
     var app = builder.Build();
     app.MapGrpcService<UserServiceGrpcBridge>();
-    // Blocking Run() (not RunAsync) — Spek has no `await`, and invisible async
+    // Blocking Run() (not RunAsync): Spek has no `await`, and invisible async
     // doesn't cover AspNetCore types, so RunAsync would be fire-and-forget. Same
     // idiom as RestUserApi / HelloWeb.
     app.Run();

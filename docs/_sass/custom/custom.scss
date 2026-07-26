@@ -1,0 +1,285 @@
+// Spek docs: a reskin of just-the-docs to match the landing site
+// (dark indigo/cyan, Inter + JetBrains Mono, mdBook-style wide layout).
+// Loaded after the theme, so most overrides win on load order; the
+// !importants below are for spots where just-the-docs brings higher
+// specificity or !important of its own.
+
+:root {
+  --spek-ink:      #0d1020;  // page background
+  --spek-ink-2:    #0a0c18;  // code / sidebar background
+  --spek-panel:    #151931;  // raised panels
+  --spek-primary:  #8b7bff;  // links (lightened indigo for dark bg)
+  --spek-primary-2:#6c5ce7;
+  --spek-accent:   #22d3ee;  // hover / highlights
+  --spek-text:     #d6dbf5;
+  --spek-muted:    #9aa3c4;
+  --spek-line:     rgba(255,255,255,.08);
+  --spek-bar:      #1f2333;   // header bar, same as the landing navbar rgb(31,35,51)
+}
+
+// Elastic overscroll peels the sticky header off the top edge; disable it.
+// This also costs pull-to-refresh in mobile browsers.
+html, body { overscroll-behavior-y: none; }
+body {
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--spek-ink);
+  color: var(--spek-text);
+}
+h1, h2, h3, h4, h5, h6, .text-alpha { font-family: "Inter", sans-serif; font-weight: 700; letter-spacing: -.01em; }
+code, pre, kbd, tt { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+// just-the-docs sizes the sidebar from its SCSS $content-width and
+// right-aligns the nav, which leaves a big empty strip on the left of wide
+// screens. Left-anchor the whole layout instead, like mdBook: slim sidebar
+// flush left, content filling the rest.
+$spek-nav-width: 17rem;
+@media (min-width: 50rem) {
+  .side-bar {
+    width: $spek-nav-width;
+    align-items: stretch;              // no right-align gap in the nav
+  }
+  .site-header, .site-nav, .nav-list { width: auto; }
+  .main {
+    // !important to beat just-the-docs' wide-screen centering calc on .main
+    margin-left: $spek-nav-width !important;
+    max-width: none !important;
+  }
+}
+// just-the-docs re-centers .main at its xl breakpoint; neutralize that too.
+@media (min-width: 66.5rem) {
+  .main { margin-left: $spek-nav-width !important; }
+}
+.main-content { line-height: 1.65; }
+.main-content h1:first-of-type { margin-top: .5rem; }
+
+.main { background-color: var(--spek-ink); }
+
+// Narrow reading mode, toggled by the button head_custom.html injects.
+body.reading-narrow .main-content { max-width: 52rem; margin-left: auto; margin-right: auto; }
+
+// Icon-only buttons, like the GitHub mark; hover swaps in the accent colour.
+.spek-width-toggle, .spek-theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  padding: .25rem .3rem;
+  margin-left: .15rem;
+  cursor: pointer;
+  &:hover { color: var(--spek-accent); }
+  svg { display: block; }
+}
+
+// Rouge token colours, matching the landing page's code window. Code cards
+// stay dark in both themes, so these apply in both.
+.main-content .highlight {
+  .c, .c1, .cm, .cp, .cs, .cd            { color: #6b7394; font-style: italic; } // comments
+  .k, .kd, .kn, .kp, .kr, .kv            { color: #c792ea; }   // keywords
+  .kt                                    { color: #7fdbb6; }   // primitive types (decimal, string)
+  .o, .ow                                { color: #89ddff; }   // operators
+  .p, .pi                                { color: #b6bed8; }   // punctuation
+  .n, .na, .nb, .nl, .nx, .nv, .vc, .vg  { color: #e6e9f5; }   // identifiers
+  .nc, .nn, .no                          { color: #82d8ff; }   // class / namespace names
+  .nf, .fm                               { color: #ffcb6b; }   // function / method names
+  .s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr, .dl { color: #c3e88d; } // strings
+  .m, .mf, .mi, .mh, .mo, .il, .mb       { color: #f78c6c; }   // numbers
+  .err                                   { color: #ff6b81; }   // errors
+}
+
+// Daylight mode (the sun/moon button toggles html.theme-light). The header
+// bar deliberately stays dark; only the content area and sidebar body switch.
+html.theme-light {
+  body { background-color: #ffffff; color: #1f2333; }
+  .side-bar { background-color: #f3f4f8; }
+  .main { background-color: #ffffff; }
+
+  .nav-list .nav-list-item .nav-list-link { color: #4a4f63; }
+  .nav-list .nav-list-item .nav-list-link:hover {
+    color: #14172a;
+    background-color: rgba(0,0,0,.05);
+    background-image: none;
+  }
+  .nav-list .nav-list-item .nav-list-link.active {
+    color: #14172a;
+    background-image: linear-gradient(90deg, rgba(108,92,231,.14), transparent);
+  }
+  .site-footer { color: #5b6178; border-top-color: rgba(0,0,0,.10); }
+
+  .main-content { color: #1f2333; }
+  .main-content h1, .main-content h2, .main-content h3,
+  .main-content h4, .main-content h5, .main-content h6 { color: #14172a; }
+  .main-content a { color: #5b4bd6; }
+  .main-content a:hover { color: #0e7490; }
+
+  // Inline code only; fenced blocks keep the dark card below.
+  .main-content code { background-color: rgba(108,92,231,.12); color: #5b4bd6; }
+
+  // !important beats the theme's own cell striping.
+  .main-content table, .main-content th, .main-content td { border-color: rgba(0,0,0,.12); }
+  .main-content table th { background-color: #eef0f6 !important; color: #14172a; }
+  .main-content table td { background-color: #ffffff !important; color: #1f2333; }
+  .main-content table tr:nth-child(2n) td { background-color: #f7f8fb !important; }
+  .main-content-wrap { border-left-color: rgba(0,0,0,.12); }
+
+  // Same hero glow as the dark theme, softened for a white background.
+  .main-content-wrap {
+    background-image:
+      radial-gradient(900px 520px at 85% -60px, rgba(108,92,231,.13), transparent 60%),
+      radial-gradient(760px 460px at 0% 96%, rgba(34,211,238,.10), transparent 55%);
+  }
+
+  .main-content pre { color: #d6dbf5; }
+  .main-content pre code { color: #d6dbf5; background: transparent; }
+}
+
+// just-the-docs paints .main-header a different grey than .site-header by
+// default; force one colour so the top strip reads as a single bar.
+.main-header  {
+  background-color: var(--spek-bar) !important;
+  border-bottom: 1px solid var(--spek-line) !important;
+  position: sticky; top: 0; z-index: 100;   // pin the bar; only content scrolls
+}
+.site-header  { background-color: var(--spek-bar) !important; }
+.site-header, .main-header { min-height: 60px; }
+
+.main-header .search { display: flex; justify-content: center; align-items: center; background: transparent !important; }
+.search-input-wrap { width: 100%; max-width: 34rem; margin: 0 auto; height: 40px; }
+// just-the-docs positions the input absolutely at top:0, so a shorter field
+// has to be centred with top:50% + translate rather than height alone.
+.main-header .search-input {
+  height: 40px !important;
+  top: 50% !important;
+  bottom: auto !important;
+  transform: translateY(-50%) !important;
+}
+
+.main-header .aux-nav .aux-nav-list { display: flex !important; align-items: center; gap: .5rem; height: 100%; margin-left: 16px; }
+.main-header .aux-nav .aux-nav-list-item { display: flex; align-items: center; height: auto; margin: 0; }
+
+// The GitHub aux link, reduced to a bare icon instead of the theme's
+// full-height site button.
+.main-header .aux-nav-list .site-button {
+  display: inline-flex; align-items: center;
+  height: auto !important;
+  line-height: 1 !important;
+  font: 600 .85rem "Inter", sans-serif;
+  color: #fff !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: .25rem .35rem !important;
+  margin: 0 !important;
+  &:hover { color: var(--spek-accent) !important; background: transparent !important; }
+}
+
+.main-header .spek-width-toggle { align-self: center; }
+
+.side-bar {
+  background-color: var(--spek-ink-2);     // darker than the top bar
+  // The theme's right border sliced through the header; drop it here and
+  // redraw the divider on the content edge so it starts below the bar.
+  border-right: 0 !important;
+}
+.main-content-wrap {
+  border-left: 1px solid #44434d;
+  // The landing hero's glow. Radial centres are in pixels, not %: a
+  // percentage scales with page height and pushes the glow off-screen on
+  // long pages.
+  background-image:
+    radial-gradient(900px 520px at 85% -60px, rgba(108,92,231,.35), transparent 60%),
+    radial-gradient(760px 460px at 0% 96%, rgba(34,211,238,.18), transparent 55%);
+  background-repeat: no-repeat;
+}
+// Same baseline as the main header, so the logo cell continues the bar.
+.site-header {
+  border-bottom: 1px solid var(--spek-line);
+}
+// Size the title box strictly to the wordmark so the gradient spans exactly
+// the text; margin (not padding) keeps the 32px inset without stretching
+// the gradient box.
+.site-header .site-title, .site-header .site-title:hover {
+  display: inline-block !important;
+  line-height: 60px !important;
+  width: -moz-max-content !important;
+  width: max-content !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  padding: 0 !important;
+  margin-left: 32px !important;
+  font-weight: 800 !important;
+  font-size: 1.4rem !important;   // match the landing wordmark
+  letter-spacing: -.02em !important;
+  background: linear-gradient(92deg, var(--spek-primary), var(--spek-accent));
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.nav-list .nav-list-item .nav-list-link {
+  color: var(--spek-muted);
+  &:hover { color: #fff; }
+  &.active {
+    color: #fff;
+    background-image: linear-gradient(90deg, rgba(108,92,231,.22), transparent);
+    &::before { background: var(--spek-accent); }
+  }
+}
+
+.main-content a { color: var(--spek-primary); text-underline-offset: .15em; }
+.main-content a:hover { color: var(--spek-accent); }
+
+// The search field blends into the bar; a hairline outline is its only edge.
+.search-input {
+  background-color: transparent !important;
+  color: var(--spek-text);
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 7px;
+}
+.search-input:focus { box-shadow: 0 0 0 2px rgba(108,92,231,.5); }
+.search-result-highlight { color: var(--spek-accent); }
+
+// Code blocks styled like the landing page's code windows. Current
+// just-the-docs puts the card on div.highlight (a copy button rides as its
+// sibling), so the outer wrapper is a positioning context and nothing more.
+.main-content {
+  div.highlighter-rouge, figure.highlight {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    position: relative;
+  }
+  // The card itself; bare <pre> (indented blocks) gets the same treatment.
+  .highlight, pre:not(.highlight) {
+    background-color: #161b33 !important;
+    border: 1px solid rgba(255,255,255,.12) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35) !important;
+    padding: 1.1rem 1.3rem !important;
+    overflow-x: auto;
+  }
+  // Inner <pre>: no second box inside the card.
+  pre.highlight {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  pre, pre.highlight code { font-size: .88rem; line-height: 1.45; }
+  code {
+    background-color: rgba(139,123,255,.12);
+    color: #c7c0ff;
+    border-radius: 5px;
+    padding: .1rem .35rem;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }   // no double style in fences
+}
+
+.main-content table { border-color: var(--spek-line); }
+.main-content th, .main-content td { border-color: var(--spek-line); }
+
+.callout { border-radius: 10px; }
+
+.btn-primary {
+  background: linear-gradient(92deg, var(--spek-primary-2), var(--spek-primary));
+  border: 0;
+}
+.site-footer { color: var(--spek-muted); border-top: 1px solid var(--spek-line); }

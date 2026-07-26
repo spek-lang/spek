@@ -1,11 +1,11 @@
 namespace Spek.Hosting.AspNetCore.Rest;
 
-// HttpVerb (the enum) is authored in Spek — see HttpVerb.spek. This file keeps
+// HttpVerb (the enum) is authored in Spek - see HttpVerb.spek. This file keeps
 // the extension helper, which Spek doesn't express (a `this`-parameter method).
 
 /// <summary>
 /// Conversion helpers between <see cref="HttpVerb"/> and ASP.NET
-/// Core's string-based method names. Internal — users interact with
+/// Core's string-based method names. Internal - users interact with
 /// the typed enum exclusively.
 /// </summary>
 internal static class HttpVerbExtensions

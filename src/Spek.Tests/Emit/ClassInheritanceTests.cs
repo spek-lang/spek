@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Class inheritance — reuse + abstract-only. An <c>abstract class</c> carries
+/// Class inheritance: reuse + abstract-only. An <c>abstract class</c> carries
 /// abstract methods a subclass must implement, plus inherited fields/methods for
 /// reuse; only an abstract class is a legal base (concrete classes stay sealed).
 /// There is no <c>virtual</c>/<c>override</c> keyword: the emitter infers

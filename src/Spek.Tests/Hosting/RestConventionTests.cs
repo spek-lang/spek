@@ -70,7 +70,7 @@ public sealed class RestConventionTests
     public void Convention_ListUsers_BecomesGetWithoutId()
     {
         // List-shaped GETs collect from the base path, even if a
-        // message has an id field — the convention rule explicitly
+        // message has an id field: the convention rule explicitly
         // skips the id placeholder for List* prefix.
         var routes = new ChannelRouteResolver<UserApi>().Routes().ToList();
         var r = Assert.Single(routes, r => r.MessageType == typeof(ListUsers));

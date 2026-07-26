@@ -5,7 +5,7 @@ namespace Spek.Tests.RuntimeTypes;
 
 /// <summary>
 /// Coverage for <see cref="Outcome{T,E}"/> and the
-/// <see cref="Outcome{T}"/> shorthand — typed success/failure
+/// <see cref="Outcome{T}"/> shorthand - typed success/failure
 /// payloads for actor reply messages.
 /// </summary>
 public class OutcomeTests

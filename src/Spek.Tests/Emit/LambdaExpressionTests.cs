@@ -6,7 +6,7 @@ namespace Spek.Tests.Emit;
 
 /// <summary>
 /// Coverage for first-class lambda expressions. The emit path is
-/// verbatim — Spek lambdas lower one-to-one to C# lambdas; type
+/// verbatim: Spek lambdas lower one-to-one to C# lambdas; type
 /// inference, capture, and target-typing are handled by Roslyn.
 /// </summary>
 public sealed class LambdaExpressionTests
@@ -45,7 +45,7 @@ public sealed class LambdaExpressionTests
     public void Lambda_NoParams_Emits()
     {
         // Use a typed local so type inference picks up the lambda's
-        // shape — Spek doesn't have C# cast expressions like (Func<…>)(…).
+        // shape: Spek doesn't have C# cast expressions like (Func<…>)(…).
         const string src = """
             using System;
 

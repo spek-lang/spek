@@ -12,16 +12,15 @@ namespace Spek.Tests.Runtime;
 ///         (<see cref="ActorSystem.SpawnNamed{TActor}"/>,
 ///         <see cref="ActorSystem.ResolveNamed"/>,
 ///         <see cref="ActorSystem.PathOfNamedRoot"/>).</item>
-///   <item><see cref="ActorSystem.DeliverIncoming"/> — the cluster-layer
-///         inbound hook — routing to a known root and dead-lettering an
+///   <item><see cref="ActorSystem.DeliverIncoming"/> - the cluster-layer
+///         inbound hook: routing to a known root and dead-lettering an
 ///         unknown one.</item>
 ///   <item>Type-guard on the non-generic spawn overloads
 ///         (<see cref="ActorSystem.Spawn(System.Type, object[])"/>).</item>
 ///   <item>The default <see cref="ActorBase"/> <c>Unhandled</c> dead-letter.</item>
 ///   <item>Ask edge cases: wrong reply type → <see cref="System.InvalidCastException"/>;
-///         ask to a stopped target → timeout; ask to a throwing writer
-///         handler → timeout (the asker is NOT failed eagerly, unlike the
-///         reader path — documents the writer/reader asymmetry).</item>
+///         ask to a stopped target and ask to a throwing writer handler both
+///         fault the asker fast with <see cref="AskException"/>.</item>
 ///   <item>The depth-8 escalation cap with a chain deeper than 8 all-escalating
 ///         supervisors (the existing escalation tests only cover the
 ///         "ran out of supervisors at the root" path, explicitly NOT the cap).</item>
@@ -53,7 +52,7 @@ public class RuntimeCoverageTests
         }
     }
 
-    /// <summary>Always throws — a root actor (no parent) defaults to Stop.</summary>
+    /// <summary>Always throws: a root actor (no parent) defaults to Stop.</summary>
     private sealed class Exploder : ActorBase
     {
         protected override Task DispatchAsync(object message, ActorRef sender)
@@ -65,10 +64,9 @@ public class RuntimeCoverageTests
 
     /// <summary>
     /// Writer handler that throws while the asker awaits a reply. The writer
-    /// dispatch path runs supervision but does NOT call FailReplyWith, so the
-    /// asker's task is left pending — only the timeout rescues it. Contrast
-    /// with the reader path (covered in ReaderConcurrencyTests) which faults
-    /// the asker eagerly with AskException.
+    /// dispatch path fails the asker's reply cell eagerly, so the ask faults
+    /// with AskException carrying the handler's throw, symmetric with the
+    /// reader path (covered in ReaderConcurrencyTests).
     /// </summary>
     private sealed class WriterThatThrows : ActorBase
     {
@@ -90,7 +88,7 @@ public class RuntimeCoverageTests
         }
     }
 
-    /// <summary>A plain C# class that is NOT an actor — used to test the type guard.</summary>
+    /// <summary>A plain C# class that is NOT an actor - used to test the type guard.</summary>
     private sealed class NotAnActor { }
 
     // ─── Named roots ───────────────────────────────────────────────────────────
@@ -127,6 +125,25 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
+    public void SpawnNamed_SamePathAgain_ReverseLookupTracksCurrentHolder()
+    {
+        // Re-registering a path rebinds it to the new actor, and the
+        // DISPLACED actor stops reverse-resolving - it is no longer a named
+        // root, so the cluster layer must not stamp its old path into wire
+        // envelopes as a reply-to address that now routes to the usurper.
+        // Pins that the ref → path map unbinds in lockstep with the
+        // path → ref map it mirrors.
+        using var system = new ActorSystem("named");
+
+        var first  = system.SpawnNamed<PingPong>("ingress/orders");
+        var second = system.SpawnNamed<PingPong>("ingress/orders");
+
+        Assert.Same(second, system.ResolveNamed("ingress/orders"));
+        Assert.Equal("ingress/orders", system.PathOfNamedRoot(second));
+        Assert.Null(system.PathOfNamedRoot(first));
+    }
+
+    [Fact]
     public void SpawnNamed_EmptyPath_Throws()
     {
         using var system = new ActorSystem("named");
@@ -136,7 +153,7 @@ public class RuntimeCoverageTests
 
     // ─── DeliverIncoming (cluster inbound hook) ──────────────────────────────────
 
-    // Observable across threads — Spek.Tests is NOT in Spek.Runtime's
+    // Observable across threads: Spek.Tests is NOT in Spek.Runtime's
     // InternalsVisibleTo list, so ActorRef.Underlying is off-limits; a static
     // counter is the established cross-thread signal for these tests.
     private static int _pongsCollected;
@@ -153,7 +170,7 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
-    public async Task DeliverIncoming_KnownRoot_RoutesMessageToActor()
+    public async Task DeliverIncoming_KnownRoot_RoutesMessageToActorAsync()
     {
         Interlocked.Exchange(ref _pongsCollected, 0);
         using var system = new ActorSystem("deliver");
@@ -172,7 +189,7 @@ public class RuntimeCoverageTests
         // dispatches, which can be starved for several seconds under the fully
         // parallel suite. It returns as soon as the Pong lands (ms in the common
         // case); the long timeout only matters under heavy contention.
-        await WaitUntil(() => Volatile.Read(ref _pongsCollected) == 1, timeoutMs: 30_000);
+        await WaitUntilAsync(() => Volatile.Read(ref _pongsCollected) == 1, timeoutMs: 30_000);
         Assert.Equal(1, Volatile.Read(ref _pongsCollected));
     }
 
@@ -213,7 +230,7 @@ public class RuntimeCoverageTests
     // ─── Default Unhandled → dead-letter ─────────────────────────────────────────
 
     [Fact]
-    public async Task UnhandledMessage_RoutesToDeadLetter_WithReason()
+    public async Task UnhandledMessage_RoutesToDeadLetter_WithReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new ActorSystem("unhandled", deadLetterSink: sink);
@@ -221,7 +238,7 @@ public class RuntimeCoverageTests
 
         actor.Tell(new Boom());   // PingPong has no Boom arm → Unhandled
 
-        await WaitUntil(() => sink.Records.Any(r => r.Message is Boom));
+        await WaitUntilAsync(() => sink.Records.Any(r => r.Message is Boom));
 
         var record = sink.Records.Single(r => r.Message is Boom);
         Assert.Contains("no handler matched", record.Reason);
@@ -232,19 +249,19 @@ public class RuntimeCoverageTests
     // ─── Tell to a stopped actor → dead-letter ───────────────────────────────────
 
     [Fact]
-    public async Task TellToStoppedActor_DeadLetters_WithStoppedReason()
+    public async Task TellToStoppedActor_DeadLetters_WithStoppedReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new ActorSystem("stopped", deadLetterSink: sink);
         var actor = system.Spawn<Exploder>();
 
         actor.Tell(new Ping());   // throws → root actor defaults to Stop
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
         // Subsequent sends hit the stopped-actor dead-letter path in Enqueue.
         actor.Tell(new Ping());
 
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("target actor is stopped", StringComparison.Ordinal)));
 
         var stoppedRecord = sink.Records.Last(r =>
@@ -256,59 +273,61 @@ public class RuntimeCoverageTests
     // ─── Ask edge cases ──────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task AskWithTimeout_WrongReplyType_FaultsWithInvalidCast()
+    public async Task AskWithTimeout_WrongReplyType_FaultsWithInvalidCastAsync()
     {
         using var system = new ActorSystem("ask-wrong");
         var actor = system.Spawn<WrongTypeReplier>();
 
         // The reply (Echo) can't satisfy the awaited Pong; the internal
         // ReplyActor<Pong> sets the asker's task to an InvalidCastException
-        // — the asker faults rather than waiting out the timeout.
+        //: the asker faults rather than waiting out the timeout.
         await Assert.ThrowsAsync<InvalidCastException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)));
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]
-    public async Task AskWithTimeout_StoppedTarget_FaultsWithTimeout()
+    public async Task AskWithTimeout_StoppedTarget_FaultsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("ask-stopped");
         var actor = system.Spawn<Exploder>();
 
         actor.Tell(new Ping());          // crash → root stops
-        await WaitUntil(() => actor.IsStopped);
+        await WaitUntilAsync(() => actor.IsStopped);
 
-        // Asking a stopped actor dead-letters the request; no reply ever
-        // arrives, so the bounded ask must surface a TimeoutException rather
-        // than hanging forever.
-        await Assert.ThrowsAsync<TimeoutException>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(200)));
+        // Asking a stopped actor can never produce a reply, so under the
+        // "fail fast on all" semantics the send fails the asker immediately
+        // with an AskException ("target actor is stopped") - no dead-letter
+        // wait, no deadline. A generous timeout proves the failure is fast.
+        await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
     }
 
     [Fact]
-    public async Task AskWithTimeout_WriterHandlerThrows_TimesOut_NotAskException()
+    public async Task AskWithTimeout_WriterHandlerThrows_FailsFastWithAskExceptionAsync()
     {
         using var system = new ActorSystem("ask-writer-throws");
         var actor = system.Spawn<WriterThatThrows>();
 
-        // The writer dispatch path runs supervision but does not fail the
-        // asker's reply (only the reader path does). So the asker is left
-        // pending and the timeout is what unblocks it — a TimeoutException,
-        // NOT an AskException. This documents the writer/reader asymmetry.
-        var ex = await Assert.ThrowsAnyAsync<Exception>(() =>
-            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromMilliseconds(300)));
+        // A writer handler that throws now fails the asker fast with an
+        // AskException, symmetric with the reader path - closing the old
+        // writer/reader asymmetry that left the asker to time out (adversarial
+        // V1, "fail fast on all"). The handler's own throw rides along as
+        // the inner exception. A generous timeout proves the failure is fast.
+        var ex = await Assert.ThrowsAsync<AskException>(() =>
+            actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
 
-        Assert.IsType<TimeoutException>(ex);
-        Assert.IsNotType<AskException>(ex);
+        Assert.IsType<InvalidOperationException>(ex.InnerException);
+        Assert.Equal("writer boom", ex.InnerException!.Message);
     }
 
     // ─── ActorRef surface: NoSender reply + remote-ask guard ──────────────────────
 
     [Fact]
-    public async Task ReplyToActorWithNoSender_DoesNotThrow_AndIsRecoverable()
+    public async Task ReplyToActorWithNoSender_DoesNotThrow_AndIsRecoverableAsync()
     {
         // A bare Tell (no explicit sender) gives the recipient ActorRef.NoSender
         // as its sender. A handler that replies to NoSender must not crash the
-        // actor — the reply is dropped (dead-lettered to stderr). We prove the
+        // actor: the reply is dropped (dead-lettered to stderr). We prove the
         // actor stays alive and keeps serving by following up with an ask.
         using var system = new ActorSystem("nosender");
         var actor = system.Spawn<RepliesToSender>();
@@ -337,7 +356,7 @@ public class RuntimeCoverageTests
         var endpoint = new DeadEndpoint();
         var remote = new ActorRef(endpoint);
 
-        // Remote ask is deferred — must fail fast (the throw happens
+        // Remote ask is deferred: must fail fast (the throw happens
         // synchronously, before any Task is produced), not silently hang.
         Assert.Throws<NotSupportedException>(() =>
         {
@@ -409,14 +428,14 @@ public class RuntimeCoverageTests
     }
 
     [Fact]
-    public async Task Escalation_ChainDeeperThanCap_DegradesToStop_WithMaxDepthReason()
+    public async Task Escalation_ChainDeeperThanCap_DegradesToStop_WithMaxDepthReasonAsync()
     {
         var sink = new RecordingDeadLetterSink();
         using var system = new TestActorSystem("escalate-cap", deadLetterSink: sink);
         var probe = system.CreateProbe();
 
         // Build a chain of 12 nodes (root + 11 descendants). The leaf has 11
-        // escalating ancestors — more than the depth-8 cap, so the walk hits
+        // escalating ancestors: more than the depth-8 cap, so the walk hits
         // the cap and degrades to Stop rather than reaching a null supervisor.
         var root = system.Spawn<ChainNode>();
         root.Tell(new SpawnDeeper(11));
@@ -426,18 +445,18 @@ public class RuntimeCoverageTests
 
         leafRef.Tell(new Crash());
 
-        await WaitUntil(() => sink.Records.Any(r =>
+        await WaitUntilAsync(() => sink.Records.Any(r =>
             r.Reason.Contains("escalation chain exceeded max depth", StringComparison.Ordinal)));
 
         var capRecord = sink.Records.First(r =>
             r.Reason.Contains("escalation chain exceeded max depth", StringComparison.Ordinal));
         Assert.IsType<InvalidOperationException>(capRecord.Cause);
 
-        // The cap degrades to Stop — the leaf ends up stopped.
-        await WaitUntil(() => leafRef.IsStopped);
+        // The cap degrades to Stop: the leaf ends up stopped.
+        await WaitUntilAsync(() => leafRef.IsStopped);
         Assert.True(leafRef.IsStopped);
 
-        // And the "ran out of supervisors" path was NOT taken — the cap fired first.
+        // And the "ran out of supervisors" path was NOT taken - the cap fired first.
         Assert.DoesNotContain(sink.Records, r =>
             r.Reason.Contains("escalate at root", StringComparison.Ordinal));
     }
@@ -449,7 +468,7 @@ public class RuntimeCoverageTests
     // be starved for seconds under the fully parallel suite. The predicate returns
     // as soon as it's satisfied (ms in the common case); the ceiling only bites
     // under heavy contention, where a tighter bound produced load flakes.
-    private static async Task WaitUntil(Func<bool> predicate, int timeoutMs = 30_000)
+    private static async Task WaitUntilAsync(Func<bool> predicate, int timeoutMs = 30_000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)

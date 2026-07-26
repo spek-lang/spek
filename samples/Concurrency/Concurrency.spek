@@ -1,8 +1,8 @@
-// Concurrency.spek — invisible async, concurrency by default.
+// Concurrency.spek: invisible async, concurrency by default.
 //
 // There is no `async` or `await` anywhere in this file. Yet `Both()` runs
 // its two "fetches" concurrently and `Sequential()` runs them one after
-// another — the ONLY difference is `var` (defer, overlap) vs the explicit
+// another: the ONLY difference is `var` (defer, overlap) vs the explicit
 // value type (await here, sequential).
 //
 // Run:       dotnet run      (concurrent ≈ half the time of sequential)
@@ -12,7 +12,7 @@ namespace ConcurrencySample;
 module Fetch
 {
     // Stands in for a slow I/O call (an HTTP request, a DB query, ...).
-    // `Task.Delay` is auto-awaited — no `await` keyword needed.
+    // `Task.Delay` is auto-awaited - no `await` keyword needed.
     public int Slow(int ms, int value)
     {
         System.Threading.Tasks.Task.Delay(ms);
@@ -31,7 +31,7 @@ module Fetch
     }
 
     // SEQUENTIAL: bound with the value type `int`, so each is awaited right
-    // there — b doesn't start until a has finished.
+    // there: b doesn't start until a has finished.
     public int Sequential()
     {
         int a = Slow(200, 20);

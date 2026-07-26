@@ -11,10 +11,10 @@ namespace Spek.Hosting.Console;
 /// <c>Shutdown</c> messages sent to that actor.
 ///
 /// Process exit code comes from the actor's <c>on Shutdown =&gt;
-/// return &lt;int&gt;;</c> handler (Spek's Option D reply convention).
+/// return &lt;int&gt;;</c> handler (Spek's return-value reply convention).
 /// If the handler has no return, the exit code defaults to <c>0</c>.
 ///
-/// The adapter is intentionally minimal — it provides the signal
+/// The adapter is intentionally minimal - it provides the signal
 /// translation and process-lifetime plumbing; channel-coverage and
 /// emits enforcement happen at compile time in the Spek source.
 /// </summary>
@@ -28,7 +28,7 @@ public static class SpekConsoleHost
     /// </summary>
     /// <param name="shutdownFactory">
     /// Factory that produces the user-defined <c>Shutdown</c> message
-    /// instance. The adapter doesn't know the user's type — it just
+    /// instance. The adapter doesn't know the user's type - it just
     /// asks for an instance whenever a terminal signal arrives.
     /// </param>
     /// <param name="systemName">
@@ -42,7 +42,7 @@ public static class SpekConsoleHost
     /// </param>
     /// <param name="defaultExitCode">
     /// Returned when the actor stops without surfacing a typed exit
-    /// code via Option D reply. Default <c>0</c>.
+    /// code via an inferred reply. Default <c>0</c>.
     /// </param>
     public static Task<int> RunAsync<TActor>(
         Func<object> shutdownFactory,
@@ -63,7 +63,7 @@ public static class SpekConsoleHost
     /// Overload for callers that want to bring their own
     /// <see cref="ActorSystem"/> + entry <see cref="ActorRef"/>
     /// (e.g. for spawning persistent actors via <c>SpawnPersistent</c>).
-    /// The host does NOT take ownership of the system in this overload —
+    /// The host does NOT take ownership of the system in this overload;
     /// disposal is the caller's responsibility.
     /// </summary>
     public static Task<int> RunAsync(
@@ -87,10 +87,10 @@ public static class SpekConsoleHost
         ArgumentNullException.ThrowIfNull(entryActor);
         ArgumentNullException.ThrowIfNull(shutdownFactory);
 
-        // Track the actor's typed reply (Option D return value) so we
+        // Track the actor's typed reply (the handler's return value) so we
         // can surface it as the process exit code. We spawn a tiny
         // receiver actor whose ref we use as `sender` when Tell-ing
-        // the Shutdown — the entry actor's `_currentSender.Tell(reply)`
+        // the Shutdown: the entry actor's `_currentSender.Tell(reply)`
         // routes back to it.
         var exitHolder    = new ExitCodeHolder(defaultExitCode);
         var receiverRef   = system.Spawn<ExitCodeReceiverActor>(exitHolder);
@@ -104,7 +104,7 @@ public static class SpekConsoleHost
 
             // Tell the entry actor with the receiver as the apparent
             // sender, so the entry actor's `_currentSender.Tell(reply)`
-            // (Option D return-statement emit) routes back here.
+            // (the return-statement reply emit) routes back here.
             entryActor.Tell(shutdownFactory(), sender: receiverRef);
         }
 
@@ -180,7 +180,7 @@ public static class SpekConsoleHost
     /// <summary>
     /// Tiny holder that lets the receiver actor and the host coordinate
     /// over a single integer (the eventual process exit code). Volatile
-    /// reads/writes — only the receiver actor writes; only the host
+    /// reads/writes: only the receiver actor writes; only the host
     /// reads after the entry actor stops.
     /// </summary>
     internal sealed class ExitCodeHolder
@@ -195,7 +195,7 @@ public static class SpekConsoleHost
     }
 
     /// <summary>
-    /// Internal actor that captures the entry actor's Option-D reply
+    /// Internal actor that captures the entry actor's return-value reply
     /// (`return new T();` → `_currentSender.Tell(T)`) and pulls an
     /// integer out of it as the process exit code.
     /// </summary>

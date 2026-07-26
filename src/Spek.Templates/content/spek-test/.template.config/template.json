@@ -5,7 +5,7 @@
   "identity": "Spek.Templates.Test",
   "name": "Spek test project",
   "shortName": "spek-test",
-  "description": "A Spek test project: native Spek tests (a `*Tests` class) run under `dotnet test` via xUnit. The Spek toolchain is wired through MSBuild (Spek.Build) and a pinned local `spekc` tool — `dotnet tool restore` then `dotnet test`.",
+  "description": "A Spek test project: native Spek tests (a `*Tests` class) run under `dotnet test` via xUnit. The Spek toolchain is wired through MSBuild (Spek.Build) and a pinned local `spekc` tool; `dotnet tool restore` then `dotnet test`.",
   "tags": {
     "language": "C#",
     "type": "project"

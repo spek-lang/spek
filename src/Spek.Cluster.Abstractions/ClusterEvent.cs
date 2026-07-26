@@ -33,6 +33,6 @@ public abstract record ClusterEvent(NodeIdentity Identity)
     public sealed record NodeReachableAgain(NodeIdentity Id) : ClusterEvent(Id);
 
     /// <summary>A node transitioned to
-    /// <see cref="NodeState.Down"/> — permanently offline.</summary>
+    /// <see cref="NodeState.Down"/>: permanently offline.</summary>
     public sealed record NodeDown(NodeIdentity Id) : ClusterEvent(Id);
 }

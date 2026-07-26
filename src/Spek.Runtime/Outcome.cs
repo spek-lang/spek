@@ -1,7 +1,7 @@
 namespace Spek;
 
 /// <summary>
-/// Typed success-or-failure payload for actor messages — the
+/// Typed success-or-failure payload for actor messages - the
 /// idiomatic way to communicate "the operation might fail and the
 /// caller wants the failure reason as a value, not as a thrown
 /// exception."
@@ -10,7 +10,7 @@ namespace Spek;
 /// (supervision intercepts them), so the C# habit of "throw on
 /// failure, return on success" doesn't fit reply messages. An actor
 /// that might fail to satisfy a request returns an
-/// <see cref="Outcome{T, E}"/> instead — the caller pattern-matches
+/// <see cref="Outcome{T, E}"/> instead - the caller pattern-matches
 /// on <see cref="Success"/> vs <see cref="Failure"/> to decide what
 /// to do.</para>
 ///
@@ -20,7 +20,7 @@ namespace Spek;
 /// </summary>
 /// <example>
 /// <code>
-/// // Handler returns the typed outcome via Option D:
+/// // Handler returns the typed outcome with the typed outcome:
 /// on GetUser g =>
 /// {
 ///     var user = repo.Find(g.id);
@@ -118,7 +118,7 @@ public abstract record Outcome<T, E>
 public sealed record Reason(string Code, string Message);
 
 /// <summary>
-/// Convenience alias — <c>Outcome&lt;T&gt;</c> is
+/// Convenience alias: <c>Outcome&lt;T&gt;</c> is
 /// <c>Outcome&lt;T, Reason&gt;</c>. Use this when you want the
 /// default <see cref="Reason"/> failure type and don't need a
 /// custom error type per call.

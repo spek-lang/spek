@@ -8,7 +8,7 @@ namespace Spek.Compiler.Emit;
 /// Needs the set of actor field names so bare identifiers that are
 /// fields get the generated <c>_</c> prefix.
 /// Optionally holds a <see cref="SymbolTable"/> so <see cref="AskExpr"/>
-/// can infer the reply type from handler returns (Option D).
+/// can infer the reply type from handler returns (the inferred-reply convention).
 /// </summary>
 public sealed class ExpressionEmitter
 {
@@ -65,14 +65,14 @@ public sealed class ExpressionEmitter
         // shape mirrors how `self.Tell` is rewritten further down.
         MemberAccessExpr ma when ma.Target is SelfExpr && IsSelfAccessor(ma.Member)
                                     => $"this.{SelfAccessorProperty(ma.Member)}",
-        InvocationExpr inv          => $"{inv.Callee}({string.Join(", ", inv.Args.Select(Emit))})",
+        InvocationExpr inv          => $"{inv.Callee}{TypeArgSuffix(inv.TypeArgs)}({string.Join(", ", inv.Args.Select(Emit))})",
         MemberAccessExpr ma         => $"{Emit(ma.Target)}{(ma.NullConditional ? "?." : ".")}{ma.Member}",
         IndexExpr ix                => $"{Emit(ix.Target)}{(ix.NullConditional ? "?[" : "[")}{Emit(ix.Index)}]",
         SwitchExpr sw               => EmitSwitch(sw),
         NewExpr n                   => EmitNew(n),
         SpawnExpr s                 => EmitSpawn(s),
         SelfExpr                    => _selfIsThis ? "this" : "_selfRef",
-        SenderExpr                  => "_currentSender",
+        SenderExpr                  => "_sender",   // dispatch-local: safe under concurrent readers
         LambdaExpr l                => EmitLambda(l),
         NameExpr n                  => EmitName(n),
         ParenExpr p                 => $"({Emit(p.Inner)})",
@@ -94,7 +94,9 @@ public sealed class ExpressionEmitter
         ThrowExpr th                => $"throw {Emit(th.Value)}",
         DefaultExpr d               => d.Type is null ? "default" : $"default({d.Type})",
         // Inline out-var declaration: `out var x`.
-        OutVarExpr o                => $"out var {o.Name}",
+        OutVarExpr o                => o.TypeName is null
+                                           ? $"out var {o.Name}"
+                                           : $"out {o.TypeName} {o.Name}",
         _                           => throw new NotSupportedException(
                                            $"Cannot emit expression type {expr.GetType().Name}")
     };
@@ -130,22 +132,56 @@ public sealed class ExpressionEmitter
             switch (part)
             {
                 case InterpolationText t: sb.Append(t.Text); break;
-                case InterpolationHole h: sb.Append('{').Append(Emit(h.Expr)).Append(h.Suffix).Append('}'); break;
+                case InterpolationHole h:
+                {
+                    // Parenthesize the hole expression ONLY when it contains a
+                    // top-level ':' or ',' that C# would otherwise misread as the
+                    // start of the interpolation format/alignment specifier - a
+                    // ternary (`x > 0 ? a : b`) or the `::` of a `global::`-qualified
+                    // lowering (a To<T> conversion) (a regression/F2, both CS
+                    // errors on green Spek). Simple holes stay bare so the common
+                    // case round-trips cleanly. The suffix (alignment/format) always
+                    // stays OUTSIDE the parens: `{expr:F2}` → `{(expr):F2}`.
+                    var e = Emit(h.Expr);
+                    sb.Append('{');
+                    if (NeedsHoleParens(e)) sb.Append('(').Append(e).Append(')');
+                    else sb.Append(e);
+                    sb.Append(h.Suffix).Append('}');
+                    break;
+                }
             }
         }
         return sb.Append('"').ToString();
     }
 
+    // True when an emitted hole expression carries a top-level ':' or ',' that
+    // C#'s interpolation parser would read as the format/alignment delimiter
+    // (a ternary colon, a `global::` qualifier). Depth-tracked so a ':'/','
+    // safely nested inside (…)/[…]/{…} (a method arg list, a tuple) doesn't
+    // count. A ':' inside a string literal can only over-parenthesize, which
+    // is harmless, so strings aren't specially skipped.
+    private static bool NeedsHoleParens(string emitted)
+    {
+        var depth = 0;
+        foreach (var c in emitted)
+        {
+            if (c is '(' or '[' or '{') depth++;
+            else if (c is ')' or ']' or '}') depth--;
+            else if (depth == 0 && (c == ':' || c == ',')) return true;
+        }
+        return false;
+    }
+
     private string EmitName(NameExpr n)
     {
-        // Single-part names that match a field get the _ prefix — unless an in-scope
+        // Single-part names that match a field get the _ prefix - unless an in-scope
         // parameter or local shadows the field, in which case the name binds to the
         // param/local (C# scoping), not the field.
         if (n.Name.Parts.Count == 1 && _fields.Contains(n.Name.Simple) && !_shadowed.Contains(n.Name.Simple))
             return $"_{n.Name.Simple}";
         // Multi-part names whose first segment is a field need the _
         // prefix on that segment (e.g., `watcher.Changed` → `_watcher.Changed`)
-        // so member access on a Spek field reaches the underlying C# field — again,
+        // so member access on a Spek field reaches the underlying C# field - again,
         // unless a param/local shadows that first segment.
         if (n.Name.Parts.Count > 1 && _fields.Contains(n.Name.Parts[0]) && !_shadowed.Contains(n.Name.Parts[0]))
             return $"_{n.Name.Parts[0]}.{string.Join(".", n.Name.Parts.Skip(1))}";
@@ -231,7 +267,7 @@ public sealed class ExpressionEmitter
         foreach (var e in _symbols.Enums)
         {
             if (!e.Members.Any(m => m.Name == bareName)) continue;
-            if (match is not null) return null;   // ambiguous — leave it bare
+            if (match is not null) return null;   // ambiguous: leave it bare
             match = e.Name;
         }
         return match is null ? null : $"{match}.{bareName}";
@@ -239,12 +275,12 @@ public sealed class ExpressionEmitter
 
     /// <summary>Wrap <paramref name="p"/> in parens if it's a binary
     /// pattern (and/or). Required for `not (a or b)` and `not (a and
-    /// b)` — without parens C# would parse as `(not a) or b`.</summary>
+    /// b)`: without parens C# would parse as `(not a) or b`.</summary>
     private string ParenIfBinary(SwitchPattern p) =>
         p is AndPattern or OrPattern ? $"({EmitPattern(p)})" : EmitPattern(p);
 
     /// <summary>Wrap <paramref name="p"/> in parens if it's an `or`
-    /// pattern. Required for `(a or b) and c` to keep its grouping —
+    /// pattern. Required for `(a or b) and c` to keep its grouping;
     /// without parens C# would parse as `a or (b and c)`.</summary>
     private string ParenIfOr(SwitchPattern p) =>
         p is OrPattern ? $"({EmitPattern(p)})" : EmitPattern(p);
@@ -271,14 +307,14 @@ public sealed class ExpressionEmitter
 
     /// <summary>
     /// Recognise the special <c>self.X</c> accessors that
-    /// resolve to <see cref="ActorBase"/> properties instead of
+    /// resolve to <c>ActorBase</c> properties instead of
     /// members on the <c>ActorRef</c>. Centralised so adding a new
     /// accessor (e.g. <c>self.Tracer</c>) is a one-line change here.
     /// Must stay in sync with the CE0012 carve-out in
     /// <c>SemanticAnalyzer.IsSelfAccessor</c>.
     /// </summary>
     private static bool IsSelfAccessor(string memberName) =>
-        memberName is "TraceContext" or "Metrics" or "Log" or "System";
+        memberName is "TraceContext" or "Metrics" or "Log" or "System" or "Clock";
 
     /// <summary>
     /// Maps a Spek <c>self.X</c> accessor to its <c>ActorBase</c> property
@@ -288,6 +324,18 @@ public sealed class ExpressionEmitter
     /// </summary>
     private static string SelfAccessorProperty(string member) =>
         member == "System" ? "SpekSystem" : member;
+
+    private static readonly HashSet<string> NumericTargets =
+    [
+        "sbyte", "byte", "short", "ushort", "int", "uint",
+        "long", "ulong", "float", "double", "decimal", "char",
+    ];
+
+    private bool IsReferenceDecl(string simpleName)
+        => _symbols is not null
+           && (_symbols.ResolveClass(simpleName) is not null
+               || _symbols.ResolveMessage(simpleName) is not null
+               || _symbols.ResolveInterface(simpleName) is not null);
 
     private string EmitMethodCall(MethodCallExpr mc)
     {
@@ -304,6 +352,33 @@ public sealed class ExpressionEmitter
         // private handler would dead-letter its own actor's messages.
         if (mc.Target is SelfExpr && mc.Method == "Tell" && mc.Args.Count == 1)
             return $"_selfRef.Tell({args}, _selfRef)";
+
+        // `x.To<T>()` / `x.TryTo<T>(...)`: the Spek conversion family.
+        // Lowered to static calls because extension receivers accept only
+        // identity/reference/boxing conversions: as an extension, the
+        // identity trick behind `To` would never see a numeric widening.
+        // Routing by target kind keeps each family's compile-time check
+        // aimed correctly (reference targets keep Roslyn's CS0039 via `as`).
+        if (mc.Method is "To" or "TryTo" && mc.TypeArgs.Count == 1 && !mc.NullConditional)
+        {
+            var t = mc.TypeArgs[0].ToString();
+            var isBare = !t.Contains('.') && !t.Contains('<') && !t.Contains('[') && !t.EndsWith('?');
+            if (NumericTargets.Contains(t))
+                return $"global::Spek.Conversions.{mc.Method}<{t}>({target}{(args.Length > 0 ? ", " + args : "")})";
+            if (isBare && _symbols?.ResolveEnum(t) is not null)
+                return mc.Method == "To"
+                    ? $"global::Spek.Conversions.To<{t}>({target})"
+                    : $"global::Spek.EnumConversions.TryTo<{t}>({target}{(args.Length > 0 ? ", " + args : "")})";
+            if (isBare && IsReferenceDecl(t))
+                return mc.Method == "To"
+                    ? $"global::Spek.Conversions.To<{t}>({target})"
+                    : $"({target} as {t})";
+            if (mc.Method == "To")
+                return $"global::Spek.Conversions.To<{t}>({target})";
+            // Unknown TryTo target: CE0127 has already rejected this in
+            // analysis; emit the static form so the file stays well-formed.
+            return $"global::Spek.Conversions.TryTo<{t}>({target}{(args.Length > 0 ? ", " + args : "")})";
+        }
 
         var accessOp = mc.NullConditional ? "?." : ".";
 
@@ -392,15 +467,15 @@ public sealed class ExpressionEmitter
         // target.Ask(new Foo(args))
         //   → await target.AskAsync<ReplyType>(new Foo(args))
         //
-        // Option D: reply type is inferred from matching `on Foo` handlers
+        // the inferred-reply convention: reply type is inferred from matching `on Foo` handlers
         // in the compilation. If we find `on Foo => return new Pong();`
         // somewhere, ReplyType = Pong. If the reply type can't be inferred
         // (no `return`, a pre-built message value, or no SymbolTable for
-        // lookup), fall back to object — the caller pattern-matches the result.
+        // lookup), fall back to object: the caller pattern-matches the result.
         var target  = Emit(ask.Target);
         var message = Emit(ask.Message);
 
-        // Explicit `.Ask<T>(..)` wins when present — the user's override for
+        // Explicit `.Ask<T>(..)` wins when present - the user's override for
         // when inference is ambiguous, or just to document the reply type at
         // the call site. Otherwise infer from the `new Msg(..)` being sent.
         var replyType = ask.ExplicitReplyType?.ToString()
@@ -424,6 +499,14 @@ public sealed class ExpressionEmitter
         BinaryOp.Mod => "%",
         _            => throw new ArgumentOutOfRangeException(nameof(op))
     };
+
+    // Explicit generic annotation on a free-standing call, rendered the same
+    // way MethodCallExpr renders its own (TypeRef.ToString() is the canonical
+    // C# text). Empty/absent means the author left it to inference.
+    private static string TypeArgSuffix(IReadOnlyList<AST.TypeRef>? typeArgs) =>
+        typeArgs is { Count: > 0 }
+            ? $"<{string.Join(", ", typeArgs.Select(t => t.ToString()))}>"
+            : "";
 
     private string EmitTypeOp(TypeOpExpr t) => t.Kind switch
     {

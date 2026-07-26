@@ -43,7 +43,7 @@ public static class DiagnosticMapper
     /// <summary>
     /// Maps the Spek diagnostic's severity to the LSP one. Warnings (CE0101,
     /// CE0107, CE0109, CE0110, …) surface as warning squiggles;
-    /// everything else — including ANTLR syntax errors (CE0001) — is an error.
+    /// everything else (including ANTLR syntax errors (CE0001)) is an error.
     /// </summary>
     private static DiagnosticSeverity SeverityFor(SpekDiag d) => d.Severity switch
     {

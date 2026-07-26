@@ -11,17 +11,67 @@ namespace Spek.LanguageServer;
 ///
 /// Scoping rules:
 /// <list type="bullet">
-///   <item>Message / actor / channel / enum names — file-wide.</item>
-///   <item>Behavior names — scoped to the enclosing actor (a behavior
+///   <item>Message / actor / channel / enum names - file-wide.</item>
+///   <item>Behavior names: scoped to the enclosing actor (a behavior
 ///         in actor A is unrelated to a same-named behavior in
 ///         actor B).</item>
-///   <item>Enum members, field accesses, local <c>var</c> bindings —
+///   <item>Enum members, field accesses, local <c>var</c> bindings;
 ///         deferred (their scoping is more nuanced).</item>
 /// </list>
 /// </summary>
 public static class ReferenceFinder
 {
     public enum Kind { Message, Actor, Channel, Enum, Behavior }
+
+    /// <summary>
+    /// How an occurrence of a message name uses the message. Powers the
+    /// message-flow CodeLens ("N senders · M handlers") - one occurrence
+    /// walk, classified, instead of two walks.
+    /// </summary>
+    public enum MessageUsage
+    {
+        /// <summary>A construction site: <c>new X(...)</c>, which is also how
+        /// <c>Tell</c> and ask sends carry their payload.</summary>
+        Send,
+        /// <summary>An <c>on X</c> / <c>on X x</c> handler-arm pattern.</summary>
+        Handle,
+        /// <summary>Any other reference: a field type, a channel
+        /// <c>on X;</c> input or <c>emits X;</c> contract, a bare type ref.</summary>
+        Other,
+    }
+
+    /// <summary>One classified occurrence of a message name.</summary>
+    public readonly record struct ClassifiedOccurrence(SourceSpan Span, MessageUsage Usage);
+
+    /// <summary>
+    /// Returns every reference to message <paramref name="name"/> in
+    /// <paramref name="file"/> (declaration site excluded), each tagged with
+    /// how it uses the message. Same walk and dedupe as
+    /// <see cref="FindReferences"/>; when duplicate AST shapes carry the same
+    /// token, the more specific classification (Send/Handle) wins over Other.
+    /// </summary>
+    public static IReadOnlyList<ClassifiedOccurrence> ClassifyMessageReferences(
+        SpekFile file, string name)
+    {
+        var bySpan = new Dictionary<(int, int, int, int), int>();
+        var output = new List<ClassifiedOccurrence>();
+        foreach (var node in AstWalk.EnumerateAll(file))
+        {
+            if (ClassifyMessageRef(node, name) is not { } occ) continue;
+            var key = (occ.Span.StartLine, occ.Span.StartColumn, occ.Span.EndLine, occ.Span.EndColumn);
+            if (bySpan.TryGetValue(key, out var index))
+            {
+                if (output[index].Usage == MessageUsage.Other && occ.Usage != MessageUsage.Other)
+                    output[index] = occ;
+            }
+            else
+            {
+                bySpan[key] = output.Count;
+                output.Add(occ);
+            }
+        }
+        return output;
+    }
 
     /// <summary>
     /// Returns every span in <paramref name="file"/> that references the
@@ -52,7 +102,7 @@ public static class ReferenceFinder
     }
 
     /// <summary>
-    /// Dedupes by (line, column) keys — multiple AST shapes can carry the
+    /// Dedupes by (line, column) keys: multiple AST shapes can carry the
     /// same source token (e.g. <c>spawn&lt;Worker&gt;()</c> exposes
     /// <c>Worker</c> both via <see cref="SpawnExpr.TypeArgs"/> and via the
     /// inner <see cref="TypeRef"/>; we only want one occurrence per
@@ -128,29 +178,36 @@ public static class ReferenceFinder
 
     private static void AddIfMessageRef(AstNode node, string name, List<SourceSpan> results)
     {
-        switch (node)
-        {
-            case NewExpr ne when ne.Type.Simple == name:
-                // Covers `.Ask(new Msg())` too — the message is a NewExpr child.
-                results.Add(ne.Type.Span);
-                break;
-            case NamedBindPattern nbp when nbp.MessageType.Simple == name:
-                results.Add(nbp.MessageType.Span);
-                break;
-            case NoBindPattern nop when nop.MessageType.Simple == name:
-                results.Add(nop.MessageType.Span);
-                break;
-            case ChannelInput ci when ci.MessageType.Simple == name:
-                results.Add(ci.MessageType.Span);
-                break;
-            case ChannelEmits ce when ce.MessageType is { } mt && mt.Simple == name:
-                results.Add(mt.Span);
-                break;
-            case TypeRef tr when tr.Name.Simple == name:
-                results.Add(tr.Span);
-                break;
-        }
+        if (ClassifyMessageRef(node, name) is { } occ)
+            results.Add(occ.Span);
     }
+
+    /// <summary>
+    /// The single message-reference matcher: which span of
+    /// <paramref name="node"/> references message <paramref name="name"/>,
+    /// and how. Null when the node is not a reference to it. Both the plain
+    /// span walk (references/rename) and the classified walk (CodeLens)
+    /// derive from this, so the two can't drift.
+    /// </summary>
+    private static ClassifiedOccurrence? ClassifyMessageRef(AstNode node, string name) =>
+        node switch
+        {
+            // Covers `.Tell(new Msg())` / `.Ask(new Msg())` too - the message
+            // payload of a send is always a NewExpr child.
+            NewExpr ne when ne.Type.Simple == name =>
+                new ClassifiedOccurrence(ne.Type.Span, MessageUsage.Send),
+            NamedBindPattern nbp when nbp.MessageType.Simple == name =>
+                new ClassifiedOccurrence(nbp.MessageType.Span, MessageUsage.Handle),
+            NoBindPattern nop when nop.MessageType.Simple == name =>
+                new ClassifiedOccurrence(nop.MessageType.Span, MessageUsage.Handle),
+            ChannelInput ci when ci.MessageType.Simple == name =>
+                new ClassifiedOccurrence(ci.MessageType.Span, MessageUsage.Other),
+            ChannelEmits ce when ce.MessageType is { } mt && mt.Simple == name =>
+                new ClassifiedOccurrence(mt.Span, MessageUsage.Other),
+            TypeRef tr when tr.Name.Simple == name =>
+                new ClassifiedOccurrence(tr.Span, MessageUsage.Other),
+            _ => null,
+        };
 
     private static void AddIfActorRef(AstNode node, string name, List<SourceSpan> results)
     {
@@ -213,7 +270,7 @@ public static class ReferenceFinder
     /// The decl span typically covers the entire declaration block
     /// (`message Foo(int x);`); for rename we want only the name token's
     /// span. Reuses the decl's start position + a length offset based on
-    /// the keyword + name. This is an approximation — we don't have the
+    /// the keyword + name. This is an approximation - we don't have the
     /// lexer's token spans, so this gives a best-effort highlight that always
     /// covers the name and may bleed slightly into surrounding tokens.
     /// </summary>

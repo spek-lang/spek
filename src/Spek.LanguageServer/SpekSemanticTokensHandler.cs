@@ -11,9 +11,9 @@ namespace Spek.LanguageServer;
 /// Supplies <c>textDocument/semanticTokens</c> to refine editor highlighting
 /// beyond what the TextMate grammar can do. The grammar only sees regex shapes
 /// (every PascalCase name is "a type"); here we lex the document and colour each
-/// identifier by its <em>resolved</em> kind — an actor is a class, a message is a
+/// identifier by its <em>resolved</em> kind - an actor is a class, a message is a
 /// struct, a channel is an interface, an enum is an enum, a module is a
-/// namespace — at the identifier's exact lexer position (no span guessing).
+/// namespace: at the identifier's exact lexer position (no span guessing).
 /// Identifiers that don't resolve to a declared type are left to the grammar.
 /// </summary>
 internal sealed class SpekSemanticTokensHandler : SemanticTokensHandlerBase
@@ -58,7 +58,7 @@ internal sealed class SpekSemanticTokensHandler : SemanticTokensHandlerBase
         stream.Fill();
 
         // Lexer tokens come in source order, so they're already sorted by
-        // (line, column) — the order the builder wants.
+        // (line, column) - the order the builder wants.
         foreach (var tok in stream.GetTokens())
         {
             if (tok.Type != SpekLexer.IDENTIFIER) continue;
@@ -71,7 +71,7 @@ internal sealed class SpekSemanticTokensHandler : SemanticTokensHandlerBase
                 : channels.Contains(text)                       ? SemanticTokenType.Interface
                 : enums.Contains(text)                          ? SemanticTokenType.Enum
                 : modules.Contains(text)                        ? SemanticTokenType.Namespace
-                : null;
+                : (SemanticTokenType?)null;
             if (kind is null) continue;
 
             // ANTLR: Line is 1-based, Column (CharPositionInLine) is 0-based.

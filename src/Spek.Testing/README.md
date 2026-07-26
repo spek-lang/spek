@@ -7,10 +7,10 @@ render cleanly in the xUnit test explorer.
 
 ## What's inside
 
-- `TestActorSystem` — wraps `ActorSystem`; accepts an explicit
+- `TestActorSystem`: wraps `ActorSystem`; accepts an explicit
   `ISnapshotStore` (from `Spek.Persistence.Abstractions`) and
   `IDeadLetterSink` for persistence and failure assertions across runs.
-- `TestProbe` — stand-in actor with a `Send(target, message)` helper and
+- `TestProbe`: stand-in actor with a `Send(target, message)` helper and
   typed / untyped / predicate / timeout / silence flavours of `ExpectMsg`.
 
 ## Typical shape

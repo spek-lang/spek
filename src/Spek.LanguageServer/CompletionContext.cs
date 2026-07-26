@@ -17,7 +17,7 @@ namespace Spek.LanguageServer;
 ///   <item>Every <c>actor</c> type declared at file scope.</item>
 /// </list>
 ///
-/// Local <c>var</c> bindings are deferred — they need order-aware scope
+/// Local <c>var</c> bindings are deferred - they need order-aware scope
 /// tracking inside statement sequences that the current AST walker
 /// doesn't do yet.
 /// </summary>

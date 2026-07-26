@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Local mirror of .github/workflows/ci.yml — the correctness gate (build + test).
+# Local mirror of .github/workflows/ci.yml - the correctness gate (build + test).
 # Run it before pushing; CI runs the same steps. Requires the .NET 10 SDK.
 #
 #   ./scripts/ci.sh

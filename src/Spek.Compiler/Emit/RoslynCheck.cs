@@ -6,7 +6,7 @@ namespace Spek.Compiler.Emit;
 /// <summary>
 /// Post-emit validation: compiles the generated C# in memory against the
 /// BCL (plus any extra references) and reports the errors with their
-/// <em>mapped</em> locations — when the emitter produced <c>#line</c>
+/// <em>mapped</em> locations: when the emitter produced <c>#line</c>
 /// directives, errors point at the .spek source line, not the .g.cs.
 /// Backs <c>spekc compile --check</c>.
 /// </summary>
@@ -22,7 +22,7 @@ public static class RoslynCheck
     /// Compiles <paramref name="csharp"/> against the trusted platform
     /// assemblies plus <paramref name="extraReferencePaths"/> (e.g. the
     /// Spek.Runtime dll). Returns the C# errors, empty when clean. Warnings
-    /// are not reported — the Spek-side CE diagnostics own style concerns;
+    /// are not reported: the Spek-side CE diagnostics own style concerns;
     /// this pass exists to catch code that will not build.
     /// </summary>
     public static IReadOnlyList<CheckError> Check(
@@ -30,8 +30,8 @@ public static class RoslynCheck
         => Check([csharp], extraReferencePaths);
 
     /// <summary>
-    /// Compiles a whole project's emitted C# together — one compilation over
-    /// every <paramref name="sources"/> file — so cross-file references (a type
+    /// Compiles a whole project's emitted C# together - one compilation over
+    /// every <paramref name="sources"/> file - so cross-file references (a type
     /// declared in one <c>.g.cs</c>, used in another) resolve. Same reference
     /// set and #line-mapped errors as the single-file overload.
     /// </summary>

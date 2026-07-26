@@ -7,7 +7,7 @@ namespace Spek.Tests.Runtime;
 /// <summary>
 /// The ShutdownToken cancel POLICY: the token fires only when shutdown
 /// turns forceful (a graceful drain that times out), not while a clean drain is
-/// letting in-flight work finish. Exercises the full chain — a handler awaiting
+/// letting in-flight work finish. Exercises the full chain - a handler awaiting
 /// on ShutdownToken actually unwinds when a wedged drain times out.
 /// </summary>
 public class ShutdownTokenPolicyTests
@@ -32,7 +32,7 @@ public class ShutdownTokenPolicyTests
     }
 
     [Fact]
-    public async Task DrainTimeout_TurnsForceful_CancelsToken_AndWedgedHandlerUnwinds()
+    public async Task DrainTimeout_TurnsForceful_CancelsToken_AndWedgedHandlerUnwindsAsync()
     {
         var started = new TaskCompletionSource();
         var system  = new ActorSystem("t");
@@ -53,7 +53,7 @@ public class ShutdownTokenPolicyTests
         Assert.True(token.IsCancellationRequested, "a timed-out drain turns forceful → token cancels");
         // Well under the 30s delay (proves the token unwound it); generous ceiling
         // for teardown under heavy parallel load.
-        Assert.True(sw.ElapsedMilliseconds < 20_000, "must not wait out the 30s delay — the token unwound it");
+        Assert.True(sw.ElapsedMilliseconds < 20_000, "must not wait out the 30s delay; the token unwound it");
     }
 
     [Fact]

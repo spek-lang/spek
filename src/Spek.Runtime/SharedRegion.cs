@@ -5,7 +5,7 @@ namespace Spek;
 /// <see cref="Spek.Runtime.ActorSystem"/> state with its own
 /// reader/writer lock, separate from any actor's per-slot lock. The
 /// compiler emits one concrete subclass per <c>shared X { ... }</c>
-/// declaration; user code never instantiates one — the actor system's
+/// declaration; user code never instantiates one - the actor system's
 /// registry hands out the singleton per type.
 ///
 /// Direct subclasses (default = transient) get just the RW lock + lazy
@@ -19,7 +19,7 @@ public abstract class SharedRegion
 {
     // Set by ActorSystem.GetSharedRegion<T> immediately after
     // construction so the region can resolve its store, system-scoped
-    // dead-letter sink, etc. Stays internal — user-written init bodies
+    // dead-letter sink, etc. Stays internal - user-written init bodies
     // talk to `Name` (settable) and `System` indirectly via inherited
     // helpers, never to this property by name.
     internal Spek.Runtime.ActorSystem? System { get; set; }
@@ -48,7 +48,7 @@ public abstract class SharedRegion
     // Lazy-init coordination. The first thread to call
     // either EnterReaderAsync or EnterWriterAsync runs Initialize();
     // concurrent first-callers wait on _initDone. Init runs *before*
-    // the actual lock acquisition, so it executes alone — no other
+    // the actual lock acquisition, so it executes alone - no other
     // reader/writer is holding the lock concurrently because all of
     // them queue behind EnsureInitializedAsync first. After init
     // completes, _initState becomes 2 and EnsureInitializedAsync
@@ -60,7 +60,7 @@ public abstract class SharedRegion
     /// Subclasses (the generated region classes) override this to
     /// run the user's `init { ... }` body. Called once per
     /// <see cref="Spek.Runtime.ActorSystem"/> on first reader/writer
-    /// access, before any handler holds the RW lock — but only if
+    /// access, before any handler holds the RW lock - but only if
     /// <see cref="TryRestore"/> returned <c>false</c> (i.e. there
     /// was no snapshot to restore from).
     /// </summary>
@@ -70,7 +70,7 @@ public abstract class SharedRegion
     /// Disposal hook. Called once during
     /// <see cref="Spek.Runtime.ActorSystem"/> shutdown, after the
     /// system stops dispatching messages. Regions are disposed in
-    /// reverse construction order — same model as C# `using` blocks
+    /// reverse construction order: same model as C# `using` blocks
     /// unwinding. The compiler emits the user's `term { }` block as
     /// an override of this method; the default base implementation
     /// is a no-op so regions without a term block pay nothing.
@@ -86,9 +86,9 @@ public abstract class SharedRegion
 
     /// <summary>
     /// Hook for capability subclasses (<see cref="PersistedRegion"/>;
-    /// future event-sourced / replicated variants) to populate the
+    /// the generated persisted region classes) to populate the
     /// region's fields before <see cref="Initialize"/> runs. Called
-    /// inside the init lock, so the implementation runs alone — no
+    /// inside the init lock, so the implementation runs alone - no
     /// reader or writer is concurrent. Return <c>true</c> if the
     /// region was populated from external state (init should be
     /// skipped); <c>false</c> if no state was found and init should
@@ -183,7 +183,7 @@ public abstract class SharedRegion
     /// <summary>
     /// Acquire the writer slot. Blocks (asynchronously) until no
     /// other writer is in flight AND no readers remain. Once
-    /// acquired, the writer runs alone — readers cannot enter until
+    /// acquired, the writer runs alone: readers cannot enter until
     /// <see cref="ExitWriter"/> is called.
     /// </summary>
     public async Task EnterWriterAsync()

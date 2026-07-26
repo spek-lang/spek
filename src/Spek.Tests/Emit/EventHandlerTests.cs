@@ -180,7 +180,7 @@ public sealed class EventHandlerTests
         // with a method-group reference to the bridge name; Roslyn
         // resolves the conversion against the FileSystemWatcher event
         // delegate. With implicit Default, no behavior wrapper
-        // is required — bare handlers fold into `behavior Default`.
+        // is required: bare handlers fold into `behavior Default`.
         const string src = """
             actor LogProcessor
             {

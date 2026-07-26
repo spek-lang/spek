@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Language-completeness — null-conditional access: <c>?.</c> (member and
+/// Language-completeness: null-conditional access: <c>?.</c> (member and
 /// method) and <c>?[</c> (index). Implemented as a flag on the existing
 /// MemberAccessExpr / MethodCallExpr / IndexExpr nodes (no new AST node, so all
 /// analysis walkers already cover them); the emitter chooses <c>?.</c>/<c>?[</c>

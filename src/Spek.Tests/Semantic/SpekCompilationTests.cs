@@ -106,7 +106,7 @@ public class SpekCompilationTests
     [Fact]
     public void CE0013_Fires_When_Message_Name_Collides_In_Same_Namespace()
     {
-        // Both files declare `namespace MyApp;` — same namespace. The
+        // Both files declare `namespace MyApp;` - same namespace. The
         // simple name `Transfer` collides; CE0013 must fire.
         const string fileA = """
             namespace MyApp;
@@ -149,7 +149,7 @@ public class SpekCompilationTests
             ("b.spek", fileB),
         });
 
-        // Both `Ping` and `Worker` collide — expect two CE0013s.
+        // Both `Ping` and `Worker` collide: expect two CE0013s.
         var crossFileDuplicates = compilation.Diagnostics
             .Where(d => d.Code == "CE0013" && d.Message.Contains("across files"))
             .ToList();
@@ -218,7 +218,7 @@ public class SpekCompilationTests
     }
 
     /// <summary>
-    /// Files without explicit namespaces share an implicit "" bucket —
+    /// Files without explicit namespaces share an implicit "" bucket;
     /// declaring the same simple name in two namespace-less files
     /// SHOULD still flag CE0013.
     /// </summary>

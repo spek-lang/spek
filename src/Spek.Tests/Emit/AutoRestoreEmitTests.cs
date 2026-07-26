@@ -38,7 +38,7 @@ public sealed class AutoRestoreEmitTests
         Assert.Contains("protected override void OnRestore(", cs);
         Assert.Contains("_count = ", cs);
         Assert.Contains("Get<int>(\"count\")", cs);
-        // `calls` is transient — it's never a snapshot key (not captured, not restored).
+        // `calls` is transient: it's never a snapshot key (not captured, not restored).
         // (It still appears as `_calls` in the handler body, which is fine.)
         Assert.DoesNotContain("\"calls\"", cs);
     }
@@ -58,7 +58,7 @@ public sealed class AutoRestoreEmitTests
             """;
         var cs = Emit(src);
         var occurrences = cs.Split("void OnRestore(").Length - 1;
-        Assert.Equal(1, occurrences);     // exactly one — the explicit, no auto duplicate
+        Assert.Equal(1, occurrences);     // exactly one: the explicit, no auto duplicate
         Assert.Contains("+ 100", cs);     // the explicit body
     }
 

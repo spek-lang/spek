@@ -12,7 +12,7 @@ namespace Spek.Streams;
 ///     => { /* body */ }
 /// </code>
 ///
-/// User-defined operators follow the same pattern — derive from
+/// User-defined operators follow the same pattern - derive from
 /// <see cref="StreamOperator{T}"/> and expose a lowercase factory
 /// method in a static class. The grammar accepts any expression
 /// that evaluates to a <see cref="StreamOperator{T}"/>.

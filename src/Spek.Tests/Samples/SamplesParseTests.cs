@@ -7,7 +7,7 @@ namespace Spek.Tests.Samples;
 /// Guards against sample source rot: every sample must parse + analyze cleanly
 /// against the CURRENT grammar/semantics. GrpcUserApi silently rotted to a
 /// CE0001 parse error when the grammar evolved (a braceless `if`), and its
-/// stale committed <c>.g.cs</c> hid it from the build — this is the cheap CI
+/// stale committed <c>.g.cs</c> hid it from the build - this is the cheap CI
 /// gate that catches that whole class of rot.
 ///
 /// Each sample DIRECTORY compiles as one unit (<see cref="SpekCompilation"/>),

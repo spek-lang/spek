@@ -14,7 +14,7 @@ namespace Spek.Hosting.Launchd;
 /// the process.
 ///
 /// launchd has no notify-back protocol equivalent to systemd's
-/// sd_notify, so the channel surface is intentionally small —
+/// sd_notify, so the channel surface is intentionally small;
 /// <c>on Shutdown;</c> with no <c>emits</c>. Health is inferred from
 /// the process exit code.
 /// </summary>
@@ -71,7 +71,7 @@ public sealed class SpekLaunchdHostedService<TActor> : IHostedService, IAsyncDis
     /// <summary>
     /// Graceful-shutdown path for SIGTERM (launchd's stop signal, routed
     /// here by the Generic Host): sends the user's Shutdown message to
-    /// the entry actor, then waits for the actor to stop itself — giving
+    /// the entry actor, then waits for the actor to stop itself - giving
     /// up when the shutdown grace period elapses or
     /// <paramref name="cancellationToken"/> fires, whichever comes first.
     /// </summary>
@@ -92,7 +92,7 @@ public sealed class SpekLaunchdHostedService<TActor> : IHostedService, IAsyncDis
 
     /// <summary>Closes the vproc transaction (telling launchd we're no
     /// longer busy) and tears down the <see cref="ActorSystem"/> (and
-    /// every actor in it). Runs after <see cref="StopAsync"/> — by then
+    /// every actor in it). Runs after <see cref="StopAsync"/> - by then
     /// the entry actor has either stopped gracefully or exhausted its
     /// grace period.</summary>
     public ValueTask DisposeAsync()
@@ -122,7 +122,7 @@ internal static class VprocBridge
     public static IDisposable? BeginTransaction()
     {
         if (!OperatingSystem.IsMacOS()) return null;
-        // Only meaningful when launchd actually launched us — env var
+        // Only meaningful when launchd actually launched us - env var
         // XPC_SERVICE_NAME is set when running under launchd.
         if (Environment.GetEnvironmentVariable("XPC_SERVICE_NAME") is null) return null;
 

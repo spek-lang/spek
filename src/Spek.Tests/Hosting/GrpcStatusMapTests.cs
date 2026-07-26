@@ -9,7 +9,7 @@ namespace Spek.Tests.Hosting;
 /// match the gRPC standard table and that user overrides take
 /// precedence. The helper itself is small; these tests guard
 /// against accidental drift in the convention names (the REST
-/// status map is the source of truth — gRPC mirrors it onto
+/// status map is the source of truth - gRPC mirrors it onto
 /// gRPC's standard codes).
 /// </summary>
 public sealed class GrpcStatusMapTests

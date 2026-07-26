@@ -24,13 +24,13 @@ public sealed class FieldLifecycleTests
         return new FileEmitter().Emit(parsed.Tree!);
     }
 
-    // ─── deprecated — captured/restored, warns on use ──────────────────
+    // ─── deprecated: captured/restored, warns on use ──────────────────
 
     [Fact]
     public void DeprecatedField_OnPersistedRegion_StillCapturedAndRestored()
     {
         // The data still roundtrips so existing snapshots survive the
-        // deprecation period — only the *referencing* code gets a
+        // deprecation period: only the *referencing* code gets a
         // warning.
         const string src = """
             shared MarketCache : Persisted
@@ -69,7 +69,7 @@ public sealed class FieldLifecycleTests
             }
             """;
         var parsed = SpekCompiler.Parse(src);
-        // Warnings don't fail the parse — Success stays true.
+        // Warnings don't fail the parse: Success stays true.
         Assert.True(parsed.Success,
             "Deprecated field references should warn, not error: " +
             string.Join("\n", parsed.Diagnostics.Select(d => $"{d.Code} {d.Severity}: {d.Message}")));
@@ -77,7 +77,7 @@ public sealed class FieldLifecycleTests
             d.Code == "CE0101" && d.Severity == DiagnosticSeverity.Warning);
     }
 
-    // ─── retired — skipped from capture, error on use ──────────────────
+    // ─── retired: skipped from capture, error on use ──────────────────
 
     [Fact]
     public void RetiredField_OnPersistedRegion_SkippedFromCaptureAndRestore()

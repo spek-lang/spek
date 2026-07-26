@@ -40,7 +40,7 @@ src/                 all shipping projects + Spek.slnx (the solution)
   Spek.Runtime/      ActorSystem, supervision, persistence, shared regions
   Spek.Cli/          spekc — the command-line compiler
   Spek.Tests/        C# test suite (xUnit)
-  Spek.Tests.Native/ the same behaviors tested in Spek itself (see COVERAGE.md)
+  Spek.Tests.Native/ the same behaviors tested in Spek itself
 samples/             runnable example programs (not in the solution)
 build/Spek.targets   MSBuild glue that compiles .spek inside a csproj
 tools/vscode-spek/   VS Code extension (TextMate grammar + LSP client)
@@ -63,7 +63,7 @@ the emitted C# can carry the check.
 ## Grammar changes
 
 The grammar lives in `src/Spek.Compiler/Grammar/*.g4`. After editing, re-run
-`regenerate.sh`. Never hand-edit files under `Grammar/Generated/` — they are
+`regenerate.sh`. Never hand-edit files under `Grammar/Generated/`: they are
 git-ignored and rebuilt from the `.g4` sources.
 
 ## Testing conventions
@@ -72,15 +72,15 @@ git-ignored and rebuilt from the `.g4` sources.
   changes that alter a non-trivial code shape get a Roslyn compile smoke test
   via `RoslynCompileHelper.TryCompile`.
 - **Two suites, both green.** `Spek.Tests.Native` is dogfooding: behavioral
-  coverage written in Spek itself. When you add a behavioral C# test, check
-  `src/Spek.Tests.Native/COVERAGE.md` to see whether a native twin belongs
-  there too. Never delete a C# test just because a native version exists.
+  coverage written in Spek itself. When you add a behavioral C# test, consider
+  whether a native twin belongs there too. Never delete a C# test just
+  because a native version exists.
 - **Docs are compile-tested.** Every fenced ```` ```spek ```` block in the
   README is parse- or compile-checked by `DocSnippetTests`
   (`dotnet test --filter DocSnippet`). If you add a snippet, make it valid, or
   mark it with a `<!-- spek-test: ignore -->` directive when it's an
   intentional fragment. If you change language syntax, stale snippets fail the
-  suite — fix the docs, not the test.
+  suite; fix the docs, not the test.
 - **Known flakes.** A few timing-sensitive runtime tests (passivation,
   persistence respawn) can fail under full-suite parallel load. Re-run them in
   isolation before treating a failure as a regression.
@@ -94,7 +94,7 @@ git-ignored and rebuilt from the `.g4` sources.
   capabilities and honest limitations, no forward-looking hints. Planned work
   belongs in a GitHub issue; shipped work is recorded on the Releases page.
 - **Dogfooding.** Library code that can be expressed in Spek is written in
-  `.spek` — extending a dogfooded project usually means writing Spek, not C#.
+  `.spek`: extending a dogfooded project usually means writing Spek, not C#.
 - **Public APIs are documented.** Packable projects enforce XML doc comments
   on public members (a missing doc is a CS1591 warning there); tests and
   samples are exempt.
@@ -107,11 +107,11 @@ git-ignored and rebuilt from the `.g4` sources.
 
 - Don't commit build output: `bin/`, `obj/`, `*.g.cs`, `Grammar/Generated/`,
   and `*.vsix` are all gitignored for a reason.
-- Don't add raw threading (`Task.Run`, `new Thread`, timers) to `.spek` code —
+- Don't add raw threading (`Task.Run`, `new Thread`, timers) to `.spek` code:
   CE0119 exists because "pure Spek is race-free by construction" is a promise
   the compiler enforces.
 - Don't edit `samples/*/README.md` build instructions without running the
-  sample; the samples double as integration tests of the MSBuild story.
+  sample; the samples double as integration tests of the MSBuild integration.
 
 ## Proposing changes
 

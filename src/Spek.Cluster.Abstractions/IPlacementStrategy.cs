@@ -7,11 +7,11 @@ namespace Spek.Cluster;
 ///
 /// Concrete implementations:
 /// <list type="bullet">
-///   <item><see cref="ConsistentHashPlacement"/> (default) — rendezvous
+///   <item><c>ConsistentHashPlacement</c> (default; in <c>Spek.Cluster</c>) - rendezvous
 ///         hashing across the cluster's <c>Up</c> members. Stable as
 ///         long as membership doesn't change; minimal disruption when
 ///         it does.</item>
-///   <item>Future: <c>LocalityAwarePlacement</c> — prefer same DC /
+///   <item>Future: <c>LocalityAwarePlacement</c> - prefer same DC /
 ///         zone / rack from node metadata. Custom user-defined
 ///         strategies plug in via the same interface.</item>
 /// </list>
@@ -25,9 +25,9 @@ public interface IPlacementStrategy
     /// <summary>
     /// Pick the owning node for a located actor.
     /// <paramref name="members"/> is the snapshot of cluster members
-    /// the caller considers addressable — typically
+    /// the caller considers addressable: typically
     /// <c>Membership.Members</c> filtered to <see cref="NodeState.Up"/>.
-    /// Returns <c>null</c> if no candidates (empty list) — caller
+    /// Returns <c>null</c> if no candidates (empty list) - caller
     /// should treat as transient and retry.
     /// </summary>
     NodeIdentity? ResolveOwner(string actorType, string actorKey,

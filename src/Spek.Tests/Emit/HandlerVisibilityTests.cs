@@ -5,7 +5,7 @@ using Xunit;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Coverage for the handler-visibility modifiers — `public`,
+/// Coverage for the handler-visibility modifiers - `public`,
 /// `internal`, `private` on `on Foo => ...` arms. Default (omitted)
 /// is `public`, preserving the earlier behaviour. Private handlers are
 /// runtime-checked: only `self.Tell` can reach them; other senders
@@ -78,7 +78,7 @@ public sealed class HandlerVisibilityTests
     [Fact]
     public void InternalOnHandler_EmitsNoSenderCheck()
     {
-        // `internal` is a marker — runtime enforcement is deferred
+        // `internal` is a marker: runtime enforcement is deferred
         // to when cluster-aware sender tracking lands. For now it
         // behaves like public at runtime.
         const string src = """

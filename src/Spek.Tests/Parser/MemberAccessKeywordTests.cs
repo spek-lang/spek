@@ -7,7 +7,7 @@ namespace Spek.Tests.Parser;
 /// <summary>
 /// Contextual keywords as member names: after a `.` the position is unambiguous, so a
 /// keyword there is a member name, not a keyword. Before this, `FailureDirective.Stop`
-/// / `.Restart` / `.Escalate` failed to parse (CE0001) — making those directives
+/// / `.Restart` / `.Escalate` failed to parse (CE0001) - making those directives
 /// impossible to return from an OnFailure override (3 of 4 directive values were
 /// unreferenceable).
 /// </summary>

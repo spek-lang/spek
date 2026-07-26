@@ -8,7 +8,7 @@
   <PropertyGroup>
     <PackageId>Spek.Build</PackageId>
     <Title>Spek MSBuild integration</Title>
-    <Description>Compiles Spek (.spek) files to C# during `dotnet build`. Reference this package (alongside a local Spek.Cli.Tool) and your actors/tests build with `dotnet build` / `dotnet test` — no manual spekc step.</Description>
+    <Description>Compiles Spek (.spek) files to C# during `dotnet build`. Reference this package (alongside a local Spek.Cli.Tool) and your actors/tests build with `dotnet build` / `dotnet test`; no manual spekc step.</Description>
     <PackageTags>spek;msbuild;build;actor</PackageTags>
     <TargetFramework>netstandard2.0</TargetFramework>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -16,7 +16,7 @@
     <DevelopmentDependency>true</DevelopmentDependency>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <!-- Build-logic package carries no lib/ assembly — expected, suppress the warning. -->
+    <!-- Build-logic package carries no lib/ assembly; expected, suppress the warning. -->
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <IncludeSymbols>false</IncludeSymbols>
   </PropertyGroup>

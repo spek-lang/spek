@@ -14,7 +14,7 @@ namespace Spek.Tests.Emit;
 /// return / expression-body position stay forwarded as Tasks.
 ///
 /// Tests use a throwaway assembly (a Task-returning delegate + a pipe that
-/// takes it) so they don't depend on AspNetCore being installed at a path —
+/// takes it) so they don't depend on AspNetCore being installed at a path;
 /// the same scenario, hermetically.
 /// </summary>
 public sealed class AsyncLambdaTests
@@ -52,7 +52,7 @@ public sealed class AsyncLambdaTests
         AsyncRewriter.Rewrite(caller, extraReferencePaths: [dll]);
 
     [Fact]
-    public void AfterNext_StatementPositionCall_IsAwaited_AndLambdaMadeAsync()
+    public void AfterNext_LambdaMadeAsync_StatementPositionCallIsAwaited()
     {
         var dll = CompilePipeDll();
         try
@@ -77,7 +77,7 @@ public sealed class AsyncLambdaTests
     }
 
     [Fact]
-    public void BeforeNext_ReturnPositionCall_IsForwarded_NotAsync()
+    public void BeforeNext_NotMadeAsync_ReturnPositionCallIsForwarded()
     {
         var dll = CompilePipeDll();
         try
@@ -107,7 +107,7 @@ public sealed class AsyncLambdaTests
         var dll = CompilePipeDll();
         try
         {
-            // Func<int,int> — not Task-returning, so even if it called a Task
+            // Func<int,int>: not Task-returning, so even if it called a Task
             // method the lambda must stay synchronous. (Here it doesn't, but
             // the point is the delegate-type gate.)
             const string caller = """

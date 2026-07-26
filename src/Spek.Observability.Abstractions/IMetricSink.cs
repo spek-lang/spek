@@ -21,7 +21,7 @@ public interface IMetricSink
     /// so the runtime can skip building per-message tag arrays / reflecting on
     /// the actor type in the hot path when no metrics are collected. Real sinks
     /// inherit the default <c>true</c>; "always-on instrumentation" still holds
-    /// — this only elides work whose result would be thrown away.
+    ///: this only elides work whose result would be thrown away.
     /// </summary>
     bool Enabled => true;
 
@@ -55,7 +55,7 @@ public sealed class NullMetricSink : IMetricSink
     /// instance serves every actor system in the process.</summary>
     public static readonly NullMetricSink Instance = new();
 
-    /// <summary>Always false — lets the runtime skip hot-path tag
+    /// <summary>Always false: lets the runtime skip hot-path tag
     /// building for metrics nothing will record.</summary>
     public bool Enabled => false;
 

@@ -12,7 +12,7 @@ namespace Spek.Tests.Emit;
 /// every NAMED declaration in the tree (message / enum / module / class / actor and
 /// their fields, methods, properties, behaviors) must show up by name in the output.
 ///
-/// This catches the "parsed but silently dropped" class of bug generically — the one
+/// This catches the "parsed but silently dropped" class of bug generically - the one
 /// that hid for a long time when actor methods were never emitted (taking the
 /// documented OnFailure hook with them). If a member kind stops being emitted, its
 /// name goes missing here and this fails, naming exactly what vanished.
@@ -67,7 +67,7 @@ public sealed class AstEmitCompletenessTests
 
             behavior Idle { on Ping p => { } }
 
-            // NB: `.Resume` (not `.Stop`/`.Restart`/`.Escalate`) — those are keywords
+            // NB: `.Resume` (not `.Stop`/`.Restart`/`.Escalate`) - those are keywords
             // and won't parse in member-access position (see language proposals).
             FailureDirective OnFailure(Exception ex, object msg) { return FailureDirective.Resume; }
         }
@@ -83,7 +83,7 @@ public sealed class AstEmitCompletenessTests
         var csharp = new FileEmitter().Emit(parse.Tree!);
 
         var declared = CollectDeclaredNames(parse.Tree!).ToList();
-        Assert.NotEmpty(declared);   // sanity — the walk actually found declarations
+        Assert.NotEmpty(declared);   // sanity: the walk actually found declarations
 
         var missing = declared
             .Where(d => !csharp.Contains(d.Name, StringComparison.Ordinal))
@@ -96,7 +96,7 @@ public sealed class AstEmitCompletenessTests
 
     /// <summary>
     /// Walks the AST, yielding the Name of every <c>*Decl</c> node that carries a
-    /// string Name. (ProgramDecl is excluded — its name doesn't surface verbatim.)
+    /// string Name. (ProgramDecl is excluded - its name doesn't surface verbatim.)
     /// </summary>
     private static IEnumerable<(string Kind, string Name)> CollectDeclaredNames(object node)
     {

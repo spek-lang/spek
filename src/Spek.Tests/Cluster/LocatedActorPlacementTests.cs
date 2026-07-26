@@ -80,7 +80,7 @@ public class LocatedActorPlacementTests
         var members = new List<SpekClusterNs.ClusterMember>
         {
             new(nodeA, SpekClusterNs.NodeState.Up),
-            new(nodeB, SpekClusterNs.NodeState.Down),       // dead — placement should skip
+            new(nodeB, SpekClusterNs.NodeState.Down),       // dead: placement should skip
         };
 
         var owner = p.ResolveOwner("CounterActor", "anything", members);
@@ -99,7 +99,7 @@ public class LocatedActorPlacementTests
     public void ConsistentHashPlacement_DifferentKeys_FrequentlyDifferentNodes()
     {
         // With 4 nodes and 100 keys, we expect roughly 25 keys per node
-        // — not exact, but each node should own at least 10. This
+        //: not exact, but each node should own at least 10. This
         // verifies the hash actually disperses, vs degenerating into
         // "first node wins for everything."
         var p = new SpekClusterNs.ConsistentHashPlacement();
@@ -142,7 +142,7 @@ public class LocatedActorPlacementTests
     }
 
     [Fact]
-    public async Task Locate_LocalActivation_HandlesMessages()
+    public async Task Locate_LocalActivation_HandlesMessagesAsync()
     {
         using var fabric = new InMemoryClusterFabric();
         using var system = new ActorSystem("solo");
@@ -169,7 +169,7 @@ public class LocatedActorPlacementTests
     }
 
     [Fact]
-    public async Task Locate_TwoSystems_KeyDeterministicOwnerActivatesOnceTotal()
+    public async Task Locate_TwoSystems_KeyDeterministicOwnerActivatesOnceTotalAsync()
     {
         // Stand up two ActorSystems sharing a fabric. Both register the
         // same located-actor type. From either side,
@@ -192,8 +192,8 @@ public class LocatedActorPlacementTests
         clusterA.RegisterLocatedActor<CounterActor>();
         clusterB.RegisterLocatedActor<CounterActor>();
 
-        // From A, locate the actor — it'll resolve to whichever node
-        // wins the consistent-hash. From B, locate the same actor —
+        // From A, locate the actor: it'll resolve to whichever node
+        // wins the consistent-hash. From B, locate the same actor;
         // it should also resolve to the same node. Send Increments
         // from both sides; the count should reflect all of them.
         var sink = new BlockingCollection<object>();

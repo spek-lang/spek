@@ -51,7 +51,7 @@ internal static class SymbolUnderCursor
             return (ReferenceFinder.Kind.Behavior, bs.BehaviorName, owner);
         }
 
-        // Covers `.Ask(new Msg())` too — its message is a NewExpr child.
+        // Covers `.Ask(new Msg())` too: its message is a NewExpr child.
         if (chain.OfType<NewExpr>().LastOrDefault() is { } ne)
             return (ReferenceFinder.Kind.Message, ne.Type.Simple, null);
 
@@ -72,7 +72,7 @@ internal static class SymbolUnderCursor
             return (ReferenceFinder.Kind.Actor, se.TypeArgs[0].Name.Simple, null);
 
         // TypeRef in field / param / message-field position. Could be a
-        // message, an actor, an enum — the file decl table picks the kind.
+        // message, an actor, an enum: the file decl table picks the kind.
         if (chain.OfType<TypeRef>().LastOrDefault() is { } tr)
         {
             var s = tr.Name.Simple;

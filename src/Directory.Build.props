@@ -7,7 +7,7 @@
     already does this; Spek.Compiler would too if we ever pack it).
 
     Versioning: 0.<era>.<build> while in preview.
-    The whole 0.x line IS the preview — 0 = preview major (no stability promise);
+    The whole 0.x line IS the preview: 0 = preview major (no stability promise);
     <era> = the train line (bumped for major feature waves); <build> = CI build
     number. This <Version> is the local/dev default; release.yml overrides the
     build number with github.run_number.
@@ -15,7 +15,7 @@
   <PropertyGroup>
     <Version>0.1.0</Version>
     <Authors>The Spek contributors</Authors>
-    <Company>speklang</Company>
+    <Company>spek-lang</Company>
     <Product>Spek</Product>
     <Copyright>Copyright (c) 2026 William Holroyd</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

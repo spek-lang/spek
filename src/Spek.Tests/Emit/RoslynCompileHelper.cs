@@ -14,8 +14,8 @@ namespace Spek.Tests.Emit;
 internal static class RoslynCompileHelper
 {
     // The reference set is identical for every compile and expensive to load, so build
-    // it ONCE and share it across all calls. Rebuilding it per call — ~200× across the
-    // doc-snippet suite — re-reads every assembly's metadata each time, which pushes the
+    // it ONCE and share it across all calls. Rebuilding it per call - ~200× across the
+    // doc-snippet suite: re-reads every assembly's metadata each time, which pushes the
     // test host into the memory pressure that aborts it when DocSnippetTests runs
     // alongside the rest of the suite. Roslyn happily shares a MetadataReference across
     // compilations.
@@ -35,10 +35,13 @@ internal static class RoslynCompileHelper
         refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Persistence.Snapshot).Assembly.Location));
         // testing.md snippets use TestActorSystem / TestProbe from Spek.Testing, and a
         // `*Tests` container emits [Spek.Testing.SpekTest] (a Xunit.FactAttribute subclass
-        // in Spek.Testing.Xunit) — so reference both that and xUnit's FactAttribute base.
+        // in Spek.Testing.Xunit) - so reference both that and xUnit's FactAttribute base.
         refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Testing.TestActorSystem).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Testing.SpekTestAttribute).Assembly.Location));
         refs.Add(MetadataReference.CreateFromFile(typeof(Xunit.FactAttribute).Assembly.Location));
+        // Stream-shaped handlers (`on X => debounce(..) => { }`) emit against
+        // the operator library.
+        refs.Add(MetadataReference.CreateFromFile(typeof(Spek.Streams.StreamOperator<>).Assembly.Location));
 
         return refs.ToArray();
     });
@@ -58,7 +61,7 @@ internal static class RoslynCompileHelper
             references: SharedRefs.Value,
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                // Matches Spek.Runtime.csproj — nullable + implicit usings on.
+                // Matches Spek.Runtime.csproj: nullable + implicit usings on.
                 nullableContextOptions: NullableContextOptions.Enable));
 
         using var peStream = new MemoryStream();

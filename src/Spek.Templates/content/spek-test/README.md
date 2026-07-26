@@ -17,12 +17,12 @@ integration calling `spekc`) and runs the emitted tests.
 
 ## How it fits together
 
-- **`CalculatorTests.spek`** — an actor and a `CalculatorTests` class. `init` runs
+- **`CalculatorTests.spek`**: an actor and a `CalculatorTests` class. `init` runs
   before each test on a fresh instance, so state resets automatically; the
   `TestActorSystem` field is disposed after each test.
-- **`.config/dotnet-tools.json`** — pins `Spek.Cli.Tool` (`spekc`) as a local
+- **`.config/dotnet-tools.json`**: pins `Spek.Cli.Tool` (`spekc`) as a local
   tool, so the build is reproducible. `dotnet tool restore` fetches it.
-- **`SpekTests.csproj`** — references `Spek.Runtime`, the `Spek.Testing.Xunit`
+- **`SpekTests.csproj`**: references `Spek.Runtime`, the `Spek.Testing.Xunit`
   adapter, and `Spek.Build` (which compiles `.spek` during the build).
 
 ## Write a test

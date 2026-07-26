@@ -18,7 +18,7 @@ namespace Spek;
 /// serialised per region via a one-slot semaphore so concurrent
 /// writers don't clobber each other.
 ///
-/// This ships with no throttle / coalesce — every writer-exit
+/// This ships with no throttle / coalesce - every writer-exit
 /// triggers an immediate save. Throughput optimisations (debounce,
 /// rate-limit) are out of scope here; the broader stream-policy design is
 /// in the shared-regions chapter of the language guide.
@@ -28,14 +28,14 @@ public abstract class PersistedRegion : SharedRegion
     private readonly SemaphoreSlim _saveLock = new(initialCount: 1, maxCount: 1);
 
     /// <summary>
-    /// Subclass override (compiler-generated) — captures every region
+    /// Subclass override (compiler-generated) - captures every region
     /// field into a <see cref="Snapshot"/>-friendly dictionary keyed
     /// by Spek field name. The runtime calls this on every save.
     /// </summary>
     protected abstract IReadOnlyDictionary<string, object?> CaptureFields();
 
     /// <summary>
-    /// Subclass override (compiler-generated) — overwrites every
+    /// Subclass override (compiler-generated) - overwrites every
     /// region field whose name appears as a key in
     /// <paramref name="snapshot"/>. Missing keys leave the field at
     /// its compiler-emitted default. Type mismatches surface as the
@@ -49,7 +49,7 @@ public abstract class PersistedRegion : SharedRegion
     /// wins; falls back to the system's default
     /// <see cref="Spek.Runtime.ActorSystem.SnapshotStore"/>.
     /// Returns <c>null</c> only when the region was instantiated
-    /// outside an <c>ActorSystem</c> (test scaffolding) — in which
+    /// outside an <c>ActorSystem</c> (test scaffolding) - in which
     /// case persistence silently no-ops.
     /// </summary>
     private ISnapshotStore? ResolveStore()
@@ -70,7 +70,7 @@ public abstract class PersistedRegion : SharedRegion
         var store = ResolveStore();
         if (store is null) return false;
 
-        // Synchronous wait is safe here — we're inside the
+        // Synchronous wait is safe here: we're inside the
         // EnsureInitializedAsync init lock, no other reader/writer
         // can proceed until we return. Restore happens at most once
         // per region instance.
@@ -89,7 +89,7 @@ public abstract class PersistedRegion : SharedRegion
     /// <summary>
     /// Releases the writer lock (via the base implementation) and then kicks off
     /// a fire-and-forget save of the region's current state. Saves are serialised
-    /// per region, so concurrent writers queue rather than clobber — the latest
+    /// per region, so concurrent writers queue rather than clobber - the latest
     /// captured state wins.
     /// </summary>
     public override void ExitWriter()
@@ -108,7 +108,7 @@ public abstract class PersistedRegion : SharedRegion
     /// fire-and-forget save to finish, via the same <see cref="_saveLock"/>). Called
     /// by <see cref="Spek.Runtime.ActorSystem.Dispose"/> so a graceful shutdown is
     /// durable: the last writer's state can't be lost to a save racing teardown.
-    /// Blocking is acceptable here — it runs once, at teardown, off the dispatch path.
+    /// Blocking is acceptable here: it runs once, at teardown, off the dispatch path.
     /// </summary>
     internal void FlushSave() => SaveAsync().GetAwaiter().GetResult();
 
@@ -140,7 +140,7 @@ public abstract class PersistedRegion : SharedRegion
     private void WarnOnDroppedKeys(Snapshot snapshot)
     {
         // Capture current field names by running CaptureFields once
-        // (cheap — just a dictionary build, no I/O). Compare against
+        // (cheap: just a dictionary build, no I/O). Compare against
         // snapshot keys; surface anything in the snapshot that's not
         // in the current schema.
         IReadOnlyDictionary<string, object?> currentFields;

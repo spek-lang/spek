@@ -8,7 +8,7 @@ namespace Spek.Hosting.AspNetCore.Grpc;
 /// <c>SpekRestServiceCollectionExtensions.AddSpekActorSystem</c>;
 /// the gRPC variant additionally registers a default
 /// <see cref="SpekGrpcStatusMap"/> so reply-type → gRPC status
-/// translation works out of the box.
+/// translation works with no additional configuration.
 /// </summary>
 public static class SpekGrpcServiceCollectionExtensions
 {
@@ -22,7 +22,7 @@ public static class SpekGrpcServiceCollectionExtensions
     /// <para>
     /// Call <c>builder.Services.AddSpekActorSystem(...)</c>
     /// (from <c>Spek.Hosting.AspNetCore.Rest</c>) separately to
-    /// register the actor system itself — it's the same
+    /// register the actor system itself: it's the same
     /// <see cref="Spek.Runtime.ActorSystem"/> singleton both
     /// hosting layers share.
     /// </para>

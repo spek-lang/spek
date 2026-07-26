@@ -18,12 +18,12 @@ await app.RunAsync();
 The package is the runtime half of Spek's gRPC hosting story.
 Concrete pieces:
 
-- **`SpekGrpcStatusMap`** — emit-type → `Grpc.Core.StatusCode`
+- **`SpekGrpcStatusMap`**: emit-type → `Grpc.Core.StatusCode`
   lookup, mirroring `SpekStatusCodeMap` in the REST package.
-- **`SpekGrpcBridge`** — runtime helper that compiler-generated
+- **`SpekGrpcBridge`**: runtime helper that compiler-generated
   bridge classes call to ask the actor and translate the reply
   to a gRPC response.
-- **`AddSpekGrpcStatusMap()`** — DI registration extension.
+- **`AddSpekGrpcStatusMap()`**: DI registration extension.
 
 ## How the pieces fit
 

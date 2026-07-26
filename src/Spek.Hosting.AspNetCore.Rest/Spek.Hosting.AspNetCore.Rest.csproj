@@ -10,8 +10,8 @@
     <Description>Expose Spek channels as REST endpoints. Maps `channel UserApi { on GetUser; ... }` to `GET /users/{id}`, etc., with convention-based verb selection (Get*/Create*/Update*/Patch*/Delete* prefix), parameter binding (id field → path; other fields → query for GET, body for POST/PUT/PATCH), and emit-type → status-code mapping. Built on top of ASP.NET Core's standard endpoint routing, so anything ASP.NET Core does (auth, OpenAPI, content negotiation, middleware) composes naturally.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- Web SDK adds an implicit `app.Run()` entry-point assembly attribute that
-         we don't want for a library — disable it. -->
-    <!-- Add-on package — not part of the initial public package set; flip to true
+         we don't want for a library: disable it. -->
+    <!-- Add-on package: not part of the initial public package set; flip to true
          (and add to release.yml's manifest) when this add-on ships. -->
     <IsPackable>false</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -38,7 +38,7 @@
   </ItemGroup>
 
   <!-- HttpVerb (enum) is authored in Spek (HttpVerb.spek); compiled to obj/.
-       HttpVerbExtensions stays C# — Spek has no `this`-parameter extension
+       HttpVerbExtensions stays C#: Spek has no `this`-parameter extension
        methods. -->
   <Import Project="..\..\build\Spek.targets" />
 

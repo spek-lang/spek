@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Invisible async — a `var` local that binds a call returning a NON-generic
+/// Invisible async: a `var` local that binds a call returning a NON-generic
 /// `Task`/`ValueTask` (a void-returning async call, e.g.
 /// <c>File.WriteAllTextAsync(...)</c>) used to emit
 /// <c>var x = await File.WriteAllTextAsync(...)</c>. Awaiting a non-generic
@@ -63,7 +63,7 @@ public sealed class VoidAwaitBindingTests(ITestOutputHelper output)
         Assert.DoesNotContain("var top = await", code);
         Assert.DoesNotContain("var nested = await", code);
 
-        // And the result is valid C# — no CS0815.
+        // And the result is valid C#: no CS0815.
         AssertCompiles(code, "VarBoundVoidTask");
     }
 
@@ -71,7 +71,7 @@ public sealed class VoidAwaitBindingTests(ITestOutputHelper output)
     public void VarBoundGenericTask_StillBindsAndAwaitsToValue()
     {
         // A generic Task<int> binding awaits to a real value, so the binding
-        // MUST be preserved — `var n = await GetCountAsync(...)` — unchanged.
+        // MUST be preserved (`var n = await GetCountAsync(...)`) unchanged.
         const string src = """
             message Tick();
             actor Counter
@@ -93,7 +93,7 @@ public sealed class VoidAwaitBindingTests(ITestOutputHelper output)
     [Fact]
     public void ExplicitTaskLocal_BindingIsKept()
     {
-        // The explicit-Task escape hatch must not be dropped — it defers and is
+        // The explicit-Task escape hatch must not be dropped - it defers and is
         // joined before the method returns.
         const string src = """
             module Io

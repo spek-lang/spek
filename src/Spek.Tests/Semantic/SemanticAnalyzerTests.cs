@@ -6,7 +6,7 @@ namespace Spek.Tests.Semantic;
 
 /// <summary>
 /// Covers CE0011, CE0042, CE0043, CE0050, CE0051, CE0060, CE0061,
-/// CE0081, CE0082 —
+/// CE0081, CE0082;
 /// the location-based and intra-actor consistency rules in Spek.Compiler.Semantic.SemanticAnalyzer.
 /// </summary>
 public class SemanticAnalyzerTests
@@ -17,7 +17,7 @@ public class SemanticAnalyzerTests
         Assert.True(result.Tree is not null,
             "Expected source to parse; diagnostics:\n" +
             string.Join("\n", result.Diagnostics.Select(d => $"  {d.Code} {d.Line}:{d.Column} {d.Message}")));
-        // Parse errors would have CE0001 — filter to only semantic codes for assertions.
+        // Parse errors would have CE0001: filter to only semantic codes for assertions.
         return result.Diagnostics.Where(d => d.Code != "CE0001").ToList();
     }
 
@@ -29,7 +29,7 @@ public class SemanticAnalyzerTests
             string.Join("\n", diagnostics.Select(d => $"  {d.Code} {d.Line}:{d.Column} {d.Message}")));
     }
 
-    /// <summary>Returns ALL diagnostics including parse errors —
+    /// <summary>Returns ALL diagnostics including parse errors;
     /// for tests where the assertion needs to distinguish a parse
     /// failure from a missing semantic diagnostic.</summary>
     private static IReadOnlyList<Diagnostic> AnalyzeIncludingParse(string source)
@@ -43,7 +43,7 @@ public class SemanticAnalyzerTests
         return diagnostics[0];
     }
 
-    // ─── CE0011 — become target must be a declared behavior ─────────────────
+    // ─── CE0011: become target must be a declared behavior ─────────────────
 
     [Fact]
     public void CE0011_BecomeUnknownBehavior_Reported()
@@ -74,12 +74,12 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0042 — ask only inside an on-handler ─────────────────────────────
+    // ─── CE0042: ask only inside an on-handler ─────────────────────────────
 
     [Fact]
     public void CE0042_AskInsideOnHandler_NoDiagnostic()
     {
-        // The actor handles R too — otherwise the self-ask is provably dead
+        // The actor handles R too: otherwise the self-ask is provably dead
         // mail and (correctly) trips CE0126.
         const string src = """
             message Q();
@@ -127,12 +127,12 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0042");
     }
 
-    // ─── CE0043 — self/sender only inside an on-handler ─────────────────────
+    // ─── CE0043: self/sender only inside an on-handler ─────────────────────
 
     [Fact]
     public void CE0043_SelfInOnHandler_NoDiagnostic()
     {
-        // Read self — doesn't need to go anywhere, just prove it's allowed in scope.
+        // Read self: doesn't need to go anywhere, just prove it's allowed in scope.
         const string src = """
             message Ping();
             actor A
@@ -171,7 +171,7 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0043");
     }
 
-    // ─── CE0050 — persist only inside an on-handler ─────────────────────────
+    // ─── CE0050: persist only inside an on-handler ─────────────────────────
 
     [Fact]
     public void CE0050_PersistInOnHandler_NoDiagnostic()
@@ -219,7 +219,7 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0050");
     }
 
-    // ─── CE0051 — become allowed in on-handler, init, and on Restore ────────
+    // ─── CE0051: become allowed in on-handler, init, and on Restore ────────
 
     [Fact]
     public void CE0051_BecomeInInit_NoDiagnostic()
@@ -270,7 +270,7 @@ public class SemanticAnalyzerTests
     public void CE0051_BecomeInPreStart_NoDiagnostic()
     {
         // Per Akka convention, `become` in PreStart is how you set initial behavior
-        // before the first message — accepted.
+        // before the first message: accepted.
         const string src = """
             message Ping();
             actor A
@@ -285,7 +285,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0051_BecomeInPostStop_NoDiagnostic()
     {
-        // Pointless but harmless — matches lenient lifecycle convention.
+        // Pointless but harmless: matches lenient lifecycle convention.
         const string src = """
             message Ping();
             actor A
@@ -297,7 +297,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0060 — Restore declared without persist/passivate ────────────────
+    // ─── CE0060: Restore declared without persist/passivate ────────────────
 
     [Fact]
     public void CE0060_RestoreWithoutPersistOrPassivate_Reported()
@@ -345,14 +345,14 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0061 retired — passivate without an explicit Restore ───
+    // ─── CE0061 retired: passivate without an explicit Restore ───
     // is now valid; the emitter auto-generates a symmetric OnRestore.
 
     [Fact]
     public void Passivate_WithoutExplicitRestore_NoLongerReported()
     {
         // Was CE0061. Auto-restore now rehydrates the captured fields, so an explicit
-        // `on Restore` is optional — this must be clean.
+        // `on Restore` is optional: this must be clean.
         const string src = """
             message Ping();
             actor A
@@ -381,7 +381,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0010 — message field types must be immutable ─────────────────────
+    // ─── CE0010: message field types must be immutable ─────────────────────
 
     [Fact]
     public void CE0010_PrimitiveFields_NoDiagnostic()
@@ -402,7 +402,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0010_TypeParameter_NoDiagnostic()
     {
-        // T is a type parameter of the message — allowed (constraint at instantiation).
+        // T is a type parameter of the message - allowed (constraint at instantiation).
         AssertNoDiagnostics("message Wrap<T>(T value);");
     }
 
@@ -428,7 +428,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0010_IReadOnlyList_Reported()
     {
-        // Readonly interfaces lie — underlying implementation can still be mutable.
+        // Readonly interfaces lie: underlying implementation can still be mutable.
         AssertOneDiagnostic("message Bad(IReadOnlyList<int> ids);", "CE0010");
     }
 
@@ -445,7 +445,7 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic("message Bad(ImmutableList<Customer> xs);", "CE0010");
     }
 
-    // ─── CE0012 — no member access on actor refs except Tell ─────────────────
+    // ─── CE0012: no member access on actor refs except Tell ─────────────────
 
     [Fact]
     public void CE0012_TellOnSender_NoDiagnostic()
@@ -485,7 +485,7 @@ public class SemanticAnalyzerTests
                 behavior Idle { on Ping => { var x = self.balance; } }
             }
             """;
-        // Reading `self.balance` goes through CE0012 — force internal field access
+        // Reading `self.balance` goes through CE0012 - force internal field access
         // via plain name instead. Diagnostic may report multiple times if additional
         // rules flag the same target; here we just assert CE0012 is present.
         var diagnostics = Analyze(src);
@@ -556,12 +556,12 @@ public class SemanticAnalyzerTests
         Assert.Contains(diagnostics, d => d.Code == "CE0012");
     }
 
-    // ─── CE0020 — ask/Tell payloads must be declared messages ────────────────
+    // ─── CE0020: ask/Tell payloads must be declared messages ────────────────
 
     [Fact]
     public void CE0020_AskWithKnownMessage_NoDiagnostic()
     {
-        // The actor handles R too — otherwise the self-ask is provably dead
+        // The actor handles R too: otherwise the self-ask is provably dead
         // mail and (correctly) trips CE0126.
         const string src = """
             message Q();
@@ -671,7 +671,7 @@ public class SemanticAnalyzerTests
     {
         // Fail-open: the typer can't classify a field of an unknown class type,
         // so CE0020 doesn't fire. The deliberate "don't false-positive" escape
-        // valve — note CE0010 still fires on the field *declaration* separately.
+        // valve: note CE0010 still fires on the field *declaration* separately.
         const string src = """
             message Ping();
             actor A
@@ -684,12 +684,12 @@ public class SemanticAnalyzerTests
         Assert.DoesNotContain(diagnostics, d => d.Code == "CE0020");
     }
 
-    // ─── CE0014 — unused behavior detection ─────────────────────────────────
+    // ─── CE0014: unused behavior detection ─────────────────────────────────
 
     [Fact]
     public void CE0014_UnusedBehavior_Reported()
     {
-        // 'Orphan' is never reached via become — should be flagged.
+        // 'Orphan' is never reached via become - should be flagged.
         const string src = """
             message Ping();
             actor A
@@ -741,7 +741,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0014_AbstractActor_NoDiagnostic()
     {
-        // Abstract actors skip the check — derived actors may reference
+        // Abstract actors skip the check: derived actors may reference
         // inherited behaviors that look unused in the parent.
         const string src = """
             message Ping();
@@ -754,12 +754,12 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── Param typing — CE0020 sees through method/init params ──────────────
+    // ─── Param typing: CE0020 sees through method/init params ──────────────
 
     [Fact]
     public void CE0020_PrimitiveMethodParam_PassedToTell_Reported()
     {
-        // Method param 'x' is int — Tell expects a message. Requires the
+        // Method param 'x' is int: Tell expects a message. Requires the
         // ExpressionTyper to know the param's declared type.
         // (An `init(ActorRef p)` block sets `peer`, suppressing
         // CE0109's "non-nullable field without initializer" warning so
@@ -780,7 +780,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0020_ActorRefInitParam_StoredAsField_NoFalsePositive()
     {
-        // Init param is an ActorRef — using it later should not trip any
+        // Init param is an ActorRef: using it later should not trip any
         // rule, and assigning to a field should classify correctly.
         const string src = """
             message Ping();
@@ -794,7 +794,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0080 — hostile namespace imports ─────────────────────────────────
+    // ─── CE0080: hostile namespace imports ─────────────────────────────────
 
     [Fact]
     public void CE0080_SystemReflection_Reported()
@@ -840,7 +840,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0086 — interop using bypasses safety ─────────────────────────────
+    // ─── CE0086: interop using bypasses safety ─────────────────────────────
 
     [Fact]
     public void InteropUsing_BypassesCE0080_EmitsCE0086()
@@ -859,7 +859,7 @@ public class SemanticAnalyzerTests
     public void InteropUsing_BenignNamespace_NoDiagnostic()
     {
         // `interop using` on a non-hostile namespace is just a `using`
-        // — no advisory needed.
+        //: no advisory needed.
         const string src = """
             interop using System.Collections.Immutable;
             message Ping();
@@ -880,7 +880,7 @@ public class SemanticAnalyzerTests
         Assert.Contains("interop using", d.Message);
     }
 
-    // ─── CE0096 — handler pattern type resolution ───────────────────────────
+    // ─── CE0096: handler pattern type resolution ───────────────────────────
 
     [Fact]
     public void CE0096_PublicHandler_OnUndeclaredType_Reported()
@@ -917,12 +917,47 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0096_PrivateHandler_OnUndeclaredType_NoDiagnostic()
     {
-        // Private handlers escape the rule — they're not part of the
+        // Private handlers escape the rule: they're not part of the
         // public API surface so binding to a BCL type is fine.
         const string src = """
             actor A { behavior Idle { private on FileSystemEventArgs ev => { } } }
             """;
         AssertNoDiagnostics(src);
+    }
+
+    // ─── CE0139: a generic message can't be handled yet () ────
+
+    [Fact]
+    public void CE0139_GenericMessageHandler_Reported()
+    {
+        const string src = """
+            message Envelope<T>(T payload);
+            actor A { init() { become Idle; } behavior Idle { on Envelope e => { } } }
+            """;
+        var d = Analyze(src);
+        Assert.Contains(d, x => x.Code == "CE0139");
+    }
+
+    [Fact]
+    public void CE0139_PrivateGenericMessageHandler_AlsoReported()
+    {
+        // Private handlers escape CE0096 but NOT CE0139 - a private handler on
+        // a generic message emits the same open-generic `case` (CS0305).
+        const string src = """
+            message Envelope<T>(T payload);
+            actor A { init() { become Idle; } behavior Idle { private on Envelope e => { } } }
+            """;
+        Assert.Contains(Analyze(src), x => x.Code == "CE0139");
+    }
+
+    [Fact]
+    public void CE0139_NonGenericMessageHandler_NoDiagnostic()
+    {
+        const string src = """
+            message Plain(int n);
+            actor A { init() { become Idle; } behavior Idle { on Plain p => { } } }
+            """;
+        Assert.DoesNotContain(Analyze(src), x => x.Code == "CE0139");
     }
 
     [Fact]
@@ -935,7 +970,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0087 — reader-handler mutations ──────────────────────────────────
+    // ─── CE0087: reader-handler mutations ──────────────────────────────────
 
     [Fact]
     public void CE0087_ReaderHandler_AssigningField_Reported()
@@ -961,7 +996,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0087_ReaderHandler_FieldMemberAssign_Reported()
     {
-        // foo.x = Y where foo is a field — mutation through the field.
+        // foo.x = Y where foo is a field: mutation through the field.
         const string src = """
             message Tick();
             message Holder(int x);
@@ -982,7 +1017,7 @@ public class SemanticAnalyzerTests
     public void CE0087_ReaderHandler_LocalReassignment_NoDiagnostic()
     {
         // Reassigning a local var (declared inside the handler) is
-        // fine — it doesn't touch actor state.
+        // fine: it doesn't touch actor state.
         const string src = """
             message Tick();
             actor A
@@ -1095,7 +1130,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0083 — dispatcher-blocking calls ─────────────────────────────────
+    // ─── CE0083: dispatcher-blocking calls ─────────────────────────────────
 
     [Fact]
     public void CE0083_ThreadSleep_Reported()
@@ -1130,7 +1165,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void DotWait_NotDiagnosed_RewrittenInstead()
     {
-        // `task.Wait()` is no longer a CE0083 error — invisible async rewrites
+        // `task.Wait()` is no longer a CE0083 error - invisible async rewrites
         // it to `await task` (see TaskResultRewriteTests). `.WaitAll()` /
         // `.WaitAny()` (no value-preserving rewrite) stay CE0083 errors.
         const string src = """
@@ -1155,7 +1190,7 @@ public class SemanticAnalyzerTests
     public void DotResult_NotDiagnosed_RewrittenInstead()
     {
         // `.Result` on a Task is rewritten to `await` by the invisible-async
-        // pass (see TaskResultRewriteTests), so it is NOT a diagnostic — no
+        // pass (see TaskResultRewriteTests), so it is NOT a diagnostic - no
         // CE0114, and certainly not the CE0083 reserved for .Wait()/.GetResult().
         const string src = """
             message Ping();
@@ -1165,7 +1200,7 @@ public class SemanticAnalyzerTests
         Assert.DoesNotContain(diagnostics, d => d.Code is "CE0114" or "CE0083");
     }
 
-    // ─── CE0115 — synchronous BCL I/O (warning, has *Async sibling) ──────────
+    // ─── CE0115: synchronous BCL I/O (warning, has *Async sibling) ──────────
 
     [Fact]
     public void CE0115_SyncFileRead_WarnsWithAsyncSibling()
@@ -1176,7 +1211,7 @@ public class SemanticAnalyzerTests
             """;
         var diagnostics = Analyze(src);
         var ce0115 = Assert.Single(diagnostics, d => d.Code == "CE0115");
-        // It's a *warning*, not a hard error — sync I/O is sometimes legitimate.
+        // It's a *warning*, not a hard error - sync I/O is sometimes legitimate.
         Assert.Equal(DiagnosticSeverity.Warning, ce0115.Severity);
         Assert.Contains("File.ReadAllTextAsync", ce0115.Message);
     }
@@ -1195,7 +1230,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0115_AlreadyAsync_NoDiagnostic()
     {
-        // The *Async sibling is exactly what we steer toward — it must not warn.
+        // The *Async sibling is exactly what we steer toward - it must not warn.
         const string src = """
             message Load(string path);
             actor A { behavior Idle { on Load => System.Console.WriteLine(File.ReadAllTextAsync(path)); } }
@@ -1204,7 +1239,7 @@ public class SemanticAnalyzerTests
         Assert.DoesNotContain(diagnostics, d => d.Code == "CE0115");
     }
 
-    // ─── CE0116 — sequential await in a foreach (hint) ──────────────────────
+    // ─── CE0116: sequential await in a foreach (hint) ──────────────────────
 
     [Fact]
     public void CE0116_AsyncCallInForeach_Hints()
@@ -1246,7 +1281,7 @@ public class SemanticAnalyzerTests
         Assert.DoesNotContain(Analyze(src), d => d.Code == "CE0116");
     }
 
-    // ─── CE0084 — process-escape calls ──────────────────────────────────────
+    // ─── CE0084: process-escape calls ──────────────────────────────────────
 
     [Fact]
     public void CE0084_EnvironmentExit_Reported()
@@ -1278,7 +1313,7 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0084");
     }
 
-    // ─── CE0085 — moved-value mutation tracking ─────────────────────────────
+    // ─── CE0085: moved-value mutation tracking ─────────────────────────────
 
     [Fact]
     public void CE0085_MutateAfterTell_Reported()
@@ -1338,7 +1373,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0085_MutateInForeachAfterTell_Reported()
     {
-        // Pin: the move analysis descends into foreach bodies — sending the
+        // Pin: the move analysis descends into foreach bodies - sending the
         // loop variable then mutating it within an iteration is a race.
         const string src = """
             message Update(int v);
@@ -1401,7 +1436,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0085_IsCaptureAlias_MutateAfterTell_Reported()
     {
-        // `if (u is Update s)` — inside the branch, s IS u; sending s moves u
+        // `if (u is Update s)`: inside the branch, s IS u; sending s moves u
         // too, so mutating u afterwards is a race.
         const string src = """
             message Update(int v);
@@ -1501,7 +1536,7 @@ public class SemanticAnalyzerTests
     public void CE0085_MoveViaAlias_MutateOriginal_Reported()
     {
         // Moving an alias (w) moves the value, so mutating the original (u) is
-        // also flagged — alias groups are symmetric.
+        // also flagged: alias groups are symmetric.
         const string src = """
             message Update(int v);
             actor A {
@@ -1556,7 +1591,7 @@ public class SemanticAnalyzerTests
         Assert.DoesNotContain(Analyze(src), d => d.Code == "CE0085");
     }
 
-    // ─── CE0013 — duplicate declarations ────────────────────────────────────
+    // ─── CE0013: duplicate declarations ────────────────────────────────────
 
     [Fact]
     public void CE0013_DuplicateMessage_Reported()
@@ -1644,7 +1679,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── Span reporting — diagnostic carries the offending token's location ─
+    // ─── Span reporting: diagnostic carries the offending token's location ─
 
     [Fact]
     public void Diagnostic_CarriesSourceLocation()
@@ -1662,7 +1697,7 @@ public class SemanticAnalyzerTests
         Assert.True(d.Column > 0);
     }
 
-    // ─── CE0081 — unreachable supervise arm ─────────────────────────────────
+    // ─── CE0081: unreachable supervise arm ─────────────────────────────────
 
     [Fact]
     public void CE0081_TypedArmAfterCatchAll_Reported()
@@ -1685,7 +1720,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0081_DuplicateTypedArm_Reported()
     {
-        // Two arms narrowing to the same exception type — the second
+        // Two arms narrowing to the same exception type - the second
         // is dead code.
         const string src = """
             message Ping();
@@ -1718,13 +1753,13 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0082 — duplicate untyped catch-all ───────────────────────────────
+    // ─── CE0082: duplicate untyped catch-all ───────────────────────────────
 
     [Fact]
     public void CE0082_TwoUntypedArms_Reported()
     {
         // Two `on Failure: Action` with no type narrowing. The second
-        // is unreachable — the first catch-all wins.
+        // is unreachable: the first catch-all wins.
         const string src = """
             message Ping();
             actor Parent
@@ -1752,7 +1787,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0117 — unknown supervise option ──────────────────────────────────
+    // ─── CE0117: unknown supervise option ──────────────────────────────────
 
     [Fact]
     public void CE0117_UnknownOption_Reported()
@@ -1806,13 +1841,13 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0118 — supervise decl + explicit OnChildFailure override ──────────
+    // ─── CE0118: supervise decl + explicit OnChildFailure override ──────────
 
     [Fact]
     public void CE0118_SuperviseAndOnChildFailureOverride_Reported()
     {
         // Both forms present: the supervise decl generates OnChildFailure, so the
-        // hand-written override would be silently dropped — flag it instead.
+        // hand-written override would be silently dropped - flag it instead.
         const string src = """
             message Ping();
             actor Parent
@@ -1859,13 +1894,13 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0090 — channel input not covered by actor ────────────────────────
+    // ─── CE0090: channel input not covered by actor ────────────────────────
 
     [Fact]
     public void CE0090_MissingInputHandler_Reported()
     {
         // Channel declares `on Shutdown` but the actor that implements
-        // it only handles Ping — Shutdown coverage gap.
+        // it only handles Ping: Shutdown coverage gap.
         const string src = """
             message Ping();
             message Shutdown();
@@ -1912,7 +1947,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0090_SingleHandlerSatisfiesMultipleChannels()
     {
-        // Two channels both declare `on Ping` — a single handler on the
+        // Two channels both declare `on Ping` - a single handler on the
         // actor satisfies both inputs. Matches C# explicit-interface
         // semantics (one method implements multiple interfaces that
         // declare the same signature).
@@ -1929,7 +1964,7 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── CE0091 — unknown channel / base actor in colon list ────────────────
+    // ─── CE0091: unknown channel / base actor in colon list ────────────────
 
     [Fact]
     public void CE0091_UnknownChannelName_Reported()
@@ -1947,9 +1982,9 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0091_TwoActorsInColonList_Reported()
     {
-        // Only one base actor is permitted — a second actor-typed name
+        // Only one base actor is permitted: a second actor-typed name
         // after the first should flag as misuse. (Bases are abstract so the
-        // only diagnostic is CE0091 — a concrete base would also trip CE0123.)
+        // only diagnostic is CE0091: a concrete base would also trip CE0123.)
         const string src = """
             message Ping();
             abstract actor BaseOne { }
@@ -1963,13 +1998,13 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0091");
     }
 
-    // ─── CE0092 — strict emits enforcement on sender.Tell ───────────────────
+    // ─── CE0092: strict emits enforcement on sender.Tell ───────────────────
 
     [Fact]
     public void CE0092_SenderTellOfNonEmitNonReply_Reported()
     {
         // Channel declares `emits StatusChanged`. The handler has no
-        // return, and the actor fires `sender.Tell(new Unrelated())` —
+        // return, and the actor fires `sender.Tell(new Unrelated())`;
         // Unrelated isn't the reply type (there's no return) and isn't
         // in emits. That's a CE0092.
         const string src = """
@@ -2021,10 +2056,9 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0092_SenderTellOfReplyType_NoDiagnostic()
     {
-        // `sender.Tell(new Pong())` is equivalent to `return new Pong();` —
-        // matches the handler's Option-D inferred reply type, so it's a
-        // reply, not an emit. Even though Pong isn't in `emits`, this is
-        // fine.
+        // `sender.Tell(new Pong())` is equivalent to `return new Pong();` and
+        // matches the handler's inferred reply type, so it's a reply, not an
+        // emit. Even though Pong isn't in `emits`, this is fine.
         const string src = """
             message Ping();
             message Pong();
@@ -2052,7 +2086,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0092_SelfTellAlwaysFree_NoDiagnostic()
     {
-        // `self.Tell(X)` is internal message pump — never gated.
+        // `self.Tell(X)` is internal message pump - never gated.
         const string src = """
             message Ping();
             message InternalTick();
@@ -2074,7 +2108,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0092_EmitsAny_OptsOutOfEnforcement()
     {
-        // `emits any;` is the advisory escape hatch — CE0092 is suppressed
+        // `emits any;` is the advisory escape hatch - CE0092 is suppressed
         // for the entire actor.
         const string src = """
             message Ping();
@@ -2117,13 +2151,13 @@ public class SemanticAnalyzerTests
         AssertNoDiagnostics(src);
     }
 
-    // ─── Channel inheritance — coverage walks bases ───────────────────
+    // ─── Channel inheritance: coverage walks bases ───────────────────
 
     [Fact]
     public void CE0090_InheritedInputUncovered_Reported()
     {
         // ServerHost inherits `on Shutdown` from HostBase. The actor
-        // covers Reboot but not Shutdown — coverage check must walk
+        // covers Reboot but not Shutdown: coverage check must walk
         // inheritance and flag the gap.
         const string src = """
             message Shutdown();
@@ -2166,7 +2200,7 @@ public class SemanticAnalyzerTests
     public void CE0090_DiamondInheritance_DeduplicatesInputs()
     {
         // `Bottom : Left, Right` where Left and Right both inherit from
-        // Top. Top declares `on Shutdown;` — the actor only needs ONE
+        // Top. Top declares `on Shutdown;`: the actor only needs ONE
         // handler, not two.
         const string src = """
             message Shutdown();
@@ -2189,7 +2223,7 @@ public class SemanticAnalyzerTests
     {
         // The base channel declares `emits Heartbeat;`. A derived channel
         // inherits that, and an actor sender.Tell-ing a Heartbeat shouldn't
-        // trip CE0092 — emits enforcement walks ancestors.
+        // trip CE0092: emits enforcement walks ancestors.
         const string src = """
             message Ping();
             message Heartbeat();
@@ -2212,26 +2246,11 @@ public class SemanticAnalyzerTests
     public void CE0092_InheritedEmitsAny_DisablesEnforcement()
     {
         // Base channel uses `emits any;` as the advisory escape hatch.
-        // Derived channel inherits — strict enforcement should be off
-        // for actors implementing the derived channel.
+        // Derived channel inherits: strict enforcement should be off
+        // for actors implementing the derived channel. (`channel Loose : { … }`
+        // with an empty colon list isn't valid grammar, so the base declares
+        // no bases.)
         const string src = """
-            message Ping();
-            message Whatever();
-
-            channel Loose : { on Ping; emits any; }
-            channel StillLoose : Loose { }
-
-            actor Loosey : StillLoose
-            {
-                behavior Idle
-                {
-                    on Ping => { sender.Tell(new Whatever()); }
-                }
-            }
-            """;
-        // Note: `channel Loose : { ... }` with an empty colon list isn't
-        // valid grammar — fix the source to be just `channel Loose { ... }`.
-        const string fixedSrc = """
             message Ping();
             message Whatever();
 
@@ -2246,10 +2265,10 @@ public class SemanticAnalyzerTests
                 }
             }
             """;
-        AssertNoDiagnostics(fixedSrc);
+        AssertNoDiagnostics(src);
     }
 
-    // ─── CE0093 — unknown base channel ──────────────────────────────────────
+    // ─── CE0093: unknown base channel ──────────────────────────────────────
 
     [Fact]
     public void CE0093_UnknownBaseChannel_Reported()
@@ -2265,7 +2284,7 @@ public class SemanticAnalyzerTests
     public void CE0093_BaseIsAMessageNotChannel_Reported()
     {
         // Spelling mistake: user named a `message` where a `channel`
-        // belonged. Should still flag CE0093 — a message isn't a valid base.
+        // belonged. Should still flag CE0093 - a message isn't a valid base.
         const string src = """
             message Ping();
             message Shutdown();
@@ -2274,12 +2293,12 @@ public class SemanticAnalyzerTests
         AssertOneDiagnostic(src, "CE0093");
     }
 
-    // ─── CE0094 — circular channel inheritance ──────────────────────────────
+    // ─── CE0094: circular channel inheritance ──────────────────────────────
 
     [Fact]
     public void CE0094_DirectCycle_ReportedOnBothChannels()
     {
-        // `A : B` and `B : A` — both channels are part of the cycle.
+        // `A : B` and `B : A`: both channels are part of the cycle.
         // We expect a diagnostic on each (one per channel decl).
         const string src = """
             message Ping();
@@ -2293,7 +2312,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0094_TransitiveCycle_Reported()
     {
-        // `A : B`, `B : C`, `C : A` — three-channel cycle. Each should
+        // `A : B`, `B : C`, `C : A`: three-channel cycle. Each should
         // get a CE0094.
         const string src = """
             message Ping();
@@ -2308,7 +2327,7 @@ public class SemanticAnalyzerTests
     [Fact]
     public void CE0094_NoCycle_NoDiagnostic()
     {
-        // Linear chain — no cycle.
+        // Linear chain: no cycle.
         const string src = """
             message Ping();
             channel A          { on Ping; }

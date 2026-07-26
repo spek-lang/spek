@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Fleet.Contracts\Fleet.Contracts.csproj" />
+    <ProjectReference Include="..\Fleet.Spek\Fleet.Spek.csproj" />
+    <ProjectReference Include="..\Fleet.CSharp\Fleet.CSharp.csproj" />
+  </ItemGroup>
+</Project>

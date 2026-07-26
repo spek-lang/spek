@@ -12,14 +12,14 @@ namespace Spek.Tests.Semantic;
 /// only remaining reason to name the Task type is to consume the value *as a
 /// Task* (hand it to a Task-shaped API, forward it, capture it). When a
 /// top-level explicit-Task local is never used in a task context, the
-/// annotation has no effect — <c>var</c> would behave identically — so it is
+/// annotation has no effect (<c>var</c> would behave identically) so it is
 /// redundant.
 ///
 /// The check is sound-by-construction: it warns only for top-level locals
 /// (where <c>var</c> provably defers the same way) and suppresses on any use
 /// that could be a task context (member access, call receiver, any argument,
 /// <c>ref</c>/<c>out</c>, a bare <c>return t</c>, an assignment, or rebinding
-/// to another Task local). Warning severity — it never blocks a build.
+/// to another Task local). Warning severity - it never blocks a build.
 /// </summary>
 public sealed class RedundantTaskAnnotationTests
 {
@@ -62,7 +62,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void ExplicitTaskLocal_UsedOnlyAsValue_Warns()
     {
-        // `n` is consumed in arithmetic — a value position. `var` would
+        // `n` is consumed in arithmetic: a value position. `var` would
         // defer + auto-await at the use identically, so the Task type does
         // nothing.
         const string src = """
@@ -81,7 +81,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void ExplicitTaskLocals_ConcurrentValueUse_Warns()
     {
-        // The classic "explicit Task for concurrency" pattern — but lazy
+        // The classic "explicit Task for concurrency" pattern - but lazy
         // `var` is already concurrent for top-level locals, so this is
         // exactly the redundancy CE0107 teaches away from. Both locals warn.
         const string src = """
@@ -117,7 +117,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void ExplicitTaskLocal_Forwarded_NoWarning()
     {
-        // `return t` hands the raw Task back to the caller — a genuine
+        // `return t` hands the raw Task back to the caller - a genuine
         // task-context use. The explicit type is doing real work.
         const string src = """
             module Io
@@ -135,7 +135,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void ExplicitTaskLocal_PassedAsArgument_NoWarning()
     {
-        // Handed to a Task-shaped API (`Task.WhenAll`) — keeping the Task is
+        // Handed to a Task-shaped API (`Task.WhenAll`) - keeping the Task is
         // the whole point.
         const string src = """
             module Io
@@ -155,7 +155,7 @@ public sealed class RedundantTaskAnnotationTests
     {
         // A member access could be a Task member (`.ConfigureAwait`,
         // `.Result`, ...). We can't tell at the Spek layer, so we suppress
-        // — sound over complete.
+        //: sound over complete.
         const string src = """
             module Io
             {
@@ -172,7 +172,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void VarLocal_NoWarning()
     {
-        // `var` is not the hatch — it never carries a redundant annotation.
+        // `var` is not the hatch: it never carries a redundant annotation.
         const string src = """
             module Io
             {
@@ -229,7 +229,7 @@ public sealed class RedundantTaskAnnotationTests
     [Fact]
     public void ActorHandler_ExplicitTaskLocal_NeverUsed_Warns()
     {
-        // Handler bodies are callable roots too — the check is not
+        // Handler bodies are callable roots too - the check is not
         // module-only.
         const string src = """
             message Go();

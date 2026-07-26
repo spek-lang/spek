@@ -5,7 +5,7 @@ namespace Spek.Resilience.RateLimiting;
 /// <summary>
 /// Ingress policy that picks a separate rate-limit bucket per key
 /// derived from the <see cref="ResilienceContext"/>. The classic use
-/// case is "100 req/sec per tenant" — derive the tenant id from the
+/// case is "100 req/sec per tenant": derive the tenant id from the
 /// inbound message and let the partitioned limiter manage one bucket
 /// per tenant under the hood.
 ///

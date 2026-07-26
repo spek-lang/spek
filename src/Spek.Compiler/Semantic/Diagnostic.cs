@@ -3,7 +3,7 @@ using Spek.Compiler.AST;
 namespace Spek.Compiler.Semantic;
 
 /// <summary>
-/// A compiler diagnostic — covers both syntax errors (from ANTLR) and semantic
+/// A compiler diagnostic: covers both syntax errors (from ANTLR) and semantic
 /// errors (from <see cref="SemanticAnalyzer"/>). The <see cref="Code"/> is the
 /// stable identifier shown to users and referenced in docs (e.g. "CE0011").
 /// Syntax errors use "CE0001".
@@ -46,7 +46,7 @@ public enum DiagnosticSeverity
     Error,
     Warning,
     // Editor-only severities (don't fail the build) for ReSharper-style
-    // suggestions — "this works, but here's the idiomatic form". Information
+    // suggestions: "this works, but here's the idiomatic form". Information
     // shows as a normal info squiggle; Hint is the faintest (often just a
     // quick-fix lightbulb).
     Information,

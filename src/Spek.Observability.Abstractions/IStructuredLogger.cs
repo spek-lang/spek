@@ -7,7 +7,7 @@ namespace Spek.Observability;
 /// user code reaches it through <c>self.Log</c>.
 ///
 /// <para>
-/// Deliberately tiny — six methods total — because Spek doesn't
+/// Deliberately tiny (six methods total) because Spek doesn't
 /// need to reinvent logging. Real applications will register a
 /// logger that adapts to Microsoft.Extensions.Logging's <c>ILogger&lt;T&gt;</c>
 /// or whatever else they're using; the abstraction exists so the
@@ -20,14 +20,14 @@ public interface IStructuredLogger
     /// Whether events at <paramref name="level"/> would actually be
     /// recorded. Callers check this before assembling an expensive
     /// property list so disabled levels cost nothing; implementations
-    /// must answer cheaply — this runs on the dispatch hot path.
+    /// must answer cheaply: this runs on the dispatch hot path.
     /// </summary>
     bool IsEnabled(StructuredLogLevel level);
 
     /// <summary>
     /// Record one structured event. <paramref name="eventName"/> is a
-    /// stable identifier for the event kind — something backends can
-    /// match and aggregate on, not a pre-formatted sentence — and
+    /// stable identifier for the event kind - something backends can
+    /// match and aggregate on, not a pre-formatted sentence - and
     /// <paramref name="properties"/> carries the event's data as
     /// key/value pairs so each field stays individually indexable.
     /// Implementations must be thread-safe (the runtime logs from
@@ -43,21 +43,21 @@ public interface IStructuredLogger
 
 /// <summary>
 /// Log severity levels. Mirrors
-/// <see cref="Microsoft.Extensions.Logging.LogLevel"/> values
+/// <c>Microsoft.Extensions.Logging.LogLevel</c> values
 /// (without taking the dependency at the abstractions layer).
 /// </summary>
 public enum StructuredLogLevel
 {
-    /// <summary>Finest-grained detail — per-message dispatch level.
+    /// <summary>Finest-grained detail: per-message dispatch level.
     /// Too chatty for anything but targeted debugging.</summary>
     Trace       = 0,
     /// <summary>Diagnostic detail useful while developing; off in
     /// production by default.</summary>
     Debug       = 1,
-    /// <summary>Routine lifecycle events (spawn, stop, passivate) —
+    /// <summary>Routine lifecycle events (spawn, stop, passivate);
     /// the normal narrative of a healthy system.</summary>
     Information = 2,
-    /// <summary>Unexpected but survived — the system recovered on its
+    /// <summary>Unexpected but survived: the system recovered on its
     /// own (an actor restart, a dead-lettered message).</summary>
     Warning     = 3,
     /// <summary>An operation failed; something was lost or needs

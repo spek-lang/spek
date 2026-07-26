@@ -7,8 +7,8 @@ namespace Spek.Tests.Parser;
 /// <summary>
 /// Exercises both <c>supervise</c> declaration forms:
 /// <list type="bullet">
-/// <item>A — <c>supervise(child, strategy: OneForOne(...))</c> — per-child override.</item>
-/// <item>B — <c>supervise OneForOne(...)</c> — default policy for all children.</item>
+/// <item>A (<c>supervise(child, strategy: OneForOne(...))</c>) per-child override.</item>
+/// <item>B (<c>supervise OneForOne(...)</c>) default policy for all children.</item>
 /// </list>
 /// </summary>
 public class SuperviseDeclParseTests

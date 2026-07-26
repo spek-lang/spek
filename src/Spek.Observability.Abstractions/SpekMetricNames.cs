@@ -7,7 +7,7 @@ namespace Spek.Observability;
 /// can reliably reference them in dashboards and alerts.
 ///
 /// <para>
-/// Naming follows OpenTelemetry conventions — lowercase with
+/// Naming follows OpenTelemetry conventions - lowercase with
 /// dot separators, units suffixed for histograms.
 /// </para>
 /// </summary>
@@ -42,4 +42,10 @@ public static class SpekMetricNames
     /// the dead-letter sink because no actor was alive to
     /// receive them.</summary>
     public const string DeadLetter = "spek.deadletter";
+
+    /// <summary>Slow-handler watchdog report (counter): a handler
+    /// or reader phase observed running past the system's
+    /// <c>SlowHandlerThreshold</c>: a possible wedge. Detection
+    /// only; fires once per occurrence. Tagged with actor type.</summary>
+    public const string SlowHandler = "spek.actor.handler.slow";
 }

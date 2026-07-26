@@ -10,7 +10,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Behavior tests for the shutdown machinery — the cleanup that
+/// Behavior tests for the shutdown machinery - the cleanup that
 /// runs when an <see cref="ActorSystem"/> tears down: shared-region
 /// <c>term { }</c> blocks (reverse construction order, isolated failures,
 /// dead-lettered throws), the actor stop-hook double-fire guard, and the
@@ -21,14 +21,14 @@ namespace Spek.Tests.Runtime;
 /// Scenarios 1 and 2 hand-write <see cref="SharedRegion"/> subclasses (the same
 /// shape the compiler emits for a `shared X { term { ... } }` declaration) and
 /// materialise them through the public <see cref="ActorSystem.GetSharedRegion{T}"/>
-/// — which is exactly what an actor's `use X;` lowers to, and what records the
+///: which is exactly what an actor's `use X;` lowers to, and what records the
 /// region in the system's LIFO construction order. Scenarios 3 and 4 use a
 /// hand-written actor / compiled Spek respectively.
 /// </summary>
 public sealed class ShutdownBehaviorTests
 {
     // ─────────────────────────────────────────────────────────────────────────
-    // Scenario 1 — term blocks run in REVERSE construction order on shutdown.
+    // Scenario 1: term blocks run in REVERSE construction order on shutdown.
     // ─────────────────────────────────────────────────────────────────────────
 
     // The sink every Order* region appends to as its term block runs. xUnit runs
@@ -40,7 +40,7 @@ public sealed class ShutdownBehaviorTests
     {
         protected abstract string Marker { get; }
         // The compiler emits the user's `term { }` body as an OnTerm override; this
-        // mirrors that — append our marker so the disposal order is observable.
+        // mirrors that: append our marker so the disposal order is observable.
         protected override void OnTerm()
         {
             lock (OrderSink) OrderSink.Add(Marker);
@@ -58,14 +58,14 @@ public sealed class ShutdownBehaviorTests
 
         var system = new ActorSystem("order");
 
-        // Materialise A, then B, then C — the construction order the runtime
+        // Materialise A, then B, then C: the construction order the runtime
         // records. (This is what `use OrderRegionA;` etc. lowers to inside an
         // actor; calling it directly keeps the order deterministic.)
         system.GetSharedRegion<OrderRegionA>();
         system.GetSharedRegion<OrderRegionB>();
         system.GetSharedRegion<OrderRegionC>();
 
-        // Shutdown disposes regions LIFO — like C# `using` blocks unwinding.
+        // Shutdown disposes regions LIFO: like C# `using` blocks unwinding.
         system.Dispose();
 
         List<string> observed;
@@ -75,7 +75,7 @@ public sealed class ShutdownBehaviorTests
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Scenario 2 — a throwing term block is isolated + dead-lettered, doesn't
+    // Scenario 2: a throwing term block is isolated + dead-lettered, doesn't
     //              block the other regions, and Dispose does not propagate.
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -122,7 +122,7 @@ public sealed class ShutdownBehaviorTests
 
         // The middle region's term block throws; the runtime must swallow it,
         // dead-letter it, and keep disposing the rest. Dispose itself must not
-        // propagate the throw — this call returning normally is part of the assert.
+        // propagate the throw: this call returning normally is part of the assert.
         var ex = Record.Exception(() => system.Dispose());
         Assert.Null(ex);
 
@@ -146,7 +146,7 @@ public sealed class ShutdownBehaviorTests
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Scenario 3 — OnPostStop / OnTerm fire EXACTLY ONCE under the double-fire
+    // Scenario 3: OnPostStop / OnTerm fire EXACTLY ONCE under the double-fire
     //              guard, even when supervision-Stop and Dispose both run.
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -168,14 +168,14 @@ public sealed class ShutdownBehaviorTests
         }
 
         protected override Task DispatchAsync(object message, ActorRef sender)
-            => throw new InvalidOperationException("boom — force a supervision Stop");
+            => throw new InvalidOperationException("boom; force a supervision Stop");
 
         protected override void OnPostStop() => Interlocked.Increment(ref _postStops.Value);
         protected override void OnTerm() => Interlocked.Increment(ref _terms.Value);
     }
 
     [Fact]
-    public async Task StopHooks_FireExactlyOnce_AcrossSupervisionStopAndDispose()
+    public async Task StopHooks_FireExactlyOnce_AcrossSupervisionStopAndDisposeAsync()
     {
         var postStops = new StrongBox<int>(0);
         var terms = new StrongBox<int>(0);
@@ -206,7 +206,7 @@ public sealed class ShutdownBehaviorTests
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Scenario 4 — every ": Persisted" region is flushed on shutdown.
+    // Scenario 4: every ": Persisted" region is flushed on shutdown.
     // ─────────────────────────────────────────────────────────────────────────
 
     // Two distinct persisted regions, each mutated by a writer handler on the same
@@ -252,7 +252,7 @@ public sealed class ShutdownBehaviorTests
         """;
 
     [Fact]
-    public async Task MultiplePersistedRegions_AreAllFlushed_OnShutdown()
+    public async Task MultiplePersistedRegions_AreAllFlushed_OnShutdownAsync()
     {
         var parsed = SpekCompiler.Parse(MultiPersistSrc);
         Assert.True(parsed.Success,

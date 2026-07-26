@@ -10,7 +10,7 @@ namespace Spek.Resilience;
 /// state machines) and must be thread-safe.
 ///
 /// Compose multiple policies into a pipeline by chaining their
-/// <see cref="ExecuteAsync{T}"/> calls — outer policies wrap the
+/// <see cref="ExecuteAsync{T}"/> calls - outer policies wrap the
 /// inner ones, mirroring Polly v8's pipeline composition.
 /// </summary>
 public abstract class ExecutionPolicy
@@ -19,7 +19,7 @@ public abstract class ExecutionPolicy
     /// Run <paramref name="operation"/> under this policy's control.
     /// The policy owns the invocation: it may call the operation once,
     /// several times (retry, hedging), or not at all (an open circuit
-    /// breaker) and surfaces the final outcome — the successful result,
+    /// breaker) and surfaces the final outcome - the successful result,
     /// or the failure translated per the policy's rules. Implementations
     /// must flow <paramref name="context"/> and a cancellation token
     /// (linked, when the policy imposes its own timeout) into every

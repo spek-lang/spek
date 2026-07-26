@@ -3,7 +3,7 @@ namespace Spek.Runtime;
 /// <summary>
 /// Plug-in contract between <see cref="ActorSystem"/> and the cluster layer
 /// (typically <c>Spek.Cluster</c> + a concrete transport package). The
-/// runtime stays remoting-agnostic — it knows there's "something" that
+/// runtime stays remoting-agnostic: it knows there's "something" that
 /// resolves remote refs and routes outbound traffic across the wire, but
 /// the runtime doesn't know what protocol or even that there's a wire
 /// (in-memory transports plug into the same hook for tests).

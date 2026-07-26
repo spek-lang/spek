@@ -3,7 +3,7 @@ name: ci
 # Correctness gate: build the solution, run the full test suite, and build every
 # sample project on every push and pull request. (Perf lives in benchmarks.yml.)
 #
-# The local mirror of these steps is scripts/ci.sh — run that before pushing to
+# The local mirror of these steps is scripts/ci.sh - run that before pushing to
 # get the same result without waiting on Actions.
 
 on:

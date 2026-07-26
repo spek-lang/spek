@@ -6,10 +6,10 @@ pulling a specific implementation.
 
 Policy categories:
 
-- **Ingress** — admission control consulted before a message reaches
+- **Ingress**: admission control consulted before a message reaches
   its channel handler. Returns `Allow`, `Reject`, or `Defer`.
   Examples: rate limiting, bulkheads, admission gates.
-- **Execution** — wrap the handler invocation itself with retry,
+- **Execution**: wrap the handler invocation itself with retry,
   circuit breakers, timeouts, hedging.
 
 Concrete policies ship in their own packages

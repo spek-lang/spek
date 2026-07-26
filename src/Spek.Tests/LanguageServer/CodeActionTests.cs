@@ -21,7 +21,7 @@ public class CodeActionTests
         return new SpekCodeActionHandler(cache);
     }
 
-    private static async Task<List<CodeAction>> RequestActions(
+    private static async Task<List<CodeAction>> RequestActionsAsync(
         SpekCodeActionHandler handler, string sourceUri, IEnumerable<Diagnostic> diagnostics,
         OmniSharp.Extensions.LanguageServer.Protocol.Models.Range range)
     {
@@ -44,7 +44,7 @@ public class CodeActionTests
     }
 
     [Fact]
-    public async Task CE0011_SuggestsClosestBehaviorName()
+    public async Task CE0011_SuggestsClosestBehaviorNameAsync()
     {
         // `become Bsy` is a typo for `become Busy`. The fixer should offer
         // "Rename to 'Busy'" as a CodeAction.
@@ -69,7 +69,7 @@ public class CodeActionTests
             Severity = DiagnosticSeverity.Error,
         };
 
-        var actions = await RequestActions(handler, "file:///typo.spek", new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, "file:///typo.spek", new[] { diag }, diag.Range);
 
         // At least one action suggesting "Busy" should be present.
         Assert.NotEmpty(actions);
@@ -78,7 +78,7 @@ public class CodeActionTests
     }
 
     [Fact]
-    public async Task CE0091_OffersToDeclareMissingChannel()
+    public async Task CE0091_OffersToDeclareMissingChannelAsync()
     {
         const string src = """
             message Ping();
@@ -99,7 +99,7 @@ public class CodeActionTests
             Severity = DiagnosticSeverity.Error,
         };
 
-        var actions = await RequestActions(handler, "file:///missing.spek", new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, "file:///missing.spek", new[] { diag }, diag.Range);
 
         Assert.NotEmpty(actions);
         Assert.Contains(actions, a =>
@@ -107,7 +107,7 @@ public class CodeActionTests
     }
 
     [Fact]
-    public async Task CE0083_ThreadSleep_OffersTaskDelayQuickFix()
+    public async Task CE0083_ThreadSleep_OffersTaskDelayQuickFixAsync()
     {
         // ReSharper-style: a blocking `Thread.Sleep(100)` gets a one-click
         // rewrite to the non-blocking `Task.Delay(100)` (which invisible async
@@ -128,7 +128,7 @@ public class CodeActionTests
             Severity = DiagnosticSeverity.Error,
         };
 
-        var actions = await RequestActions(handler, "file:///sleep.spek", new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, "file:///sleep.spek", new[] { diag }, diag.Range);
 
         var fix = Assert.Single(actions, a =>
             a.Title is not null && a.Title.Contains("Task.Delay", StringComparison.Ordinal));
@@ -140,7 +140,7 @@ public class CodeActionTests
     }
 
     [Fact]
-    public async Task CE0083_TaskWaitAll_OffersWhenAllQuickFix()
+    public async Task CE0083_TaskWaitAll_OffersWhenAllQuickFixAsync()
     {
         const string src = """
             message Tick();
@@ -158,7 +158,7 @@ public class CodeActionTests
             Severity = DiagnosticSeverity.Error,
         };
 
-        var actions = await RequestActions(handler, "file:///waitall.spek", new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, "file:///waitall.spek", new[] { diag }, diag.Range);
 
         var fix = Assert.Single(actions, a =>
             a.Title is not null && a.Title.Contains("Task.WhenAll", StringComparison.Ordinal));
@@ -168,7 +168,7 @@ public class CodeActionTests
     }
 
     [Fact]
-    public async Task CE0115_SyncFileRead_OffersAsyncSiblingQuickFix()
+    public async Task CE0115_SyncFileRead_OffersAsyncSiblingQuickFixAsync()
     {
         // Synchronous `File.ReadAllText` → `File.ReadAllTextAsync` by inserting
         // the `Async` suffix right after the method name (args left intact).
@@ -188,7 +188,7 @@ public class CodeActionTests
             Severity = DiagnosticSeverity.Warning,
         };
 
-        var actions = await RequestActions(handler, "file:///io.spek", new[] { diag }, diag.Range);
+        var actions = await RequestActionsAsync(handler, "file:///io.spek", new[] { diag }, diag.Range);
 
         var fix = Assert.Single(actions, a =>
             a.Title is not null && a.Title.Contains("ReadAllTextAsync", StringComparison.Ordinal));

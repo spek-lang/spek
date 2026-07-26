@@ -53,7 +53,7 @@ use the canonical `new Shutdown()` and skip the redeclare.
 ## Exit code
 
 The handler's `return <int>;` is collected via `_currentSender.Tell`
-(Option D reply) and surfaced as the process exit code. If the
+surfaced as the process exit code. If the
 handler has no return, the adapter defaults to `0`.
 
 ## Channel coverage

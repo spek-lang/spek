@@ -1,0 +1,18 @@
+# Gemfile for building the Spek docs site (locally or in CI) WITH the custom
+# Spek Rouge lexer at docs/_plugins/spek_lexer.rb.
+#
+# GitHub Pages' default build runs Jekyll in --safe mode and ignores _plugins/,
+# so the custom lexer never loads there. The live site is therefore built by
+# the GitHub Actions workflow (.github/workflows/docs.yml), which runs
+# `bundle exec jekyll build` (not safe mode) against this Gemfile. See
+# README.md in this folder.
+
+source "https://rubygems.org"
+
+# Mirror the GitHub Pages toolchain: pins Jekyll, Rouge, and
+# jekyll-remote-theme to the versions Pages uses, so local and CI builds
+# match.
+gem "github-pages", group: :jekyll_plugins
+
+# WEBrick left Ruby's standard library in 3.0; `jekyll serve` needs it.
+gem "webrick", "~> 1.8"

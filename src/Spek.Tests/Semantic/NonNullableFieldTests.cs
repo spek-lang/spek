@@ -58,7 +58,7 @@ public sealed class NonNullableFieldTests
     [Fact]
     public void CE0109_NullableField_NoWarning()
     {
-        // `string?` is explicitly nullable — null is a valid value.
+        // `string?` is explicitly nullable: null is a valid value.
         const string src = """
             message Tick();
             actor A
@@ -140,7 +140,7 @@ public sealed class NonNullableFieldTests
     [Fact]
     public void CE0109_ActorRefField_WithoutInit_Warns()
     {
-        // ActorRef is a reference type — holding one without
+        // ActorRef is a reference type: holding one without
         // initialising it likely deads-letters or NPEs on first use.
         const string src = """
             message Tick();

@@ -28,7 +28,7 @@ public sealed class RouteConfigurator<TChannel>
     /// <summary>
     /// Replaces the convention-derived verb and path template for
     /// the given input message type. Path templates are relative
-    /// to the channel's base path — pass <c>"/{id}/email"</c>
+    /// to the channel's base path: pass <c>"/{id}/email"</c>
     /// (not <c>"/users/{id}/email"</c>) when the channel was
     /// mapped at <c>"/users"</c>.
     /// </summary>

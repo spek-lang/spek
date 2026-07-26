@@ -21,7 +21,7 @@ namespace Spek.Hosting.AspNetCore.Grpc;
 /// </list>
 ///
 /// Matches by simple type name so any user-defined `NotFound`
-/// message — regardless of namespace — picks up the right gRPC
+/// message (regardless of namespace) picks up the right gRPC
 /// status. Override via <see cref="Add{T}"/> when a particular
 /// message type maps to a non-standard status.
 /// </summary>
@@ -32,7 +32,7 @@ public sealed class SpekGrpcStatusMap
 
     /// <summary>
     /// Constructs an empty map. Use <see cref="WithBuiltInDefaults"/>
-    /// to start from the conventional table — most apps want that
+    /// to start from the conventional table - most apps want that
     /// and only add custom entries on top.
     /// </summary>
     public SpekGrpcStatusMap() { }

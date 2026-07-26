@@ -7,7 +7,7 @@ namespace Spek.Tests.Runtime;
 
 /// <summary>
 /// Proves the async spawn path works with a snapshot store that does
-/// real async I/O (simulated via <see cref="Task.Delay"/>). The sync
+/// real async I/O (simulated via <see cref="Task.Delay(int)"/>). The sync
 /// <see cref="ActorSystem.Spawn{TActor}"/> path would block on the
 /// delay and potentially deadlock on single-threaded sync contexts;
 /// <see cref="ActorSystem.SpawnPersistentAsync{TActor}"/> does not.
@@ -38,7 +38,7 @@ public class AsyncSpawnTests
         protected override void OnRestore(Snapshot s) => _n = s.Get<int>("n");
     }
 
-    /// <summary>Synthetic async store — every Save/Load yields for 50ms before returning.</summary>
+    /// <summary>Synthetic async store: every Save/Load yields for 50ms before returning.</summary>
     private sealed class DelayedStore : ISnapshotStore
     {
         private readonly InMemorySnapshotStore _inner = new();
@@ -58,11 +58,11 @@ public class AsyncSpawnTests
     }
 
     [Fact]
-    public async Task SpawnPersistentAsync_LoadsSnapshotWithoutBlocking()
+    public async Task SpawnPersistentAsync_LoadsSnapshotWithoutBlockingAsync()
     {
         var store = new DelayedStore();
 
-        // First run — write a snapshot through the async path.
+        // First run: write a snapshot through the async path.
         await using (var sys1 = new DisposableAsyncWrapper(new ActorSystem("t1", store)))
         {
             var actor = await sys1.Inner.SpawnPersistentAsync<Counter>("counter-1");
@@ -70,11 +70,11 @@ public class AsyncSpawnTests
             actor.Tell(new Increment());
             actor.Tell(new Increment());
 
-            await WaitUntil(async () =>
+            await WaitUntilAsync(async () =>
                 await store.LoadAsync("counter-1") is { } s && s.Get<int>("n") == 3);
         }
 
-        // Second run — respawn and assert state restored. Measure that the
+        // Second run: respawn and assert state restored. Measure that the
         // async spawn actually yielded on the restore. Use a tolerance of
         // Delay/2 to keep the assertion meaningful (proving we went through
         // the store) without being flaky under timer jitter in CI.
@@ -85,7 +85,7 @@ public class AsyncSpawnTests
 
         var floor = TimeSpan.FromMilliseconds(store.Delay.TotalMilliseconds / 2);
         Assert.True(elapsed >= floor,
-            $"Async spawn returned in {elapsed}, well under half the store's {store.Delay} delay — the restore didn't go through the store.");
+            $"Async spawn returned in {elapsed}, well under half the store's {store.Delay} delay; the restore didn't go through the store.");
 
         // And the state is correct.
         using var probeSystem = new TestActorSystem("probe");
@@ -97,7 +97,7 @@ public class AsyncSpawnTests
     }
 
     [Fact]
-    public async Task SpawnAsync_NonPersistent_WorksToo()
+    public async Task SpawnAsync_NonPersistent_WorksTooAsync()
     {
         using var system = new ActorSystem("t");
         var actor = await system.SpawnAsync<Counter>();
@@ -115,7 +115,7 @@ public class AsyncSpawnTests
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private static async Task WaitUntil(Func<Task<bool>> predicate, int timeoutMs = 3000)
+    private static async Task WaitUntilAsync(Func<Task<bool>> predicate, int timeoutMs = 3000)
     {
         var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
         while (DateTime.UtcNow < deadline)
@@ -127,7 +127,7 @@ public class AsyncSpawnTests
     }
 
     /// <summary>
-    /// Thin <see cref="IAsyncDisposable"/> wrapper — ActorSystem is
+    /// Thin <see cref="IAsyncDisposable"/> wrapper - ActorSystem is
     /// <see cref="IDisposable"/>, not <see cref="IAsyncDisposable"/>,
     /// but we want to <c>await using</c> in tests to keep cleanup ordered
     /// relative to the async spawn calls.

@@ -8,9 +8,9 @@ namespace Spek.Tests.Emit;
 /// `term { }` block, the disposal counterpart to `init { }`.
 /// Triggers `IAsyncDisposable` emission on the generated actor or
 /// region class. The runtime hooks:
-///   * Actors — `ActorSlot` calls `InvokeOnTerm()` after
+///   * Actors: `ActorSlot` calls `InvokeOnTerm()` after
 ///     `InvokeOnPostStop()` in the stop sequence.
-///   * Regions — `ActorSystem.Dispose` walks
+///   * Regions: `ActorSystem.Dispose` walks
 ///     `_regionConstructionOrder` LIFO and calls `OnTerm()` on each.
 /// </summary>
 public sealed class TermBlockTests
@@ -134,7 +134,7 @@ public sealed class TermBlockTests
     public void Actor_TermBlock_RoundTripsThroughRoslyn()
     {
         // Note: avoid interpolated-string field references in term
-        // bodies — the existing emitter doesn't rewrite identifiers
+        // bodies: the existing emitter doesn't rewrite identifiers
         // inside `$"..."` strings (orthogonal pre-existing limitation,
         // not specific to term blocks). Plain assignments work.
         const string src = """
@@ -188,7 +188,7 @@ public sealed class TermBlockTests
     [Fact]
     public void Actor_TermBlock_ScopeRules_BlocksAsk()
     {
-        // CE0042 — `ask` is only allowed inside an on-handler body.
+        // CE0042: `ask` is only allowed inside an on-handler body.
         // Term inherits the same restriction (it's not an OnHandler scope).
         const string src = """
             message Ping();
@@ -297,7 +297,7 @@ public sealed class TermBlockTests
     [Fact]
     public void Actor_TermBlock_ScopeRules_BlocksPersist()
     {
-        // CE0050 — `persist` is only allowed inside an on-handler body.
+        // CE0050: `persist` is only allowed inside an on-handler body.
         // Term inherits the restriction (regions persist via writer-
         // exit; actors via `persist;` in handler bodies; either way
         // term is not the place).

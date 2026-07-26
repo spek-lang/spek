@@ -1,6 +1,6 @@
 // ActorBase lives in the bare `namespace Spek` alongside ActorRef and
 // the other user-facing fundamentals. Engine internals (ActorSlot,
-// ActorSystem, IDeadLetterSink) stay in Spek.Runtime — same assembly,
+// ActorSystem, IDeadLetterSink) stay in Spek.Runtime - same assembly,
 // reachable via the using below.
 using Spek.Observability;
 using Spek.Persistence;
@@ -19,14 +19,14 @@ public abstract class ActorBase
     // ─── Per-instance state supplied by the runtime at Initialize time ───────
 
     /// <summary>
-    /// Reference to this actor — what <c>self</c> in Spek source compiles to.
+    /// Reference to this actor: what <c>self</c> in Spek source compiles to.
     /// Set by the runtime at <c>Initialize</c> time; generated handler code
     /// reads it (e.g. to pass as the sender on outbound <c>Tell</c>s).
     /// </summary>
     protected ActorRef _selfRef = null!;
 
     /// <summary>
-    /// Reference to the sender of the message currently being processed — what
+    /// Reference to the sender of the message currently being processed - what
     /// <c>sender</c> in Spek source compiles to. Updated by the dispatch loop
     /// before each handler runs; generated reply code Tells back to it.
     /// </summary>
@@ -43,7 +43,7 @@ public abstract class ActorBase
         ISnapshotStore? snapshotStore = null,
         IDeadLetterSink? deadLetterSink = null)
     {
-        // Synchronous entry point — kept so the sync Spawn path stays fast
+        // Synchronous entry point: kept so the sync Spawn path stays fast
         // for in-memory stores. Async-backed stores should use the async
         // spawn path (InitializeAsync, SpawnAsync / SpawnPersistentAsync)
         // to avoid the blocking wait inside the restore branch.
@@ -98,7 +98,15 @@ public abstract class ActorBase
         new Dictionary<string, object?>();
 
     /// <summary>
-    /// Lifecycle hook fired once when the actor instance starts — after its
+    /// The name of the behavior currently active, for live introspection.
+    /// Generated actors override this to read the `become` delegate; a
+    /// hand-written actor may override it or leave the default (null,
+    /// rendered as "-" by tooling).
+    /// </summary>
+    protected internal virtual string? CurrentBehaviorName => null;
+
+    /// <summary>
+    /// Lifecycle hook fired once when the actor instance starts - after its
     /// fields are wired up but before the first message is dispatched. Also
     /// fires when a passivated actor is re-materialised. Default is a no-op;
     /// override to acquire resources whose lifetime tracks a live instance.
@@ -106,7 +114,7 @@ public abstract class ActorBase
     protected virtual void OnPreStart()           { }
 
     /// <summary>
-    /// Lifecycle hook fired once when the actor stops for good — after the
+    /// Lifecycle hook fired once when the actor stops for good - after the
     /// mailbox is drained to dead-letters, before the reference is invalidated.
     /// Default is a no-op. See <see cref="OnPassivate"/> for the going-idle
     /// counterpart and <see cref="OnTerm"/> for the disposal hook that runs
@@ -115,7 +123,7 @@ public abstract class ActorBase
     protected virtual void OnPostStop()           { }
 
     /// <summary>
-    /// Restore hook for persistent actors — called with the latest
+    /// Restore hook for persistent actors - called with the latest
     /// <paramref name="s"/> snapshot during start (and after a Restart) so the
     /// instance can rehydrate its fields. Default is a no-op; the compiler
     /// emits an override for actors with persisted state.
@@ -125,7 +133,7 @@ public abstract class ActorBase
     /// <summary>
     /// Disposal hook, the resource-cleanup counterpart to the
     /// constructor / <c>init { }</c> block. Runs once at the end of
-    /// the stop sequence — after <see cref="OnPostStop"/>, before the
+    /// the stop sequence: after <see cref="OnPostStop"/>, before the
     /// actor reference is invalidated. The compiler emits the body of
     /// the actor's <c>term { }</c> block as an override of this method
     /// (and also implements <see cref="IAsyncDisposable"/> on the
@@ -162,12 +170,21 @@ public abstract class ActorBase
     protected IStructuredLogger Log => _system?.Logger ?? NullStructuredLogger.Instance;
 
     /// <summary>
+    /// The actor's time source (<c>self.Clock</c> in Spek). Read wall time
+    /// with <c>Clock.GetUtcNow()</c> and measure with
+    /// <c>Clock.GetTimestamp()</c>/<c>GetElapsedTime</c> - under the test
+    /// kit's manual clock these are deterministic, where <c>DateTime.UtcNow</c>
+    /// would silently diverge from virtual time (CE0134 lints it).
+    /// </summary>
+    protected TimeProvider Clock => _system?.Clock ?? TimeProvider.System;
+
+    /// <summary>
     /// The node-lifecycle handle. <c>self.System</c> in Spek source
     /// resolves to this (the emitter maps it to <c>this.SpekSystem</c>; the
     /// C# name avoids shadowing the <c>System</c> namespace inside generated
     /// actors). Use <c>self.System.Shutdown()</c> to bring the node down
     /// gracefully from inside a handler (the supported replacement for
-    /// <c>Environment.Exit</c>). Narrow by design — see
+    /// <c>Environment.Exit</c>). Narrow by design - see
     /// <see cref="ActorSystemHandle"/>.
     /// </summary>
     protected ActorSystemHandle SpekSystem => _systemHandle ??= new ActorSystemHandle(_system);
@@ -176,7 +193,7 @@ public abstract class ActorBase
     /// <summary>
     /// The system's cooperative-cancellation token, fired when shutdown turns
     /// forceful. The emitter threads this into auto-awaited, cancellation-accepting
-    /// calls in handler bodies — it is never written in Spek source. Defaults to a
+    /// calls in handler bodies: it is never written in Spek source. Defaults to a
     /// non-cancellable token when the actor has no system (test doubles).
     /// </summary>
     protected CancellationToken ShutdownToken => _system?.ShutdownToken ?? default;
@@ -238,13 +255,13 @@ public abstract class ActorBase
     protected T GetSharedRegion<T>() where T : Spek.SharedRegion, new()
         => _system?.GetSharedRegion<T>()
            ?? throw new InvalidOperationException(
-               "Actor not initialised — GetSharedRegion called before Initialize.");
+               "Actor not initialised; GetSharedRegion called before Initialize.");
 
     /// <summary>
     /// Called right before the runtime unloads this actor during passivation.
     /// Symmetric with <see cref="OnPreStart"/> (which fires when the actor is
     /// re-materialised on the next message). Use this to release resources
-    /// whose lifetime should track an active actor instance — file handles,
+    /// whose lifetime should track an active actor instance - file handles,
     /// open sockets, running timers. <see cref="PersistAsync"/> is called
     /// after this, so state captured by <see cref="CaptureFields"/> is
     /// snapshotted with whatever this hook leaves behind.
@@ -285,7 +302,7 @@ public abstract class ActorBase
     /// handler (reader) or run it under exclusive lock (writer).
     /// <para>
     /// Default implementation classifies every message as a writer
-    /// — preserves single-threaded semantics for actors
+    ///: preserves single-threaded semantics for actors
     /// that don't opt into the reader/writer model. Generated actors override
     /// this with a per-behavior switch driven by a delegate that
     /// swaps on <c>become</c>.
@@ -300,7 +317,7 @@ public abstract class ActorBase
 
     /// <summary>
     /// Called by <see cref="ActorSlot"/> to surface an asker-side
-    /// failure when a reader handler threw. Default no-op — only the
+    /// failure when a reader handler threw. Default no-op - only the
     /// internal <c>ReplyActor&lt;T&gt;</c> overrides it to fail the
     /// caller's <see cref="TaskCompletionSource{TResult}"/> with the
     /// supplied <see cref="AskException"/>. Regular actors don't
@@ -311,7 +328,7 @@ public abstract class ActorBase
     /// <summary>
     /// Decides how to handle an exception from <see cref="DispatchAsync"/>.
     /// Override to customise per actor. Default is <see cref="FailureDirective.Stop"/>
-    /// — fail loud, in line with Spek's compile-time-guarantees philosophy.
+    ///: fail loud, in line with Spek's compile-time-guarantees philosophy.
     /// </summary>
     protected virtual FailureDirective OnFailure(Exception exception, object message)
         => FailureDirective.Stop;
@@ -321,7 +338,7 @@ public abstract class ActorBase
     /// <see cref="FailureDirective.Escalate"/>. The parent inspects the
     /// failure and returns a directive to apply to the child.
     /// <para>
-    /// Default: <see cref="FailureDirective.Stop"/> — supervisors are
+    /// Default: <see cref="FailureDirective.Stop"/> - supervisors are
     /// opt-in; a parent that hasn't overridden this just stops the
     /// misbehaving child.
     /// </para>
@@ -336,7 +353,7 @@ public abstract class ActorBase
 
     /// <summary>
     /// If non-null, the runtime will unload this actor after the given idle
-    /// duration — persisting its state and re-materialising (restoring from
+    /// duration: persisting its state and re-materialising (restoring from
     /// snapshot) on the next message. Actors opt in by overriding; the
     /// emitter generates this override when the Spek source contains
     /// <c>passivate after N.unit</c>. Default is null (stay loaded).
@@ -349,8 +366,7 @@ public abstract class ActorBase
     /// Maximum number of <see cref="FailureDirective.Restart"/> events this
     /// actor may hit inside <see cref="RestartWindow"/> before the runtime
     /// degrades the next Restart to <see cref="FailureDirective.Stop"/>.
-    /// Default: <see cref="int.MaxValue"/> (unlimited — matches older
-    /// behavior).
+    /// Default: <see cref="int.MaxValue"/> (unlimited).
     /// </summary>
     protected virtual int MaxRestartsWithinWindow => int.MaxValue;
 
@@ -394,7 +410,7 @@ public abstract class ActorBase
                 log = new List<DateTime>();
                 _childRestartLog[child] = log;
             }
-            var now = DateTime.UtcNow;
+            var now = (_system?.Clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
             if (window is { } w) log.RemoveAll(t => now - t > w);
             if (log.Count >= maxRetries.Value) return FailureDirective.Stop;
             log.Add(now);
@@ -435,20 +451,20 @@ public abstract class ActorBase
     /// actor, links it as a child (so failures can <see cref="FailureDirective.Escalate"/>
     /// to this parent's <see cref="OnChildFailure"/>), and returns its
     /// reference. <paramref name="args"/> are passed to the child's constructor.
-    /// Children currently spawn non-persistent. Emitter-facing helper backing
+    /// Children spawn non-persistent. Emitter-facing helper backing
     /// <c>spawn</c> inside a handler.
     /// </summary>
     /// <typeparam name="TActor">The child actor class to instantiate.</typeparam>
     /// <param name="args">Constructor arguments for the child.</param>
     /// <returns>A reference to the newly spawned child actor.</returns>
-    protected ActorRef SpawnChildAsync<TActor>(params object[] args)
+    protected ActorRef SpawnChildAsync<TActor>(params object?[] args)
         where TActor : ActorBase
     {
-        // Children currently spawn non-persistent — persistent-identity for
+        // Children currently spawn non-persistent - persistent-identity for
         // hierarchies is an open design question.
         // Parent link comes from _selfRef so the child can Escalate up. When
         // spawning from inside `init`, Initialize hasn't run yet (_selfRef and
-        // _system are still null) — the materialization context supplies the
+        // _system are still null) - the materialization context supplies the
         // parent slot and system plumbing instead.
         var materializing = Spek.Runtime.ActorSlot.MaterializingSlot;
         var parentSlot = _selfRef is not null ? _selfRef.Slot : materializing;
@@ -478,7 +494,7 @@ public abstract class ActorBase
     /// Emitter-facing helper: restart every child the parent knows about
     /// except the one that actually failed. Called from an
     /// emitter-generated <see cref="OnChildFailure"/> override when the
-    /// parent's <c>supervise</c> strategy is <c>AllForOne</c> — the
+    /// parent's <c>supervise</c> strategy is <c>AllForOne</c> - the
     /// failing child's own restart is handled by the normal supervision
     /// path so we skip it here to avoid double-restart.
     /// </summary>
@@ -493,41 +509,6 @@ public abstract class ActorBase
         }
     }
 
-    // ─── Dead-letter sink (singleton used for the NoSender ref) ─────────────
-
-    internal static readonly ActorBase DeadLetter = new DeadLetterActor();
-
-    private sealed class DeadLetterActor : ActorBase
-    {
-        protected override Task DispatchAsync(object message, ActorRef sender) =>
-            Task.CompletedTask;
-    }
-
-    // ─── Reply plumbing for ask ─────────────────────────────────────────────
-
-    internal sealed class ReplyActor<T> : ActorBase
-    {
-        private readonly TaskCompletionSource<T> _tcs;
-        public ReplyActor(TaskCompletionSource<T> tcs) => _tcs = tcs;
-
-        /// <summary>
-        /// When the recipient's reader handler throws and the
-        /// asker is awaiting a reply, the slot routes the failure
-        /// here so the caller's <c>await target.AskAsync(...)</c>
-        /// throws (with <see cref="AskException"/>) rather than
-        /// hanging forever.
-        /// </summary>
-        internal override void FailReplyWith(Exception ex) =>
-            _tcs.TrySetException(ex);
-
-        protected override Task DispatchAsync(object message, ActorRef sender)
-        {
-            if (message is T result)
-                _tcs.TrySetResult(result);
-            else
-                _tcs.TrySetException(new InvalidCastException(
-                    $"Expected {typeof(T).Name} but got {message.GetType().Name}"));
-            return Task.CompletedTask;
-        }
-    }
+    // Reply plumbing for ask lives in ReplyCell (Spek.Runtime/ReplyCell.cs):
+    // an ask's sender ref wraps a slotless completion cell, not an actor.
 }

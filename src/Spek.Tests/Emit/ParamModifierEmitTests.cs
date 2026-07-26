@@ -96,7 +96,7 @@ public sealed class ParamModifierEmitTests(ITestOutputHelper output)
     public void OutVar_EmitsAndCompiles()
     {
         // The inline `out var n` must introduce `n` for the rest of the
-        // scope — proven by `return n` compiling.
+        // scope: proven by `return n` compiling.
         const string src = """
             module P
             {

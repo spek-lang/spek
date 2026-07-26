@@ -36,7 +36,7 @@ internal sealed class SpekFormattingHandler : DocumentFormattingHandlerBase
         var source    = entry.Source;
         var formatted = SpekFormatter.Format(source);
         if (formatted == source)
-            return Task.FromResult<TextEditContainer?>(null);   // already canonical — no edits
+            return Task.FromResult<TextEditContainer?>(null);   // already canonical: no edits
 
         // One edit that replaces the whole buffer with the formatted text.
         var edit = new TextEdit

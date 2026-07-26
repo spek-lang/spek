@@ -3,7 +3,7 @@ namespace AlertHub;
 actor ConsoleNotifier : NotifierBase
 {
     // Interface-typed field: the implementation is swappable at runtime while
-    // the call site (`fmt.Render`) never changes — and the instance stays
+    // the call site (`fmt.Render`) never changes - and the instance stays
     // confined to this actor.
     Formatter fmt = new PlainFormatter();
     EscalationPolicy policy = new PagerPolicy();
@@ -22,7 +22,7 @@ actor ConsoleNotifier : NotifierBase
             Console.WriteLine($"[{Prefix()}] CRITICAL {fmt.Render(d.host, $"service {d.name} is down")}");
             if (critical >= policy.Threshold())
             {
-                Console.WriteLine($"[{Prefix()}] {policy.Describe()} — paging on-call!");
+                Console.WriteLine($"[{Prefix()}] {policy.Describe()}: paging on-call!");
             }
         }
 

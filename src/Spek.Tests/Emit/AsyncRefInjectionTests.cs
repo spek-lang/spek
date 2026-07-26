@@ -8,7 +8,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Injectable async reference set. The invisible-async pass is
 /// BCL-seeded; <c>extraReferencePaths</c> (the CLI's <c>--ref</c>) lets it
-/// also see Task-returning APIs from assemblies outside the BCL — the
+/// also see Task-returning APIs from assemblies outside the BCL - the
 /// mechanism that makes AspNetCore's <c>app.RunAsync()</c> auto-await. These
 /// tests prove the contrast with a throwaway assembly the BCL can't possibly
 /// contain: the same call is left alone without the ref and awaited with it.
@@ -61,13 +61,13 @@ public sealed class AsyncRefInjectionTests
     public void WithoutRef_UnresolvedTaskCall_IsNotAwaited()
     {
         // Ext.Helper isn't in the BCL, so its return type is unresolved and
-        // the pass can't classify it as awaitable — call left untouched.
+        // the pass can't classify it as awaitable - call left untouched.
         var rewritten = AsyncRewriter.Rewrite(CallerCode);
         Assert.DoesNotContain("await", rewritten);
     }
 
     [Fact]
-    public void WithRef_TaskCall_IsAwaited_AndMethodMadeAsync()
+    public void WithRef_MethodMadeAsync_TaskCallIsAwaited()
     {
         var dll = CompileTaskHelperDll();
         try
@@ -95,7 +95,7 @@ public sealed class AsyncRefInjectionTests
     public void DuplicateFrameworkRef_IsSkipped_SoBclStaysResolvable()
     {
         // Regression: forwarding a project's references can include an assembly that
-        // duplicates the framework seed — a ref-pack System.*.dll, or a test host's
+        // duplicates the framework seed: a ref-pack System.*.dll, or a test host's
         // netcoreapp3.1 dll. Two copies of a core assembly made `Task` ambiguous and
         // silently dropped the auto-await (caught when a Spek handler's `Task.Delay`
         // stopped being awaited under a test project's full reference set). The

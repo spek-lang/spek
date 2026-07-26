@@ -27,7 +27,7 @@ public class AspNetCoreHostTests
             if (message is Shutdown)
             {
                 lock (Gate) _shutdownReceived = true;
-                _currentSender.Tell(0);     // Option D reply
+                _currentSender.Tell(0);     // the inferred-reply convention reply
                 StopSelf();
             }
             return Task.CompletedTask;
@@ -35,7 +35,7 @@ public class AspNetCoreHostTests
     }
 
     [Fact]
-    public async Task GenericHost_StartsAndStops_ActorReceivesShutdown()
+    public async Task GenericHost_StartsAndStops_ActorReceivesShutdownAsync()
     {
         lock (Gate) _shutdownReceived = false;
 
@@ -47,7 +47,7 @@ public class AspNetCoreHostTests
         using var host = builder.Build();
         await host.StartAsync();
 
-        // Trigger graceful shutdown — the IHostedService.StopAsync
+        // Trigger graceful shutdown: the IHostedService.StopAsync
         // call is what the host invokes when ApplicationStopping fires.
         await host.StopAsync(CancellationToken.None);
 
@@ -59,9 +59,9 @@ public class AspNetCoreHostTests
     }
 
     [Fact]
-    public async Task ShutdownGrace_BoundsTheStopWait()
+    public async Task ShutdownGrace_BoundsTheStopWaitAsync()
     {
-        // An actor that ignores Shutdown — the host should still exit
+        // An actor that ignores Shutdown: the host should still exit
         // when the grace window expires, not hang forever.
         lock (Gate) _shutdownReceived = false;
 
@@ -78,12 +78,12 @@ public class AspNetCoreHostTests
         sw.Stop();
 
         // StopAsync must RETURN (the 200ms grace loop bounds the wait on the
-        // unresponsive actor) rather than deadlocking — if the grace were
+        // unresponsive actor) rather than deadlocking - if the grace were
         // broken the await would hang until xUnit kills the run. The bound is
         // deliberately huge (60s, longer than the whole suite) only so that
         // heavy parallel load can't trip it: under CPU saturation StopAsync's
         // `await Task.Delay(50)` continuation can be delayed by seconds, which
-        // is fine — it still exits on the wall-clock grace deadline. We're
+        // is fine: it still exits on the wall-clock grace deadline. We're
         // asserting "bounded, not hung", not a tight latency.
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(60),
             $"Expected StopAsync to return via the grace loop, but it took {sw.Elapsed}.");
@@ -93,7 +93,7 @@ public class AspNetCoreHostTests
     {
         protected override Task DispatchAsync(object message, ActorRef sender)
         {
-            // Deliberately don't StopSelf or reply — exercises grace bound.
+            // Deliberately don't StopSelf or reply - exercises grace bound.
             return Task.CompletedTask;
         }
     }

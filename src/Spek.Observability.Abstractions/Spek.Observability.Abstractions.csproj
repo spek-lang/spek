@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Observability</RootNamespace>
     <AssemblyName>Spek.Observability.Abstractions</AssemblyName>
     <PackageId>Spek.Observability.Abstractions</PackageId>
-    <Description>Telemetry abstractions for Spek runtimes — metric sinks, trace context, structured loggers. Reference this when authoring an observability adapter; reference Spek.Observability.OpenTelemetry for the default OTel implementation.</Description>
+    <Description>Telemetry abstractions for Spek runtimes; metric sinks, trace context, structured loggers. Reference this when authoring an observability adapter; reference Spek.Observability.OpenTelemetry for the default OTel implementation.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>

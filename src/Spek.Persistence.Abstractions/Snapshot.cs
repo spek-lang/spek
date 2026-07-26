@@ -12,7 +12,7 @@ public sealed class Snapshot
     private readonly IReadOnlyDictionary<string, object?> _fields;
 
     /// <summary>
-    /// Wraps an already-captured field map — field name to value, one
+    /// Wraps an already-captured field map - field name to value, one
     /// entry per actor field. The runtime builds these when an actor
     /// persists or passivates; stores rebuild them on load, where
     /// values may resurface as <see cref="JsonElement"/>s (see
@@ -28,11 +28,11 @@ public sealed class Snapshot
     /// Reads the field stored under <paramref name="key"/>. Two storage
     /// shapes are tolerated transparently:
     /// <list type="bullet">
-    ///   <item><b>Live object</b> — produced by
+    ///   <item><b>Live object</b>: produced by
     ///         <c>InMemorySnapshotStore</c>: a direct cast to
     ///         <typeparamref name="T"/> handles primitives, records,
     ///         user-defined types.</item>
-    ///   <item><b><see cref="JsonElement"/></b> — produced by
+    ///   <item><b><see cref="JsonElement"/></b> - produced by
     ///         JSON-backed stores (<c>Spek.Persistence.File</c>,
     ///         <c>Spek.Persistence.Sqlite</c>): deserialised into
     ///         <typeparamref name="T"/> via
@@ -48,7 +48,7 @@ public sealed class Snapshot
         if (value is T typed) return typed;
         if (value is JsonElement element) return element.Deserialize<T>()!;
 
-        // Fall back to a typed conversion — covers numeric promotions
+        // Fall back to a typed conversion: covers numeric promotions
         // (int boxed as long, double as decimal, etc.) that come back
         // from JSON's number parsing.
         return (T)Convert.ChangeType(value, typeof(T))!;

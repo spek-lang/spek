@@ -23,7 +23,7 @@ public sealed class NamedArgumentTests(ITestOutputHelper output)
     [Fact]
     public void NamedArgs_OnMethodCall_EmitAndCompile()
     {
-        // System.Math.Round(double value, int digits) — known param names, so
+        // System.Math.Round(double value, int digits) - known param names, so
         // the named form compiles regardless of Spek's own naming.
         const string src = """
             module M
@@ -57,7 +57,7 @@ public sealed class NamedArgumentTests(ITestOutputHelper output)
     [Fact]
     public void NamedArgs_DoNotBreakConditionalExpression()
     {
-        // A ternary argument has a COLON but no `IDENTIFIER COLON` arg-prefix —
+        // A ternary argument has a COLON but no `IDENTIFIER COLON` arg-prefix;
         // it must still parse as a positional conditional expression.
         const string src = """
             module M

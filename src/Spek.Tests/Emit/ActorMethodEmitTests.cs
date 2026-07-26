@@ -6,7 +6,7 @@ namespace Spek.Tests.Emit;
 
 /// <summary>
 /// Actor bodies may declare ordinary methods and override ActorBase hooks
-/// (OnFailure / OnChildFailure / …). These must be EMITTED — previously the actor
+/// (OnFailure / OnChildFailure / …). These must be EMITTED - previously the actor
 /// emitter had no method step at all, so they parsed but were silently dropped.
 /// That broke the documented OnFailure override and made <c>FailureDirective.Resume</c>
 /// (only reachable via an OnChildFailure override) impossible to express.
@@ -46,12 +46,12 @@ public sealed class ActorMethodEmitTests
         // Ordinary method keeps its declared (default-private) visibility.
         Assert.Contains("int Bump(int x)", csharp);
 
-        // ActorBase hooks emit as `protected override` — otherwise they don't take
+        // ActorBase hooks emit as `protected override` - otherwise they don't take
         // effect (the failure mode this test guards against).
         Assert.Contains("protected override FailureDirective OnFailure(", csharp);
         Assert.Contains("protected override FailureDirective OnChildFailure(", csharp);
 
-        // OnPreRestart is NOT an ActorBase virtual — it must emit as a plain method,
+        // OnPreRestart is NOT an ActorBase virtual - it must emit as a plain method,
         // never `protected override` (which would not compile, CS0115).
         Assert.Contains("private void OnPreRestart()", csharp);
         Assert.DoesNotContain("override void OnPreRestart", csharp);

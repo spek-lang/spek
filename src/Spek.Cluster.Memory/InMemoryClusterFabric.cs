@@ -10,7 +10,7 @@ namespace Spek.Cluster.Memory;
 /// looks up that node's transport and hands the envelope to its receive
 /// handler.
 ///
-/// One fabric per "logical cluster" you're modelling in tests — different
+/// One fabric per "logical cluster" you're modelling in tests - different
 /// fabrics are isolated.
 /// </summary>
 public sealed class InMemoryClusterFabric : IDisposable
@@ -37,7 +37,7 @@ public sealed class InMemoryClusterFabric : IDisposable
         if (_disposed) return Task.CompletedTask;
         if (_transports.TryGetValue(target.Id, out var t))
             return t.ReceiveAsync(envelope);
-        // Target not registered — silent dead-letter. A production
+        // Target not registered: silent dead-letter. A production
         // transport would surface this via DeliveryFailed; for the
         // in-memory transport (test target), letting it slide is the
         // simpler default. Tests that care about misrouted-message

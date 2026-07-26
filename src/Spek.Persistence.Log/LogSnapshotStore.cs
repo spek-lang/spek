@@ -17,7 +17,7 @@ namespace Spek.Persistence.Log;
 /// <see cref="LoadAsync"/>). Actors that need history replay use
 /// <see cref="ReadHistoryAsync"/> directly on this type.
 ///
-/// Thread-safe — concurrent appends to different keys are
+/// Thread-safe: concurrent appends to different keys are
 /// independent; concurrent appends to the same key serialise via
 /// per-key locks so sequence numbers stay strictly monotonic.
 /// </summary>
@@ -92,7 +92,7 @@ public sealed class LogSnapshotStore : ISnapshotStore
                 fs.Flush(flushToDisk: true);
             }
 
-            // Atomic rename — segment is observable only after this
+            // Atomic rename: segment is observable only after this
             // returns, so concurrent readers never see a partial file.
             System.IO.File.Move(temp, path, overwrite: true);
 
@@ -107,7 +107,7 @@ public sealed class LogSnapshotStore : ISnapshotStore
 
     /// <summary>
     /// Returns the most recent segment for <paramref name="key"/>,
-    /// or null if no segments exist. Lock-free — segments are
+    /// or null if no segments exist. Lock-free - segments are
     /// immutable once written.
     /// </summary>
     public async Task<Snapshot?> LoadAsync(string key)
@@ -124,7 +124,7 @@ public sealed class LogSnapshotStore : ISnapshotStore
     /// <summary>
     /// Streams every segment for <paramref name="key"/> in
     /// chronological order (oldest first). Use this for event-sourcing
-    /// rehydration — fold the snapshots into the actor's current
+    /// rehydration: fold the snapshots into the actor's current
     /// state. Returns an empty stream if the key has no segments.
     /// </summary>
     public async IAsyncEnumerable<Snapshot> ReadHistoryAsync(string key)
@@ -218,7 +218,7 @@ public sealed class LogSnapshotStore : ISnapshotStore
         if (!int.TryParse(seqStr, NumberStyles.Integer,
                 CultureInfo.InvariantCulture, out var seq))
         {
-            // Garbage file in the directory — skip it; sequence keeps
+            // Garbage file in the directory: skip it; sequence keeps
             // walking back through the sorted list.
             return EnumerateSegments(keyDir)
                 .Reverse()

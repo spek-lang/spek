@@ -13,7 +13,7 @@ public class TestKitDeterminismTests
 {
     public record Work(int msDelay);
 
-    // Observable completion via a static flag — ActorBase.Underlying is
+    // Observable completion via a static flag - ActorBase.Underlying is
     // runtime-internal, so the test can't reach the instance; a static is the
     // simplest cross-thread signal for a poll helper to watch.
     private static volatile bool _workDone;
@@ -50,7 +50,7 @@ public class TestKitDeterminismTests
     }
 
     [Fact]
-    public async Task WaitUntilAsync_ReturnsOnceConditionHolds()
+    public async Task WaitUntilAsync_ReturnsOnceConditionHoldsAsync()
     {
         _workDone = false;
         using var system = new TestActorSystem("until");
@@ -64,7 +64,7 @@ public class TestKitDeterminismTests
     }
 
     [Fact]
-    public async Task WaitUntilAsync_ThrowsDescriptiveTimeout()
+    public async Task WaitUntilAsync_ThrowsDescriptiveTimeoutAsync()
     {
         var ex = await Assert.ThrowsAsync<TimeoutException>(() =>
             TestActorSystem.WaitUntilAsync(

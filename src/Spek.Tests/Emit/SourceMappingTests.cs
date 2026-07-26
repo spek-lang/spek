@@ -50,7 +50,7 @@ public sealed class SourceMappingTests
         Assert.Contains("#line 5 \"m.spek\"", code);
         Assert.Contains("#line 6 \"m.spek\"", code);
         Assert.Contains("#line default", code);
-        // Directives are preprocessor lines — never indented.
+        // Directives are preprocessor lines - never indented.
         foreach (var line in code.Split('\n'))
             if (line.Contains("#line"))
                 Assert.StartsWith("#line", line.TrimEnd());
@@ -90,7 +90,7 @@ public sealed class SourceMappingTests
     public void Directives_SurviveActiveAsyncRewrite()
     {
         // The ask forces the AsyncRewriter to actually rewrite (insert await,
-        // mark methods async) — the directives must ride through the Roslyn
+        // mark methods async) - the directives must ride through the Roslyn
         // round-trip, and the result must still compile.
         const string src = """
             message Ping();

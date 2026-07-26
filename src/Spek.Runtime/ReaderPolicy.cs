@@ -13,7 +13,7 @@ namespace Spek;
 /// }
 /// </code>
 /// The slot reads these values atomically on each dispatch decision,
-/// so mid-run changes take effect for the next message — no need to
+/// so mid-run changes take effect for the next message - no need to
 /// stop and re-spawn.
 /// </summary>
 public sealed class ReaderPolicy
@@ -25,11 +25,11 @@ public sealed class ReaderPolicy
     /// Scheduling discipline when a writer is queued behind in-flight
     /// readers.
     /// <list type="bullet">
-    ///   <item><see cref="ReaderStrategy.WriterPreferring"/> (default) —
+    ///   <item><see cref="ReaderStrategy.WriterPreferring"/> (default);
     ///         no new readers join the in-flight set once a writer is
     ///         queued. Writers stay live; reader-message order can be
     ///         relaxed when readers don't depend on each other.</item>
-    ///   <item><see cref="ReaderStrategy.Fair"/> — strict mailbox order.
+    ///   <item><see cref="ReaderStrategy.Fair"/> - strict mailbox order.
     ///         Readers continue joining the in-flight set even when a
     ///         writer is queued; the writer waits until *all* preceding
     ///         readers (mailbox order) complete.</item>
@@ -44,7 +44,7 @@ public sealed class ReaderPolicy
     /// <summary>
     /// Maximum number of in-flight reader handlers for this actor.
     /// Defaults to <see cref="int.MaxValue"/> (only the .NET thread pool
-    /// limits concurrency). Set lower to bound resource use — useful for
+    /// limits concurrency). Set lower to bound resource use - useful for
     /// actors that hand off to expensive downstream calls (DB, remote
     /// services).
     /// </summary>

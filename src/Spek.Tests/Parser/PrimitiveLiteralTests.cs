@@ -9,7 +9,7 @@ namespace Spek.Tests.Parser;
 /// The literal-forms safety net. Spek follows C#'s lead on primitive
 /// literals, and every form a C# developer can write should:
 ///   1. parse,
-///   2. emit **verbatim** (no silent re-formatting — that would drop digit
+///   2. emit **verbatim** (no silent re-formatting - that would drop digit
 ///      separators and type suffixes like <c>L</c>/<c>UL</c>/<c>f</c> that
 ///      change the C# type), and
 ///   3. produce C# that actually compiles.
@@ -60,7 +60,7 @@ public sealed class PrimitiveLiteralTests
         var (ok, code, diags) = EmitProbe($"var probe = {literal}; System.Console.WriteLine(probe);");
         Assert.True(ok, $"`{literal}` failed to parse: {diags}");
         Assert.True(code.Contains($"= {literal};"),
-            $"`{literal}` did not emit verbatim — re-formatted or re-interpreted.\nEmitted: " +
+            $"`{literal}` did not emit verbatim; re-formatted or re-interpreted.\nEmitted: " +
             (code.Split('\n').FirstOrDefault(l => l.Contains("probe")) ?? "(probe line not found)"));
     }
 

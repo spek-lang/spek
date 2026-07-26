@@ -12,7 +12,7 @@ program Main
     notifier.Tell(new DiskFull("db-1", "/var/data"));
     notifier.Tell(new ServiceDown("web-2", "checkout"));
 
-    // Swap the formatter mid-stream — same call sites, new rendering.
+    // Swap the formatter mid-stream - same call sites, new rendering.
     notifier.Tell(new SwapFormat());
     notifier.Tell(new CpuHigh("web-3", 88));
     notifier.Tell(new ServiceDown("db-2", "replication"));

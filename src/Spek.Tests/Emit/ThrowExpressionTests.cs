@@ -8,7 +8,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Throw expressions in the null-coalescing position:
 /// `x ?? throw new Foo()`. Parsed via the optional `?? throwExpr` tail on
-/// `coalesceExpr`, modeled as ThrowExpr, emitted verbatim as `throw <expr>`.
+/// `coalesceExpr`, modeled as ThrowExpr, emitted verbatim as `throw &lt;expr&gt;`.
 /// </summary>
 public sealed class ThrowExpressionTests(ITestOutputHelper output)
 {

@@ -56,8 +56,7 @@ CASE        : 'case';
 DEFAULT     : 'default';
 // Pattern keywords. Reserved everywhere (hard keywords) for the same
 // reason WHEN and SWITCH are: simpler ANTLR grammar than contextual
-// keywords. If we ever need `not`/`and`/`or` as identifiers we can
-// migrate to context-sensitive lexing later. They have distinct token
+// keywords. They have distinct token
 // names from AND (`&&`) and OR (`||`), which remain expression-level
 // operators.
 KW_NOT      : 'not';
@@ -88,6 +87,7 @@ FOREACH     : 'foreach';
 IS          : 'is';
 AS          : 'as';
 AFTER       : 'after';
+FLAGS       : 'flags';
 STRATEGY    : 'strategy';
 FAILURE     : 'Failure';
 RESTART     : 'Restart';
@@ -106,7 +106,7 @@ IDENTIFIER  : [a-zA-Z_][a-zA-Z0-9_]*;
 // Numeric and character literals follow C#'s lead: digit separators (`_`),
 // hex (`0x`) and binary (`0b`) integers, integer suffixes (`u`/`l` combos),
 // real suffixes (`f`/`d`/`m`), and exponents. They are lexed permissively
-// and emitted verbatim — the generated C# is the final arbiter of the exact
+// and emitted verbatim: the generated C# is the final arbiter of the exact
 // value and type, so Spek never silently re-formats or re-types a literal.
 // A bare integer (no `.`, exponent, or real suffix) is an INTEGER_LITERAL;
 // anything fractional / exponential / real-suffixed is a DECIMAL_LITERAL.
@@ -122,8 +122,8 @@ INTEGER_LITERAL
     ;
 CHAR_LITERAL    : '\'' ( CharEscape | ~['\\\r\n] ) '\'';
 // Raw string (C# 11), common case: content may contain quotes and newlines
-// but not the triple-quote fence itself (documented limitation — longer
-// fences and embedded `"""` aren't supported yet).
+// but not the triple-quote fence itself (documented limitation: longer
+// fences and embedded `"""` aren't supported).
 RAW_STRING      : '"""' .*? '"""';
 // Verbatim string: @"...", where `""` is an escaped quote and newlines are
 // allowed (no backslash escape processing).
@@ -136,9 +136,9 @@ INTERP_STRING   : '$"' ( InterpHole | '\\' ~[\r\n] | ~["{\\\r\n] )* '"';
 // An interpolation hole. `EmbeddedStr` absorbs string literals inside the
 // hole so their quotes (and any `}` they contain) don't end the hole or the
 // outer string early. Nested braces close the hole at the first top-level
-// `}` here, but that's only the token boundary — the AST builder re-splits
+// `}` here, but that's only the token boundary - the AST builder re-splits
 // holes with full brace balancing. (Limitation: `{{`/`}}` literal-brace
-// escapes aren't recognised yet.)
+// escapes aren't recognised.)
 fragment InterpHole  : '{' ( EmbeddedStr | ~["}] )* '}';
 fragment EmbeddedStr : '"' ( '\\' ~[\r\n] | ~["\\\r\n] )* '"';
 fragment Digits      : [0-9] [0-9_]*;
@@ -196,7 +196,7 @@ AMP         : '&';
 PIPE        : '|';
 CARET       : '^';
 TILDE       : '~';
-// NOTE: no SHL/SHR tokens — '>>' must stay two GT tokens so nested generics
+// NOTE: no SHL/SHR tokens: '>>' must stay two GT tokens so nested generics
 // (List<List<int>>) keep parsing. Shift operators are matched in the parser
 // as adjacent LT LT / GT GT (see shiftExpr).
 

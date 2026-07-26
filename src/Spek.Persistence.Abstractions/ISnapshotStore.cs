@@ -1,7 +1,8 @@
 namespace Spek.Persistence;
 
 /// <summary>
-/// Backing store for actor snapshots. A persistence-enabled <see cref="ActorSystem"/>
+/// Backing store for actor snapshots. A persistence-enabled <c>ActorSystem</c>
+/// (in <c>Spek.Runtime</c>, which this abstractions layer doesn't reference)
 /// is constructed with one of these; it reads on actor spawn (to restore state)
 /// and writes when an actor calls <c>persist</c>.
 ///

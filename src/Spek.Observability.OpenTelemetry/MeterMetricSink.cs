@@ -15,7 +15,7 @@ namespace Spek.Observability.OpenTelemetry;
 ///
 /// <para>
 /// Instruments are created lazily on first call and cached by name.
-/// Concurrent calls during creation are safe — the underlying
+/// Concurrent calls during creation are safe - the underlying
 /// <see cref="ConcurrentDictionary{TKey,TValue}"/> guards against
 /// double-instantiation; the worst case is one wasted instrument
 /// allocation, which is harmless.
@@ -24,7 +24,7 @@ namespace Spek.Observability.OpenTelemetry;
 public sealed class MeterMetricSink : IMetricSink, IDisposable
 {
     /// <summary>
-    /// Meter name. Stable across releases — listeners filter on
+    /// Meter name. Stable across releases - listeners filter on
     /// this to scope what they collect.
     /// </summary>
     public const string MeterName = "Spek.Runtime";
@@ -55,7 +55,7 @@ public sealed class MeterMetricSink : IMetricSink, IDisposable
     {
         // Observable gauges in System.Diagnostics.Metrics callback
         // when the listener polls. We store the latest value and
-        // return it from the callback — gauges are last-write-wins.
+        // return it from the callback: gauges are last-write-wins.
         // Tags on gauges aren't supported in this MVP; if needed,
         // we'd switch to per-tag-set gauge dictionaries.
         _gaugeValues[name] = value;

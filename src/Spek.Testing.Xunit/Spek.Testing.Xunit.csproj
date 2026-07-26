@@ -8,7 +8,7 @@
     <AssemblyName>Spek.Testing.Xunit</AssemblyName>
     <PackageId>Spek.Testing.Xunit</PackageId>
     <!-- This is the adapter library (it references xunit for FactAttribute), not a
-         test project — it has no test SDK. Without this, `dotnet test src/Spek.slnx`
+         test project: it has no test SDK. Without this, `dotnet test src/Spek.slnx`
          tries to run the adapter assembly as tests and the testhost errors. -->
     <IsTestProject>false</IsTestProject>
     <Description>xUnit adapter for Spek native tests. Binds the framework-neutral [Spek.Testing.SpekTest] attribute (emitted from `test "..." { }` blocks) to an xUnit fact, so Spek tests are discovered and run by `dotnet test`, IDE test explorers, and CI with no extra tooling.</Description>

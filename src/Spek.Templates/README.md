@@ -20,7 +20,7 @@ See the template's own `README.md` inside the scaffolded project for full instru
 
 ## Templates included
 
-- `spek-console` — a minimal Spek console application: one message, one actor, one
+- `spek-console`, a minimal Spek console application: one message, one actor, one
   `program Main` entry point. Demonstrates the expected project structure and the
   MSBuild-integrated build via Spek.Build.
 

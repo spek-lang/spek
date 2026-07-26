@@ -8,7 +8,7 @@ using CompletionContext = Spek.LanguageServer.CompletionContext;
 namespace Spek.Tests.LanguageServer;
 
 /// <summary>
-/// Covers <see cref="CompletionContext.Collect"/> — what the LSP's
+/// Covers <see cref="CompletionContext.Collect"/> - what the LSP's
 /// completion handler layers on top of the static keyword list when the
 /// user is typing inside an actor body.
 /// </summary>
@@ -110,7 +110,7 @@ public class CompletionContextTests
             """;
         var tree = ParseOrFail(src);
 
-        // Column 1000 on line 1 — past every span — but message/actor
+        // Column 1000 on line 1 (past every span) but message/actor
         // file-scope decls always apply.
         var scope = CompletionContext.Collect(tree, line: 1, column: 1000);
 

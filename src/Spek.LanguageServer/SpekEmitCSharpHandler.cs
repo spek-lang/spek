@@ -23,7 +23,7 @@ public record EmitCSharpResult
 /// <summary>
 /// Custom <c>spek/emitCSharp</c> request: given an open document, returns the C#
 /// the compiler would generate for it. Backs the experimental "Show emitted C#"
-/// command in the VS Code extension — a peek at the transpiler output for the
+/// command in the VS Code extension: a peek at the transpiler output for the
 /// curious, deliberately gated behind a setting so it stays a diagnostic aid
 /// rather than something workflows come to depend on. Reuses the same
 /// parse-then-emit path as <c>spekc compile</c>.
@@ -38,23 +38,23 @@ internal sealed class SpekEmitCSharpHandler : IJsonRpcRequestHandler<EmitCSharpP
     {
         var entry = _cache.Get(DocumentUri.From(request.Uri));
         if (entry is null)
-            return Done(error: "That document isn't open in the language server.");
+            return DoneAsync(error: "That document isn't open in the language server.");
 
         var result = SpekCompiler.Parse(entry.Source);
         if (result.Tree is null || !result.Success)
-            return Done(error: "The source has errors — fix the diagnostics to see the emitted C#.");
+            return DoneAsync(error: "The source has errors. Fix the diagnostics to see the emitted C#.");
 
         try
         {
             var csharp = new FileEmitter().Emit(result.Tree, emitTests: true);
-            return Done(csharp: csharp);
+            return DoneAsync(csharp: csharp);
         }
         catch (Exception ex)
         {
-            return Done(error: $"Emit failed: {ex.Message}");
+            return DoneAsync(error: $"Emit failed: {ex.Message}");
         }
     }
 
-    private static Task<EmitCSharpResult> Done(string? csharp = null, string? error = null) =>
+    private static Task<EmitCSharpResult> DoneAsync(string? csharp = null, string? error = null) =>
         Task.FromResult(new EmitCSharpResult { CSharp = csharp, Error = error });
 }

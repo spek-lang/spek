@@ -66,7 +66,7 @@ public class EnumE2ETests
         var replyTy    = assembly.GetType("EnumDemo.Reply")!;
         var hostStateTy = assembly.GetType("EnumDemo.HostState")!;
 
-        // HostState.Paused via reflection — the value the test sends in.
+        // HostState.Paused via reflection: the value the test sends in.
         var paused = Enum.Parse(hostStateTy, "Paused");
 
         using var system = new TestActorSystem("enum-e2e");

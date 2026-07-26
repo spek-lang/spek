@@ -7,7 +7,7 @@ using Xunit;
 namespace Spek.Tests.Hosting;
 
 /// <summary>
-/// Focused coverage for the hosting adapters' shutdown plumbing —
+/// Focused coverage for the hosting adapters' shutdown plumbing;
 /// specifically the two paths the broader <see cref="AspNetCoreHostTests"/>
 /// and <see cref="ConsoleHostTests"/> don't exercise:
 ///
@@ -16,7 +16,7 @@ namespace Spek.Tests.Hosting;
 ///    passes <see cref="CancellationToken.None"/>, so the
 ///    <c>!cancellationToken.IsCancellationRequested</c> branch of the
 ///    wait loop is otherwise untested. In production this token carries
-///    <c>HostOptions.ShutdownTimeout</c> — the Generic Host cancels it
+///    <c>HostOptions.ShutdownTimeout</c> - the Generic Host cancels it
 ///    when its own shutdown budget expires, and StopAsync must
 ///    short-circuit even though the adapter's own grace window is far
 ///    longer.
@@ -32,10 +32,10 @@ public class HostingShutdownTests
     public sealed record Shutdown();
 
     // ---------------------------------------------------------------
-    // Scenario 1 — StopAsync external cancellation token bridge.
+    // Scenario 1: StopAsync external cancellation token bridge.
     // ---------------------------------------------------------------
 
-    /// <summary>An actor that never stops itself and never replies —
+    /// <summary>An actor that never stops itself and never replies;
     /// so the only thing that can end StopAsync's wait loop is the
     /// grace deadline or the cancellation token.</summary>
     private sealed class UnstoppableActor : ActorBase
@@ -45,11 +45,11 @@ public class HostingShutdownTests
     }
 
     [Fact]
-    public async Task StopAsync_HonorsExternalCancellationToken_ShortCircuitsLongGrace()
+    public async Task StopAsync_HonorsExternalCancellationToken_ShortCircuitsLongGraceAsync()
     {
         // Adapter grace is huge (the host's ShutdownTimeout bridge is the
         // *real* bound here). We construct the hosted service directly so we
-        // can hand StopAsync a token we control — the DI/host path only ever
+        // can hand StopAsync a token we control - the DI/host path only ever
         // feeds it CancellationToken.None.
         await using var svc = new SpekHostedService<UnstoppableActor>(
             shutdownFactory: () => new Shutdown(),
@@ -73,15 +73,15 @@ public class HostingShutdownTests
         // token branch were broken, StopAsync would block the full 60s.
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(10),
             $"StopAsync should short-circuit on the cancelled token, but took {sw.Elapsed} " +
-            "(grace window was 60s — it ignored the token).");
+            "(grace window was 60s; it ignored the token).");
     }
 
     [Fact]
-    public async Task StopAsync_NoneToken_StillBoundedByGrace_ForContrast()
+    public async Task StopAsync_NoneToken_StillBoundedByGrace_ForContrastAsync()
     {
         // Contrast case: same unstoppable actor, NO external cancellation,
         // a short grace. Proves the loop's grace deadline is the bound when
-        // the token never fires — so scenario 1 above is genuinely measuring
+        // the token never fires: so scenario 1 above is genuinely measuring
         // the token branch, not the grace branch.
         await using var svc = new SpekHostedService<UnstoppableActor>(
             shutdownFactory: () => new Shutdown(),
@@ -100,11 +100,11 @@ public class HostingShutdownTests
     }
 
     // ---------------------------------------------------------------
-    // Scenario 2 — Console host exit-code round-trip via OnShutdownRequested.
+    // Scenario 2: Console host exit-code round-trip via OnShutdownRequested.
     // ---------------------------------------------------------------
 
     /// <summary>Entry actor that, on <see cref="Shutdown"/>, replies a
-    /// typed exit code to its sender (Spek's Option-D reply convention)
+    /// typed exit code to its sender (Spek's the inferred-reply convention reply convention)
     /// and stops itself.</summary>
     private sealed class ExitingEntryActor : ActorBase
     {
@@ -112,7 +112,7 @@ public class HostingShutdownTests
         {
             if (message is Shutdown)
             {
-                _currentSender.Tell(42);   // Option-D return → exit code 42
+                _currentSender.Tell(42);   // the inferred-reply convention return → exit code 42
                 StopSelf();
             }
             return Task.CompletedTask;
@@ -120,14 +120,14 @@ public class HostingShutdownTests
     }
 
     [Fact]
-    public async Task ConsoleHost_ExitCodeRoundTrip_ViaOnShutdownRequestedPath()
+    public async Task ConsoleHost_ExitCodeRoundTrip_ViaOnShutdownRequestedPathAsync()
     {
         // Drive the FULL signal flow without OS signals: RunAsync wires
         // system.OnShutdownRequested(RequestShutdown) internally; calling
         // system.RequestShutdown() invokes that same handler, which Tells
         // the entry actor the Shutdown message with the host's internal
         // receiver as the apparent sender. The actor replies 42, the
-        // receiver captures it, and RunAsync returns 42 — NOT defaultExitCode.
+        // receiver captures it, and RunAsync returns 42 - NOT defaultExitCode.
         using var system = new ActorSystem("console-host-shutdown-roundtrip");
         var entry        = system.Spawn<ExitingEntryActor>();
 
@@ -149,7 +149,7 @@ public class HostingShutdownTests
             // RequestShutdown is idempotent; we only fire it once below, so
             // here we just give RunAsync time to start. We can't directly
             // observe the handler being set, so a short bounded settle is the
-            // best signal — but keep it generous.
+            // best signal: but keep it generous.
             armed = !entry.IsStopped; // entry is alive ⇒ RunAsync's loop is live
             if (armed) break;
         }
@@ -162,7 +162,7 @@ public class HostingShutdownTests
 
         Assert.True(entry.IsStopped,
             "Entry actor should have stopped after handling Shutdown via the OnShutdownRequested path.");
-        Assert.Equal(42, exitCode);   // round-tripped Option-D reply, NOT defaultExitCode (7)
+        Assert.Equal(42, exitCode);   // round-tripped the inferred-reply convention reply, NOT defaultExitCode (7)
     }
 }
 

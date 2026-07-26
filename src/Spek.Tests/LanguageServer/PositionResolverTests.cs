@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.LanguageServer;
 
 /// <summary>
-/// Exercises <see cref="PositionResolver"/> — given a parsed tree and a
+/// Exercises <see cref="PositionResolver"/> - given a parsed tree and a
 /// source position, it should return the innermost AST node whose span
 /// contains that position.
 /// </summary>
@@ -27,7 +27,7 @@ public class PositionResolverTests
         const string src = "actor MyActor { behavior Idle { on Ping => { } } }\nmessage Ping();";
         var tree = ParseOrFail(src);
 
-        // Position on the letter "M" of "MyActor" (line 1, col 7 — 1-based)
+        // Position on the letter "M" of "MyActor" (line 1, col 7 - 1-based)
         var node = PositionResolver.Find(tree, line: 1, column: 7);
 
         Assert.NotNull(node);

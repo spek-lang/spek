@@ -4,7 +4,7 @@ using Xunit;
 namespace Spek.Tests.Semantic;
 
 /// <summary>
-/// CE0126 — never-handled sends. When a <c>Tell</c>/<c>Ask</c> target's
+/// CE0126: never-handled sends. When a <c>Tell</c>/<c>Ask</c> target's
 /// concrete actor type is statically known (a local or field whose only origin
 /// is <c>spawn&lt;T&gt;</c>/<c>Spawn&lt;T&gt;</c>, or <c>self</c>), a message
 /// handled in NO behavior of that actor (nor its base-actor chain) is provably
@@ -87,7 +87,7 @@ public sealed class TypedSendTests
     [Fact]
     public void ExternalSend_ToPrivateOnlyHandler_ReportsCE0126()
     {
-        // Private handlers are reachable only via self.Tell — an external send
+        // Private handlers are reachable only via self.Tell - an external send
         // of the same type is dead mail.
         AssertCE0126("""
             message Priv();
@@ -131,7 +131,7 @@ public sealed class TypedSendTests
     [Fact]
     public void HandledInAnotherBehavior_IsClean()
     {
-        // The union across behaviors is the surface — wrong-STATE sends are a
+        // The union across behaviors is the surface - wrong-STATE sends are a
         // runtime concern (become state machine), not dead mail.
         AssertClean("""
             message Ping();
@@ -156,7 +156,7 @@ public sealed class TypedSendTests
     [Fact]
     public void CatchAllTarget_IsClean()
     {
-        // `on any` declares "I accept unchecked mail" — a proxy never flags.
+        // `on any` declares "I accept unchecked mail" - a proxy never flags.
         AssertClean("""
             message Nope();
             actor Sink { init() { become I; } behavior I { on any m => { } } }
@@ -212,7 +212,7 @@ public sealed class TypedSendTests
     [Fact]
     public void UnknownOriginRef_IsSilent()
     {
-        // A ref that arrived in a message field has no statically-known type —
+        // A ref that arrived in a message field has no statically-known type;
         // conservative silence (typed ActorRef<Channel> is the eventual answer).
         AssertClean("""
             message Nope();
@@ -250,7 +250,7 @@ public sealed class TypedSendTests
     [Fact]
     public void OverriddenAbstractBehavior_CountsTowardSurface()
     {
-        // Actor inheritance shares fields/methods, not the dispatch table — a
+        // Actor inheritance shares fields/methods, not the dispatch table - a
         // behavior always lives on the actor that declares it. The inherited
         // shape is `abstract behavior` on the base + `override behavior` on
         // the derived; handlers inside the override are the derived actor's

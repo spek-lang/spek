@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Add-on package — not part of the initial public package set; flip to true
+    <!-- Add-on package: not part of the initial public package set; flip to true
          (and add to release.yml's manifest) when this add-on ships. -->
     <IsPackable>false</IsPackable>
     <TargetFramework>net10.0</TargetFramework>
@@ -10,7 +10,7 @@
     <RootNamespace>Spek.Cluster.Memory</RootNamespace>
     <AssemblyName>Spek.Cluster.Memory</AssemblyName>
     <PackageId>Spek.Cluster.Memory</PackageId>
-    <Description>In-process Spek cluster transport. Bridges multiple `ActorSystem` instances inside a single CLR process via direct dispatch — ideal for unit / integration tests, no wire serialization. Implements the Bedrock-aligned `ISpekTransport` contract.</Description>
+    <Description>In-process Spek cluster transport. Bridges multiple `ActorSystem` instances inside a single CLR process via direct dispatch; ideal for unit / integration tests, no wire serialization. Implements the Bedrock-aligned `ISpekTransport` contract.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

@@ -32,7 +32,7 @@ public record TypeParameter(SourceSpan Span, string Name) : AstNode(Span);
 
 // A generic type-parameter constraint clause: `where T : C1, C2`.
 // Constraints are kept as already-rendered C# fragments (`class`, `new()`,
-// `IComparable<T>`, `U`) and emitted verbatim — Roslyn enforces them.
+// `IComparable<T>`, `U`) and emitted verbatim - Roslyn enforces them.
 public record WhereClause(
     SourceSpan Span,
     string TypeParam,

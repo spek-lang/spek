@@ -7,7 +7,7 @@ using Spek.Compiler.AST;
 namespace Spek.LanguageServer;
 
 /// <summary>
-/// Resolves <c>textDocument/codeAction</c> requests — quick-fix suggestions
+/// Resolves <c>textDocument/codeAction</c> requests - quick-fix suggestions
 /// shown in the editor's lightbulb / "fix this" UI. Each diagnostic in
 /// the request range is matched against a known CE-code fix provider; if
 /// a fix exists, a <see cref="CodeAction"/> with a ready-to-apply
@@ -17,12 +17,12 @@ namespace Spek.LanguageServer;
 /// remediation:
 ///
 /// <list type="bullet">
-///   <item><b>CE0011</b> — <c>become UnknownBehavior</c> — suggests
+///   <item><b>CE0011</b> (<c>become UnknownBehavior</c>) suggests
 ///         renaming to the closest-match behavior name on the
 ///         enclosing actor (Levenshtein distance ≤ 3).</item>
-///   <item><b>CE0091</b> — actor inherits unknown channel — suggests
+///   <item><b>CE0091</b> (actor inherits unknown channel) suggests
 ///         declaring the missing channel as a stub.</item>
-///   <item><b>CE0093</b> — channel inherits unknown channel — suggests
+///   <item><b>CE0093</b> (channel inherits unknown channel) suggests
 ///         declaring the missing parent channel.</item>
 /// </list>
 ///
@@ -88,7 +88,7 @@ internal sealed class SpekCodeActionHandler : CodeActionHandlerBase
     /// CE0083 fires on these only in the bare `Type.Method` form, so the source
     /// starts with the matched name at the diagnostic range and we replace just
     /// that identifier, keeping the argument list. (`Console.ReadLine`, instance
-    /// `.WaitAny()` etc. have no value-preserving rewrite — no fix offered.)
+    /// `.WaitAny()` etc. have no value-preserving rewrite - no fix offered.)
     /// </summary>
     private static readonly Dictionary<string, (string Replacement, string Title)> BlockingCallRewrites =
         new(StringComparer.Ordinal)
@@ -132,7 +132,7 @@ internal sealed class SpekCodeActionHandler : CodeActionHandlerBase
     }
 
     /// <summary>
-    /// CE0115 fixer — synchronous BCL I/O (`File.ReadAllText` …) has a drop-in
+    /// CE0115 fixer: synchronous BCL I/O (`File.ReadAllText` …) has a drop-in
     /// `*Async` sibling. The diagnostic fires on the bare `Type.Method` form,
     /// so the source starts with the matched name at the diagnostic range;
     /// the fix appends `Async` to it, and invisible async then awaits the
@@ -176,7 +176,7 @@ internal sealed class SpekCodeActionHandler : CodeActionHandlerBase
     }
 
     /// <summary>
-    /// CE0011 fixer — finds the actor enclosing the diagnostic, picks the
+    /// CE0011 fixer: finds the actor enclosing the diagnostic, picks the
     /// behavior name that's closest to the offending <c>become</c> target,
     /// and offers it as a one-click rename.
     /// </summary>
@@ -225,14 +225,14 @@ internal sealed class SpekCodeActionHandler : CodeActionHandlerBase
     }
 
     /// <summary>
-    /// CE0091 / CE0093 fixer — offers to declare the missing channel as a
+    /// CE0091 / CE0093 fixer: offers to declare the missing channel as a
     /// stub at the bottom of the file. The user gets a starting point;
     /// they fill in the inputs/emits.
     /// </summary>
     private static IEnumerable<CommandOrCodeAction> BuildMissingChannelFixes(
         Diagnostic diag, SpekFile file, DocumentUri uri)
     {
-        // Pick the MISSING channel name out of the message by CODE + position —
+        // Pick the MISSING channel name out of the message by CODE + position;
         // both messages also quote a "'channel X { ... }'" suggestion, so neither
         // first-nor-last alone is reliable:
         //   CE0091: "Unknown channel or base actor 'X' in actor 'Y'..." → X is FIRST.
@@ -280,7 +280,7 @@ internal sealed class SpekCodeActionHandler : CodeActionHandlerBase
     }
 
     /// <summary>
-    /// Damerau-Levenshtein distance — for "did you mean?" candidate ranking.
+    /// Damerau-Levenshtein distance: for "did you mean?" candidate ranking.
     /// Keeps things tight (max 3-edit distance) so we don't suggest wildly
     /// unrelated names.
     /// </summary>

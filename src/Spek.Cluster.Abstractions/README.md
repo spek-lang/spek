@@ -5,13 +5,13 @@ providers implement.
 
 ## Surface
 
-- **`ISpekTransport`** — pluggable wire-adapter contract; modeled
+- **`ISpekTransport`**: pluggable wire-adapter contract; modeled
   after `IConnectionListenerFactory` from
   `Microsoft.AspNetCore.Connections.Abstractions`.
-- **`IClusterMembership`** — pluggable membership-strategy contract.
-- **`IPlacementStrategy`** — maps located-actor logical keys to the
+- **`IClusterMembership`**: pluggable membership-strategy contract.
+- **`IPlacementStrategy`**: maps located-actor logical keys to the
   cluster node that owns them.
-- **`ISpekSerializer`** — pluggable wire-payload serialization.
+- **`ISpekSerializer`**: pluggable wire-payload serialization.
 - **Value records:** `NodeIdentity`, `ClusterMember`, `ClusterEvent`
   (with the joining/up/leaving/exiting/unreachable/down state
   transitions), `NodeState`, `RemoteEnvelope`.

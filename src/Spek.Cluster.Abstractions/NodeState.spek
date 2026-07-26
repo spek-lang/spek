@@ -6,10 +6,9 @@ namespace Spek.Cluster;
 /// nodes transition through these states as gossip / handshakes /
 /// failure-detector signals arrive.
 ///
-/// <para>The state machine + transitions ship today; the full SWIM
-/// gossip protocol that drives transitions across a real cluster is a
-/// later follow-up (the <c>StaticSeedClusterMembership</c> impl uses
-/// upfront-configured peers and shutdown-time leave gossip, which is
+/// <para>Transitions are driven by <c>StaticSeedClusterMembership</c>,
+/// which uses upfront-configured peers and shutdown-time leave gossip;
+/// no full SWIM gossip implementation exists. That is
 /// enough for the state machine + cluster-view API to be exercised
 /// end-to-end without a full SWIM impl).</para>
 /// </summary>
@@ -56,7 +55,7 @@ enum NodeState
     Unreachable,
 
     /// <summary>
-    /// The peer is permanently offline — either it gracefully exited
+    /// The peer is permanently offline - either it gracefully exited
     /// or the failure detector promoted it from Unreachable after
     /// missed-heartbeat threshold. Local actor refs targeting this
     /// node fail their <c>Tell</c>s deterministically; user code can

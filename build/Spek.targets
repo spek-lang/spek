@@ -6,8 +6,8 @@
       <Import Project="..\..\build\Spek.targets" />
 
   Every *.spek file in the project directory is transpiled to a .g.cs under the
-  intermediate (obj) output — like a source generator, NOT beside the .spek
-  source — before the C# compiler runs, with MSBuild incrementality: a .spek
+  intermediate (obj) output: like a source generator, NOT beside the .spek
+  source: before the C# compiler runs, with MSBuild incrementality: a .spek
   older than its generated .g.cs is skipped. Generated files are added to the
   Compile item set automatically; nothing is written into your source tree, so
   there is no .g.cs to check in or .gitignore.
@@ -70,7 +70,7 @@
   <Target Name="SpekCompile"
           BeforeTargets="BeforeCompile;CoreCompile"
           DependsOnTargets="ResolveReferences;SpekResolveGeneratedDir"
-          Inputs="@(SpekCompile)"
+          Inputs="@(SpekCompile);$(SpekcDll)"
           Outputs="$(SpekGeneratedDir)spek.stamp"
           Condition="'@(SpekCompile)' != ''">
 
@@ -79,7 +79,7 @@
 
     <!-- Pass the project's resolved references so invisible-async can see the
          Task-returning APIs of referenced assemblies (Spek.Runtime, Spek.Testing,
-         and any async library) and auto-await them — without this the rewriter
+         and any async library) and auto-await them; without this the rewriter
          only sees the BCL, so e.g. `sys.ExpectStop(actor)` would silently be
          fire-and-forget. -->
     <PropertyGroup>

@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.LanguageServer;
 
 /// <summary>
-/// Coverage for <see cref="ReferenceFinder"/> — the AST walker that powers
+/// Coverage for <see cref="ReferenceFinder"/> - the AST walker that powers
 /// <c>textDocument/rename</c> and <c>textDocument/references</c>. We assert
 /// the count of occurrences (declaration + references) by feeding the
 /// parser a known fixture and checking the spans returned.
@@ -24,7 +24,7 @@ public class ReferenceFinderTests
     [Fact]
     public void Message_References_NewExpr_AndPattern()
     {
-        // Ping is referenced 3 times (decl + new + pattern) — find all
+        // Ping is referenced 3 times (decl + new + pattern) - find all
         // 4 occurrences (decl + 3 refs) when IncludeDeclaration = true.
         const string src = """
             message Ping();
@@ -149,10 +149,56 @@ public class ReferenceFinderTests
         // Referenced once: as the StateChanged field type.
         Assert.Single(refs);
     }
+
+    [Fact]
+    public void Message_ClassifiedReferences_SplitSendersHandlersAndOther()
+    {
+        // One occurrence of each classification: a channel input (Other), an
+        // on-pattern arm (Handle), and a construction inside a Tell (Send).
+        const string src = """
+            message Ping();
+
+            channel Wire
+            {
+                on Ping;
+            }
+
+            actor Echo
+            {
+                behavior Idle
+                {
+                    on Ping => { self.Tell(new Ping()); }
+                }
+            }
+            """;
+        var tree = Parse(src);
+
+        var occurrences = ReferenceFinder.ClassifyMessageReferences(tree, "Ping");
+
+        Assert.Equal(3, occurrences.Count);
+        var send = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Send);
+        var handle = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Handle);
+        var other = Assert.Single(occurrences,
+            o => o.Usage == ReferenceFinder.MessageUsage.Other);
+
+        // Spans land where the source says: channel input line 5,
+        // handler arm and send both on line 12 (1-based).
+        Assert.Equal(5,  other.Span.StartLine);
+        Assert.Equal(12, handle.Span.StartLine);
+        Assert.Equal(12, send.Span.StartLine);
+
+        // The classified walk sees exactly the spans the plain walk sees;
+        // classification is a tag, never a filter.
+        var plain = ReferenceFinder.FindReferences(
+            tree, ReferenceFinder.Kind.Message, "Ping");
+        Assert.Equal(plain.Count, occurrences.Count);
+    }
 }
 
 /// <summary>
-/// Coverage for <see cref="SymbolUnderCursor"/> — the dispatcher that
+/// Coverage for <see cref="SymbolUnderCursor"/> - the dispatcher that
 /// figures out what symbol the cursor is on. Drives both rename and
 /// find-references.
 /// </summary>
@@ -175,7 +221,7 @@ public class SymbolUnderCursorTests
             """;
         var tree = Parse(src);
 
-        // Position cursor on "Ping" inside `new Ping()` — line 2, somewhere
+        // Position cursor on "Ping" inside `new Ping()` - line 2, somewhere
         // around column ~50 ish. Find by string scan.
         var lines = src.Split('\n');
         var pingCol = lines[1].LastIndexOf("Ping") + 2; // mid-token

@@ -7,11 +7,10 @@ namespace Spek.Cluster.Tcp;
 /// Spek port. Each setting is overridable at host bootstrap.
 /// </summary>
 /// <remarks>
-/// <b>Security status:</b> the wire is <b>currently unencrypted and
-/// peers are not authenticated</b>. TLS 1.3 / mTLS and shared-secret enforcement
-/// are designed but <b>not yet implemented</b> (see the README). Today the only real network restriction is
-/// <see cref="LoopbackOnly"/>. <b>Do not run the cluster transport across an
-/// untrusted network yet.</b>
+/// <b>Security status:</b> the wire is <b>unencrypted and peers are not
+/// authenticated</b>. The transport has no TLS and no shared-secret
+/// enforcement; the only network restriction is <see cref="LoopbackOnly"/>.
+/// <b>Do not run the cluster transport across an untrusted network.</b>
 /// </remarks>
 public sealed class TcpClusterOptions
 {
@@ -33,11 +32,9 @@ public sealed class TcpClusterOptions
     /// Cluster-shared symmetric secret (Erlang-cookie / Akka-cluster-cookie style).
     /// </summary>
     /// <remarks>
-    /// <b>NOT YET ENFORCED.</b> The intended behavior is that peers must present
-    /// this token at handshake, but the handshake currently exchanges only node
-    /// identity — this value is <b>not validated</b>. Setting it does not
-    /// authenticate peers (the transport logs a warning to make that obvious).
-    /// Enforcement ships with mTLS in a later release. Until then, rely on
+    /// <b>NOT ENFORCED.</b> The handshake exchanges only node identity; this
+    /// value is <b>not validated</b> and setting it does not authenticate
+    /// peers (the transport logs a warning to make that obvious). Rely on
     /// <see cref="LoopbackOnly"/> and network-level isolation.
     /// </remarks>
     public string? ClusterSharedKey { get; set; }
@@ -47,10 +44,10 @@ public sealed class TcpClusterOptions
     /// <c>::1</c>. Default <c>false</c>.
     /// </summary>
     /// <remarks>
-    /// This is currently the <b>only enforced</b> network protection (mTLS and
-    /// shared-secret auth are not yet implemented — see the class remarks). For a
-    /// single-host dev cluster set this <c>true</c>; for anything multi-host, keep
-    /// the transport on a trusted/isolated network until mTLS lands.
+    /// This is the <b>only enforced</b> network protection (the transport has
+    /// no mTLS and no shared-secret enforcement; see the class remarks). For a
+    /// single-host dev cluster set this <c>true</c>; for anything multi-host,
+    /// keep the transport on a trusted or isolated network.
     /// </remarks>
     public bool LoopbackOnly { get; set; } = false;
 }

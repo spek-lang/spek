@@ -35,7 +35,7 @@ namespace Spek.Hosting.AspNetCore.Rest;
 ///
 /// User overrides take precedence over the convention. The
 /// configurator is the only place to express off-convention routes
-/// — the channel and message decls themselves stay
+///: the channel and message decls themselves stay
 /// transport-agnostic.
 /// </summary>
 internal sealed class ChannelRouteResolver<TChannel>

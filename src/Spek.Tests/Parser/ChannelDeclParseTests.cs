@@ -12,8 +12,8 @@ namespace Spek.Tests.Parser;
 /// each channel lists <c>on MessageType;</c> inputs the implementing
 /// actor accepts, and <c>emits MessageType;</c> (or <c>emits any;</c>)
 /// unprompted events the actor may produce. No payload is declared
-/// inside a channel — every type referenced is a pre-existing
-/// <c>message</c>. Reply types stay on the handlers (Option D).
+/// inside a channel: every type referenced is a pre-existing
+/// <c>message</c>. Reply types stay on the handlers (the inferred-reply convention).
 /// </summary>
 public class ChannelDeclParseTests
 {
@@ -75,7 +75,7 @@ public class ChannelDeclParseTests
     public void Channel_WithEmitsAny_ParsesAsAdvisoryEscapeHatch()
     {
         // `emits any;` opts this channel's implementing actors out of
-        // strict emits enforcement — they can Tell anything unprompted.
+        // strict emits enforcement: they can Tell anything unprompted.
         const string src = """
             message Shutdown();
 
@@ -133,7 +133,7 @@ public class ChannelDeclParseTests
     [Fact]
     public void ActorImplementsChannel_ParsesSingleChannel()
     {
-        // `actor Foo : MyChannel { }` — single-name colon list, the
+        // `actor Foo : MyChannel { }`: single-name colon list, the
         // parser stashes this as BaseActor. Semantic analysis later
         // decides whether it's a base actor or a channel impl.
         const string src = """
@@ -156,7 +156,7 @@ public class ChannelDeclParseTests
     [Fact]
     public void ActorImplementsChannels_ParsesMultipleChannels()
     {
-        // `actor Foo : A, B, C` — first name stays in BaseActor (the
+        // `actor Foo : A, B, C`: first name stays in BaseActor (the
         // AstBuilder is naive; semantic analyzer reclassifies if needed).
         // Additional names land in ImplementedChannels.
         const string src = """
@@ -191,7 +191,7 @@ public class ChannelDeclParseTests
     [Fact]
     public void ChannelWithEmits_FullMix_ParsesCompleteShape()
     {
-        // Exercise the full surface in one go — inputs + typed emits
+        // Exercise the full surface in one go - inputs + typed emits
         // + the `any` escape hatch can coexist within a single channel
         // if the user wants "mostly-strict, but trust me for these one-off
         // events."

@@ -59,7 +59,7 @@ public class CallHierarchyTests
     }
 
     [Fact]
-    public async Task Prepare_OnMessage_ReturnsHandlerRoots()
+    public async Task Prepare_OnMessage_ReturnsHandlerRootsAsync()
     {
         var src = PingPong.Replace("\r\n", "\n");
         var (cache, uri) = Load(src);
@@ -80,7 +80,7 @@ public class CallHierarchyTests
     }
 
     [Fact]
-    public async Task Incoming_ListsSenders()
+    public async Task Incoming_ListsSendersAsync()
     {
         var (cache, uri) = Load(PingPong);
         var handler = new SpekCallHierarchyHandler(cache);
@@ -98,7 +98,7 @@ public class CallHierarchyTests
     }
 
     [Fact]
-    public async Task Outgoing_ListsReceivers()
+    public async Task Outgoing_ListsReceiversAsync()
     {
         var (cache, uri) = Load(PingPong);
         var handler = new SpekCallHierarchyHandler(cache);
@@ -116,13 +116,13 @@ public class CallHierarchyTests
     }
 
     [Fact]
-    public async Task Prepare_OffAMessage_ReturnsNothing()
+    public async Task Prepare_OffAMessage_ReturnsNothingAsync()
     {
         var src = PingPong.Replace("\r\n", "\n");
         var (cache, uri) = Load(src);
         var handler = new SpekCallHierarchyHandler(cache);
 
-        // Cursor on the `server` field name — not a message.
+        // Cursor on the `server` field name - not a message.
         int off = src.IndexOf("server;", StringComparison.Ordinal);
         var items = await handler.Handle(new CallHierarchyPrepareParams
         {

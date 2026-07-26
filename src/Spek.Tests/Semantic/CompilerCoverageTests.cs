@@ -15,28 +15,28 @@ namespace Spek.Tests.Semantic;
 /// pin with a string match but never round-trip through Roslyn / the runtime.
 ///
 /// Each scenario was verified against <c>Spek.Compiler</c> before being
-/// written — the comments record the exact source line / branch each test
+/// written: the comments record the exact source line / branch each test
 /// exercises.
 ///
 /// <list type="bullet">
-///   <item><b>CE0103 (sealed-enum exhaustiveness)</b> — the documented subject
+///   <item><b>CE0103 (sealed-enum exhaustiveness)</b> - the documented subject
 ///         shapes and pattern shapes that <c>SealedEnumTests</c> never touch:
 ///         the <i>bare</i> variant pattern (<c>Active</c> with no <c>Status.</c>
 ///         prefix), a switch <i>mixing</i> qualified + bare arms, an enum-typed
 ///         method <i>parameter</i> subject, and the fail-open behaviour of an
 ///         untyped <c>var</c> local subject.</item>
-///   <item><b>ask reply-type inference</b> — <c>OptionDAskTests</c> covers an
+///   <item><b>ask reply-type inference</b>; <c>InferredReplyAskTests</c> covers an
 ///         inline return and a top-level block return. These pin the two
 ///         control-flow branches of <c>SymbolTable.FindFirstReturnType</c> that
 ///         are otherwise untested (a <c>return</c> inside an <c>if</c> and
 ///         inside a <c>foreach</c>), plus a <i>generic</i> reply type
-///         (<c>Box<int></c>) flowing through inference into
-///         <c>AskAsync<Box<int>></c> and running end-to-end.</item>
+///         (<c>Box&lt;int&gt;</c>) flowing through inference into
+///         <c>AskAsync&lt;Box&lt;int&gt;&gt;</c> and running end-to-end.</item>
 /// </list>
 /// </summary>
-public sealed class CompilerCoverageTests(ITestOutputHelper output)
+public sealed class CompilerCoverageTests
 {
-    // ── helpers (mirror SealedEnumTests / OptionDAskTests) ──────────────────
+    // ── helpers (mirror SealedEnumTests / InferredReplyAskTests) ──────────────────
 
     private static CompilationResult Parse(string source) => SpekCompiler.Parse(source);
 
@@ -61,12 +61,12 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  CE0103 — sealed-enum exhaustiveness, untested subject / pattern shapes
+    //  CE0103: sealed-enum exhaustiveness, untested subject / pattern shapes
     // ════════════════════════════════════════════════════════════════════════
 
     // SealedEnumTests only ever uses the qualified `Status.Active` pattern. The
     // analyzer (SemanticAnalyzer.AddIfMatchesEnum) explicitly supports a BARE
-    // single-part name too — `Active` resolving to a variant of the subject's
+    // single-part name too: `Active` resolving to a variant of the subject's
     // enum. These pin both directions of that bare-name branch.
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
         // Every variant covered by its bare name (no `Status.` qualifier). The
         // analyzer accepts this as exhaustive (AddIfMatchesEnum handles the
         // single-part case). NOTE: this source analyzes clean but does NOT
-        // emit valid C# — see the skipped round-trip test below for the bug.
+        // emit valid C#: see the skipped round-trip test below for the bug.
         const string src = """
             enum Status { Active, Inactive }
             message Tick();
@@ -99,7 +99,7 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
     public void CE0103_BareVariantPattern_NonExhaustive_Reports()
     {
         // Bare `Active` covers Active; Inactive is left uncovered. The CE must
-        // still fire and name the missing variant — proving bare names are
+        // still fire and name the missing variant - proving bare names are
         // counted as covers, not silently ignored (which would mask the gap).
         const string src = """
             enum Status { Active, Inactive }
@@ -208,7 +208,7 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
         // This pins that behaviour: a non-exhaustive switch over a `var` local
         // produces NO CE0103. (The class docstring on CheckExhaustiveSwitchOverEnum
         // describes opportunistic var-local classification, but the implementation
-        // does not realize it — see couldNotTest in the run report. The contract
+        // does not realize it: see couldNotTest in the run report. The contract
         // the analyzer actually upholds is "no false positives", which this
         // verifies by asserting the source still parses cleanly.)
         const string src = """
@@ -260,10 +260,10 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
     }
 
     // ════════════════════════════════════════════════════════════════════════
-    //  ask reply-type inference — FindFirstReturnType control-flow branches
+    //  ask reply-type inference: FindFirstReturnType control-flow branches
     // ════════════════════════════════════════════════════════════════════════
 
-    // OptionDAskTests covers an inline `=> return new Pong()` and a block whose
+    // InferredReplyAskTests covers an inline `=> return new Pong()` and a block whose
     // return sits at the top level. SymbolTable.FindFirstReturnType also walks
     // INTO an `if` (IfStmt) and INTO loop bodies (ForeachStmt/ForStmt/...).
     // These two prove the reply type is still inferred when the only `return`
@@ -299,7 +299,7 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
             }
             """;
         var code = EmitCSharp(src);
-        // Inference reached the `return` nested in the `if` — typed, not object.
+        // Inference reached the `return` nested in the `if` - typed, not object.
         Assert.Contains("AskAsync<Pong>", code);
         Assert.DoesNotContain("AskAsync<object>", code);
     }
@@ -341,9 +341,9 @@ public sealed class CompilerCoverageTests(ITestOutputHelper output)
         Assert.DoesNotContain("AskAsync<object>", code);
     }
 
-    // A GENERIC reply type. OptionDAskTests only ever infers a plain message
+    // A GENERIC reply type. InferredReplyAskTests only ever infers a plain message
     // type. FindFirstReturnType captures `newExpr.TypeArgs`, so a
-    // `return new Box<int>(...)` should infer `Box<int>` — and the emitted
+    // `return new Box<int>(...)` should infer `Box<int>` - and the emitted
     // `AskAsync<Box<int>>` must compile AND route correctly at runtime.
 
     [Fact]

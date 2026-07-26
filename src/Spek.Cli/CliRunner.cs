@@ -24,7 +24,8 @@ public static class CliRunner
     public static int Run(string[] args, System.IO.TextWriter @out, System.IO.TextWriter error)
     {
         if (args.Length < 1 || (args[0] != "compile" && args[0] != "format"
-                                && args[0] != "proto-import" && args[0] != "proto-export"))
+                                && args[0] != "proto-import" && args[0] != "proto-export"
+                                && args[0] != "observe"))
         {
             error.WriteLine("Usage: spekc compile      <file.spek> [--out <dir>] [--check] [--ref <dll>] [--no-line-map]");
             error.WriteLine("       spekc compile      <dir>       [--out <dir>]   (compiles *.spek in directory)");
@@ -35,17 +36,26 @@ public static class CliRunner
             error.WriteLine("         --no-line-map  emit without #line directives (no .spek source mapping)");
             error.WriteLine("         --abs-line-map #line directives use absolute .spek paths (for debugging:");
             error.WriteLine("                        the PDB then resolves sources without a working-dir guess)");
+            error.WriteLine("         --base <dir>   mirror the input tree under --out relative to this dir");
+            error.WriteLine("                        (the MSBuild integration passes this to lay out obj/spek/)");
+            error.WriteLine("         --tests        emit test blocks in *Tests modules/classes as native tests");
+            error.WriteLine("                        (MSBuild passes this automatically for test projects)");
             error.WriteLine("       spekc format       <file.spek> [--write]       (rewrite file in place with --write)");
             error.WriteLine("       spekc format       <dir>       [--write]       (formats *.spek in directory)");
             error.WriteLine("       spekc proto-import <descriptor.bin> <ChannelName> [--out <file.g.spek>]");
             error.WriteLine("                                              (synthesise channel from a proto descriptor)");
             error.WriteLine("       spekc proto-export <file.spek> <ChannelName> [--out <file.proto>] [--package <name>]");
             error.WriteLine("                                              (emit .proto from a channel decl)");
+            error.WriteLine("       spekc observe      <pid> [--actor <path>] [--once] [--json]");
+            error.WriteLine("                                              (live actor table of a running Spek process;");
+            error.WriteLine("                                               --json emits NDJSON samples for tooling)");
             return 1;
         }
 
         switch (args[0])
         {
+            case "observe":
+                return ObserveCommand.Run(args[1..], @out, error);
             case "format":
                 return RunFormat(args[1..], @out, error);
             case "proto-import":
@@ -123,7 +133,7 @@ public static class CliRunner
 
         // Parse every input first, then compile them as ONE unit: a combined
         // symbol table across all files, and per-file semantic analysis against
-        // it. That's what makes cross-file type references resolve — a message
+        // it. That's what makes cross-file type references resolve - a message
         // field typed as an enum declared in a sibling file no longer trips a
         // false "undeclared type". Each file still emits to its own .g.cs.
         var parsed = files.Select(f =>
@@ -152,7 +162,7 @@ public static class CliRunner
             errorCount += p.Diags.Count(d => d.Severity == DiagnosticSeverity.Error);
         }
 
-        // Duplicate declarations that collide across files (CE0013) — rendered
+        // Duplicate declarations that collide across files (CE0013) - rendered
         // plainly, since they inherently point into more than one file.
         foreach (var d in SemanticAnalyzer.CheckCrossFileDuplicates(trees))
         {
@@ -222,7 +232,7 @@ public static class CliRunner
 
         if (errorCount > 0)
         {
-            error.WriteLine($"\nBuild FAILED — {errorCount} error(s).");
+            error.WriteLine($"\nBuild FAILED: {errorCount} error(s).");
             return 1;
         }
 
@@ -332,7 +342,7 @@ public static class CliRunner
     {
         if (importArgs.Length < 2)
         {
-            error.WriteLine("error: usage — spekc proto-import <descriptor.bin> <ChannelName> [--out <path>]");
+            error.WriteLine("error: usage: spekc proto-import <descriptor.bin> <ChannelName> [--out <path>]");
             return 1;
         }
 
@@ -393,7 +403,7 @@ public static class CliRunner
     {
         if (exportArgs.Length < 2)
         {
-            error.WriteLine("error: usage — spekc proto-export <file.spek> <ChannelName> [--out <path>] [--package <name>]");
+            error.WriteLine("error: usage: spekc proto-export <file.spek> <ChannelName> [--out <path>] [--package <name>]");
             return 1;
         }
 

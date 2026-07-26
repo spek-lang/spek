@@ -1,4 +1,4 @@
-// user_api.proto — canonical contract for the GrpcUserApi sample.
+// user_api.proto: canonical contract for the GrpcUserApi sample.
 //
 // In a Google-style workflow this file is checked into the proto
 // registry and lives independently of the consuming code.

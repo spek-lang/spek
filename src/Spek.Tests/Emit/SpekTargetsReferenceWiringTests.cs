@@ -8,7 +8,7 @@ namespace Spek.Tests.Emit;
 /// <c>Spek.Build/build/Spek.Build.targets</c> must forward the project's resolved
 /// references to spekc via <c>--ref</c>, so the async rewriter can see Task-returning
 /// APIs of referenced assemblies (e.g. <c>TestActorSystem.ExpectStop</c>) and
-/// auto-await them. Without this wiring those calls are silently fire-and-forget —
+/// auto-await them. Without this wiring those calls are silently fire-and-forget;
 /// the regression these tests exist to prevent.
 /// </summary>
 public sealed class SpekTargetsReferenceWiringTests

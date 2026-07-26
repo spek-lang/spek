@@ -3,7 +3,7 @@
 // carries the telling actor as the sender, so the receiver's `return reply` routes
 // back to it. If the implicit sender were lost, the Answer would vanish to NoSender,
 // Requester would never send Proof, and the probe would time out.
-// (The C# test's emitted-C# assertion — `Tell(new Query(), _selfRef)` — stays in C#.)
+// (The C# test's emitted-C# assertion, `Tell(new Query(), _selfRef)`, stays in C#.)
 
 message Query();
 message Answer();

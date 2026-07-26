@@ -36,14 +36,14 @@ public sealed class TmLanguageSyncTests
             .ToList();
 
         Assert.True(keywords.Count >= 60,
-            $"keyword extraction looks broken — only found {keywords.Count}");
+            $"keyword extraction looks broken; only found {keywords.Count}");
 
         var missing = keywords
             .Where(k => !Regex.IsMatch(tm, $@"\b{Regex.Escape(k)}\b"))
             .ToList();
 
         Assert.True(missing.Count == 0,
-            "Keywords in SpekLexer.g4 but absent from spek.tmLanguage.json — " +
+            "Keywords in SpekLexer.g4 but absent from spek.tmLanguage.json; " +
             "add them to the appropriate scope so they colorize: " +
             string.Join(", ", missing));
     }

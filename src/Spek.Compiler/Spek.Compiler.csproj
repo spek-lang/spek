@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Spek.Compiler</RootNamespace>
     <AssemblyName>Spek.Compiler</AssemblyName>
-    <!-- Not published as a standalone NuGet — it's bundled inside Spek.Cli.Tool. -->
+    <!-- Not published as a standalone NuGet; it's bundled inside Spek.Cli.Tool. -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

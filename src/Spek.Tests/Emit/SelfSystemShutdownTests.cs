@@ -8,8 +8,8 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// `self.System.Shutdown()` is the actor-reachable graceful node-shutdown
 /// verb (the supported replacement for the CE0084 process escapes). It lowers
-/// to `this.SpekSystem.Shutdown()` — the `SpekSystem` property name avoids
-/// shadowing the `System` namespace inside generated actor code — and compiles
+/// to `this.SpekSystem.Shutdown()`: the `SpekSystem` property name avoids
+/// shadowing the `System` namespace inside generated actor code - and compiles
 /// against `ActorBase`.
 /// </summary>
 public sealed class SelfSystemShutdownTests(ITestOutputHelper output)

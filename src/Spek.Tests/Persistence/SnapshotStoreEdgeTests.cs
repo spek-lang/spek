@@ -17,10 +17,10 @@ namespace Spek.Tests.Persistence;
 ///
 ///   • round-trip fidelity of mixed field types (int / long / double / bool /
 ///     string / null) through the JSON-backed stores, where the only path
-///     back is <c>JsonElement.Deserialize<T></c>;
+///     back is <c>JsonElement.Deserialize&lt;T&gt;</c>;
 ///   • the <see cref="Snapshot"/> contract itself (null-field default,
 ///     missing-key throw, empty-snapshot is distinct from never-saved);
-///   • per-store divergences the abstraction deliberately allows — InMemory
+///   • per-store divergences the abstraction deliberately allows - InMemory
 ///     stores the live object (reference identity), Log appends history while
 ///     the other three collapse to latest-wins, and key validation differs
 ///     across stores;
@@ -55,7 +55,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     private static Snapshot Mixed() => new(new Dictionary<string, object?>
     {
         ["i"]    = 7,
-        ["l"]    = 9_000_000_000L,   // outside int range — must stay long
+        ["l"]    = 9_000_000_000L,   // outside int range: must stay long
         ["d"]    = 3.5,
         ["flag"] = true,
         ["name"] = "ada",
@@ -79,14 +79,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── InMemory store ─────────────────────────
 
     [Fact]
-    public async Task InMemory_Load_returns_null_for_unknown_key()
+    public async Task InMemory_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new InMemorySnapshotStore();
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task InMemory_second_Save_overwrites_latest_wins()
+    public async Task InMemory_second_Save_overwrites_latest_winsAsync()
     {
         var store = new InMemorySnapshotStore();
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
@@ -98,7 +98,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task InMemory_round_trips_mixed_types_and_null()
+    public async Task InMemory_round_trips_mixed_types_and_nullAsync()
     {
         var store = new InMemorySnapshotStore();
         await store.SaveAsync("k", Mixed());
@@ -106,11 +106,11 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task InMemory_returns_the_same_live_Snapshot_instance()
+    public async Task InMemory_returns_the_same_live_Snapshot_instanceAsync()
     {
         // Divergence vs the JSON-backed stores: InMemory keeps the live object,
         // so Get<int> sees the *boxed int* directly (the `value is T` fast path),
-        // and the loaded reference is the very snapshot that was saved — no
+        // and the loaded reference is the very snapshot that was saved - no
         // serialization round-trip in between.
         var store = new InMemorySnapshotStore();
         var saved = new Snapshot(new Dictionary<string, object?> { ["v"] = 41 });
@@ -124,14 +124,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── File store ─────────────────────────
 
     [Fact]
-    public async Task File_Load_returns_null_for_unknown_key()
+    public async Task File_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new FileSnapshotStore(FileDir);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task File_round_trips_mixed_types_and_null()
+    public async Task File_round_trips_mixed_types_and_nullAsync()
     {
         var store = new FileSnapshotStore(FileDir);
         await store.SaveAsync("acct/1", Mixed());
@@ -139,7 +139,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_overwrite_with_different_shape_only_keeps_latest()
+    public async Task File_overwrite_with_different_shape_only_keeps_latestAsync()
     {
         // Latest-wins also means the *shape* is replaced: a key the first
         // snapshot carried but the second omits must be gone after overwrite
@@ -161,7 +161,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_empty_snapshot_round_trips_to_empty_not_null()
+    public async Task File_empty_snapshot_round_trips_to_empty_not_nullAsync()
     {
         // A saved-but-empty snapshot must be distinguishable from a key that
         // was never written: LoadAsync returns a non-null Snapshot with zero
@@ -175,10 +175,10 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task File_load_throws_on_empty_key()
+    public async Task File_load_throws_on_empty_keyAsync()
     {
         // File resolves the path eagerly (ArgumentException.ThrowIfNullOrEmpty
-        // inside ResolvePath), so an empty key is rejected on Load too — not
+        // inside ResolvePath), so an empty key is rejected on Load too - not
         // silently treated as a missing key.
         var store = new FileSnapshotStore(FileDir);
         await Assert.ThrowsAsync<ArgumentException>(() => store.LoadAsync(""));
@@ -187,14 +187,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── Sqlite store ─────────────────────────
 
     [Fact]
-    public async Task Sqlite_Load_returns_null_for_unknown_key()
+    public async Task Sqlite_Load_returns_null_for_unknown_keyAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task Sqlite_round_trips_mixed_types_and_null()
+    public async Task Sqlite_round_trips_mixed_types_and_nullAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await store.SaveAsync("acct/1", Mixed());
@@ -202,7 +202,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Sqlite_upsert_with_different_shape_only_keeps_latest()
+    public async Task Sqlite_upsert_with_different_shape_only_keeps_latestAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?>
@@ -221,7 +221,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Sqlite_save_and_load_reject_empty_key()
+    public async Task Sqlite_save_and_load_reject_empty_keyAsync()
     {
         using var store = new SqliteSnapshotStore(DbPath);
         await Assert.ThrowsAsync<ArgumentException>(() =>
@@ -232,14 +232,14 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // ───────────────────────── Log store ─────────────────────────
 
     [Fact]
-    public async Task Log_Load_returns_null_for_unknown_key()
+    public async Task Log_Load_returns_null_for_unknown_keyAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         Assert.Null(await store.LoadAsync("never-saved"));
     }
 
     [Fact]
-    public async Task Log_round_trips_mixed_types_and_null()
+    public async Task Log_round_trips_mixed_types_and_nullAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("acct/1", Mixed());
@@ -247,7 +247,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_appends_history_while_Load_returns_latest()
+    public async Task Log_appends_history_while_Load_returns_latestAsync()
     {
         // Divergence vs the latest-wins stores: the same two saves that
         // *replace* in File/Sqlite are both *retained* in the Log. LoadAsync
@@ -267,13 +267,13 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_NextSequence_appends_past_a_garbage_segment_file()
+    public async Task Log_NextSequence_appends_past_a_garbage_segment_fileAsync()
     {
         // Append-side robustness: NextSequence has an explicit fallback for a
-        // non-numeric file sorting to the end of the key directory — it walks
+        // non-numeric file sorting to the end of the key directory - it walks
         // back to the highest *parseable* sequence and appends after it rather
         // than colliding or resetting to 1. (Read-side tolerance is a separate,
-        // currently-broken concern — see the skipped bug test below.)
+        // currently-broken concern: see the skipped bug test below.)
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 2 }));
@@ -284,8 +284,8 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
         var junk = Path.Combine(keyDir, "zzz-garbage.snapshot.json");
         await System.IO.File.WriteAllTextAsync(junk, "{ not valid sequence }");
 
-        // The next real append must land on sequence 3 — above the highest
-        // parseable one (2) — not collide with an existing segment or restart.
+        // The next real append must land on sequence 3 - above the highest
+        // parseable one (2) - not collide with an existing segment or restart.
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 3 }));
 
         var expectedSegment = Path.Combine(keyDir, "0000000003.snapshot.json");
@@ -293,8 +293,8 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
             $"expected NextSequence to advance to 3; key dir contained: "
             + string.Join(", ", Directory.GetFiles(keyDir).Select(Path.GetFileName)));
 
-        // SegmentCount now counts only valid numbered segments — the stray junk
-        // file isn't a segment — so 3, not 4. (Same EnumerateSegments fix that lets
+        // SegmentCount now counts only valid numbered segments - the stray junk
+        // file isn't a segment: so 3, not 4. (Same EnumerateSegments fix that lets
         // LoadAsync skip the junk; see Log_Load_should_skip_a_garbage_segment_file.)
         Assert.Equal(3, store.SegmentCount("k"));
     }
@@ -302,7 +302,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     // Fixed: EnumerateSegments now filters to numbered segments + orders numerically,
     // so a stray non-numeric *.snapshot.json is skipped instead of JSON-parsed.
     [Fact]
-    public async Task Log_Load_should_skip_a_garbage_segment_file()
+    public async Task Log_Load_should_skip_a_garbage_segment_fileAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
@@ -320,7 +320,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_CompactAsync_to_zero_clears_all_history()
+    public async Task Log_CompactAsync_to_zero_clears_all_historyAsync()
     {
         // keepLast: 0 is explicitly allowed (only < 0 throws). It must drop
         // every segment, after which Load returns null again.
@@ -335,7 +335,7 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
     }
 
     [Fact]
-    public async Task Log_CompactAsync_rejects_negative_keepLast()
+    public async Task Log_CompactAsync_rejects_negative_keepLastAsync()
     {
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));

@@ -7,10 +7,10 @@ namespace Spek.Benchmarks;
 /// <summary>
 /// Core runtime throughput / latency / allocation benchmarks.
 ///
-/// MemoryDiagnoser reports bytes allocated per operation — the figure to watch
+/// MemoryDiagnoser reports bytes allocated per operation - the figure to watch
 /// for per-message hot-path allocations (mailbox tuple, the observability tag
 /// array on every Enqueue, Activity.Current capture). ThreadingDiagnoser
-/// reports completed/queued work items and lock contentions — the figures that
+/// reports completed/queued work items and lock contentions - the figures that
 /// expose the thread-pool dispatch model.
 /// </summary>
 [MemoryDiagnoser]
@@ -28,7 +28,7 @@ public class MessagingBenchmarks
         var actor = system.Spawn<CounterActor>();
         for (int i = 0; i < Messages; i++)
             actor.Tell(new Ping());
-        system.AwaitTermination();   // drain to idle — all N processed
+        system.AwaitTermination();   // drain to idle: all N processed
         return Messages;
     }
 

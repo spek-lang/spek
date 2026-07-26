@@ -6,12 +6,12 @@ using Xunit.Abstractions;
 namespace Spek.Tests.Emit;
 
 /// <summary>
-/// Language-completeness — bitwise/shift operators (<c>&amp; | ^ ~ &lt;&lt; &gt;&gt;</c>)
+/// Language-completeness: bitwise/shift operators (<c>&amp; | ^ ~ &lt;&lt; &gt;&gt;</c>)
 /// and null-coalescing (<c>??</c>). These reuse the existing <c>BinaryExpr</c> /
 /// <c>UnaryExpr</c> nodes (just new <c>BinaryOp</c>/<c>UnaryOp</c> members), so all
 /// the existing walkers already cover them; the work is grammar precedence +
 /// verbatim operator emit. Shift is matched as adjacent <c>LT LT</c>/<c>GT GT</c>
-/// at the parser level so '&gt;&gt;' never becomes a single token — the
+/// at the parser level so '&gt;&gt;' never becomes a single token - the
 /// <see cref="NestedGenerics_StillParse"/> test guards that invariant.
 /// </summary>
 public sealed class OperatorTests(ITestOutputHelper output)

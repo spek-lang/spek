@@ -41,7 +41,7 @@ public sealed class ModuleEmitter
 
         // Methods and nested modules share the static-class body; we
         // emit methods first then nested modules. The two namespaces
-        // are independent — semantic analysis already verified there's
+        // are independent: semantic analysis already verified there's
         // no same-kind duplicate within either pile.
         var first = true;
         foreach (var m in module.Methods)
@@ -63,7 +63,7 @@ public sealed class ModuleEmitter
         _w.Line();
     }
 
-    // A module method emits as a C# `static` method — the only thing that
+    // A module method emits as a C# `static` method - the only thing that
     // distinguishes it from an actor/class method (the dev never writes `static`).
     private void EmitMethod(MethodDecl m)
     {

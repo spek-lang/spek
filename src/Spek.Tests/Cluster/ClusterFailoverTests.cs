@@ -10,7 +10,7 @@ namespace Spek.Tests.ClusterIntegration.Failover;
 /// Coverage for located-actor failover / re-placement after a topology
 /// change. When the node that currently owns a location key goes
 /// Down / Unreachable, <see cref="SpekClusterNs.Cluster.Locate{TActor}"/>
-/// must re-resolve the key to a surviving Up member — placement filters
+/// must re-resolve the key to a surviving Up member - placement filters
 /// <see cref="NodeState.Up"/> only. And when *no* member is Up, Locate
 /// must surface the documented <see cref="InvalidOperationException"/>
 /// rather than silently picking a dead node.
@@ -81,7 +81,7 @@ public class ClusterFailoverTests
     /// fabric. Locate must re-resolve the key to the surviving Up node.
     /// </summary>
     [Fact]
-    public void Locate_OwnerGoesUnreachable_ReplacesOntoSurvivingNode()
+    public async Task Locate_OwnerGoesUnreachable_ReplacesOntoSurvivingNodeAsync()
     {
         using var fabric = new InMemoryClusterFabric();
         using var systemA = new ActorSystem("a");
@@ -143,9 +143,10 @@ public class ClusterFailoverTests
         refAfterFailover.Tell(new Increment());
         refAfterFailover.Tell(new GetCount(), sender: collector);
 
-        Assert.True(probe.Completion.Wait(TimeSpan.FromSeconds(3)),
+        var winner = await Task.WhenAny(probe.Completion, Task.Delay(TimeSpan.FromSeconds(3)));
+        Assert.True(ReferenceEquals(winner, probe.Completion),
             "GetCount reply did not arrive within 3s after re-placement.");
-        var reply = Assert.IsType<CountReply>(probe.Completion.Result);
+        var reply = Assert.IsType<CountReply>(await probe.Completion);
         Assert.Equal(key, reply.Key);
         Assert.Equal(2, reply.Count);
     }
@@ -225,7 +226,7 @@ public class ClusterFailoverTests
         Assert.Equal(2, UpMembers(clusterA).Count);
 
         // Knock both members out of Up. The local node starts Up and is
-        // only ever moved out of Up via LeaveAsync (Leaving/Exiting) — so
+        // only ever moved out of Up via LeaveAsync (Leaving/Exiting) - so
         // mark the local node Down directly through the membership impl,
         // and the peer Unreachable through the facade.
         var ssm = Assert.IsType<StaticSeedClusterMembership>(clusterA.Membership);

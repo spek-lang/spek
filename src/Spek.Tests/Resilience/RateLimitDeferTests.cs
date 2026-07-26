@@ -30,16 +30,16 @@ public sealed class RateLimitDeferTests
         new("test/actor", "Channel", new object(), DateTimeOffset.UtcNow);
 
     /// <summary>
-    /// Scenario 1 — Defer with RetryAfter.
+    /// Scenario 1: Defer with RetryAfter.
     ///
     /// FixedWindow(1 permit / 10s, QueueLimit: 1) with AutoReplenishment
     /// on. We take the single permit, then the next AttemptAcquire is
-    /// denied but — because there is queue capacity and a fixed window
-    /// to wait out — the denied lease carries a RetryAfter hint. The
+    /// denied but: because there is queue capacity and a fixed window
+    /// to wait out: the denied lease carries a RetryAfter hint. The
     /// policy must surface that as Defer.
     /// </summary>
     [Fact]
-    public async Task FixedWindow_with_queue_surfaces_Defer_with_positive_RetryAfter()
+    public async Task FixedWindow_with_queue_surfaces_Defer_with_positive_RetryAfterAsync()
     {
         // Build the limiter directly so we control QueueLimit > 0, which
         // is what makes the denied lease carry a RetryAfter hint. The
@@ -87,17 +87,17 @@ public sealed class RateLimitDeferTests
     }
 
     /// <summary>
-    /// Scenario 1, branch-selection angle — pins WHICH branch each
+    /// Scenario 1, branch-selection angle - pins WHICH branch each
     /// limiter shape takes, distinguishing Defer from Reject:
     ///
     ///  * A windowed limiter (FixedWindow) always attaches a RetryAfter
-    ///    hint to a denial — there is a concrete time at which the window
-    ///    replenishes — so it drives the *Defer* branch REGARDLESS of
+    ///    hint to a denial: there is a concrete time at which the window
+    ///    replenishes: so it drives the *Defer* branch REGARDLESS of
     ///    QueueLimit (verified empirically: q=0 and q=2 both surface a
     ///    10s RetryAfter). So both forms below must Defer.
     ///
     ///  * A saturated ConcurrencyLimiter denies WITHOUT a RetryAfter hint
-    ///    (there is no scheduled replenishment — a permit frees only when
+    ///    (there is no scheduled replenishment - a permit frees only when
     ///    some holder releases), so it drives the *Reject* branch. To
     ///    reach that through the policy we hold a lease externally (the
     ///    policy itself releases its own lease immediately), saturating
@@ -105,11 +105,11 @@ public sealed class RateLimitDeferTests
     ///
     /// This is the test that originally encoded the (wrong) assumption
     /// that FixedWindow q=0 would Reject; the empirical probe corrected
-    /// it — see notes. The branch is now exercised the way the limiters
+    /// it: see notes. The branch is now exercised the way the limiters
     /// actually behave.
     /// </summary>
     [Fact]
-    public async Task Windowed_limiters_Defer_saturated_concurrency_Rejects()
+    public async Task Windowed_limiters_Defer_saturated_concurrency_RejectsAsync()
     {
         // FixedWindow, no queue: denial still carries RetryAfter -> Defer.
         await using var noQueue = RateLimitIngressPolicy.FixedWindow(
@@ -163,13 +163,13 @@ public sealed class RateLimitDeferTests
     }
 
     /// <summary>
-    /// Scenario 2 — concurrency-gate semantics.
+    /// Scenario 2: concurrency-gate semantics.
     ///
     /// Concurrency(permits: 2) builds a ConcurrencyLimiter, but the
     /// policy disposes the lease at the end of EvaluateAsync (the
     /// `using var lease` on line 47 of RateLimitIngressPolicy). Per the
     /// XML doc on the Concurrency factory: "Permits release when the
-    /// lease is disposed — this policy releases immediately on
+    /// lease is disposed: this policy releases immediately on
     /// acquisition, so it functions as a flat admission gate rather than
     /// a true concurrency limiter."
     ///
@@ -180,7 +180,7 @@ public sealed class RateLimitDeferTests
     /// pinning the documented flat-gate behavior.
     /// </summary>
     [Fact]
-    public async Task Concurrency_ReleasesLeasePerCall_SoRepeatedEvaluationsNeverSaturate()
+    public async Task Concurrency_ReleasesLeasePerCall_SoRepeatedEvaluationsNeverSaturateAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 2);
 
@@ -189,7 +189,7 @@ public sealed class RateLimitDeferTests
         // far more sequential evaluations than there are permits all Allow. A lease
         // LEAK would start denying after `permits` calls. (Sequential, not parallel:
         // overlapping calls against a 2-permit gate can transiently deny, which is
-        // real but timing-dependent — the durable, deterministic property under test
+        // real but timing-dependent: the durable, deterministic property under test
         // is that the lease is released between calls.)
         const int calls = 50;
         for (int i = 0; i < calls; i++)
@@ -202,14 +202,14 @@ public sealed class RateLimitDeferTests
     }
 
     /// <summary>
-    /// Scenario 2, reinforcement — serial evaluations on a 1-permit gate
+    /// Scenario 2, reinforcement: serial evaluations on a 1-permit gate
     /// also all Allow, because each acquisition is released before the
     /// next. A true held-concurrency limiter with permit 1 would block
     /// the second concurrent holder; this flat gate does not, because no
     /// permit is ever held past the end of EvaluateAsync.
     /// </summary>
     [Fact]
-    public async Task Concurrency_single_permit_gate_admits_every_serial_call()
+    public async Task Concurrency_single_permit_gate_admits_every_serial_callAsync()
     {
         await using var policy = RateLimitIngressPolicy.Concurrency(permits: 1);
 

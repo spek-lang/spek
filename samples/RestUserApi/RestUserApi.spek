@@ -1,4 +1,4 @@
-// RestUserApi.spek — a self-contained, runnable Spek REST API.
+// RestUserApi.spek: a self-contained, runnable Spek REST API.
 //
 // Run:       dotnet run
 // Try:       curl http://localhost:5000/users/u-1
@@ -6,8 +6,8 @@
 //            curl -X PATCH http://localhost:5000/users/u-1/email -d '{"email":"new@x.com"}' -H 'Content-Type: application/json'
 //
 // What it shows:
-//   * `channel UserApi { ... }` — service contract.
-//   * `actor UserService : UserApi { ... }` — handler implementation.
+//   * `channel UserApi { ... }` - service contract.
+//   * `actor UserService : UserApi { ... }` - handler implementation.
 //   * Convention-derived routes (Get*/Create*/Update*/Delete* prefix
 //     → HTTP verb; `id` field → path placeholder).
 //   * One off-convention route (`PATCH /users/{id}/email`) using the
@@ -74,11 +74,11 @@ program Main
     var app = builder.Build();
     app.MapChannel<UserApi, UserService>("/users", routes =>
     {
-        // The only off-convention route — every other handler maps via
+        // The only off-convention route - every other handler maps via
         // the convention engine (verb from prefix, /{id} from id field).
         routes.Override<ChangeEmail>(HttpVerb.Patch, "/{id}/email");
     });
-    // NOTE: blocking `Run()`, not `RunAsync()` — Spek has no `await` keyword,
+    // NOTE: blocking `Run()`, not `RunAsync()` - Spek has no `await` keyword,
     // and invisible async doesn't cover AspNetCore types, so `app.RunAsync()`
     // would be fire-and-forgotten and the process would exit immediately.
     // (Same idiom as samples/HelloWeb.)
