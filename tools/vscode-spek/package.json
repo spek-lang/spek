@@ -12,7 +12,7 @@
     "directory": "tools/vscode-spek"
   },
   "engines": {
-    "vscode": "^1.80.0"
+    "vscode": "^1.91.0"
   },
   "main": "./out/extension.js",
   "categories": [
@@ -242,11 +242,11 @@
     "vscode:prepublish": "npm run compile"
   },
   "dependencies": {
-    "vscode-languageclient": "^9.0.0"
+    "vscode-languageclient": "^10.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/vscode": "^1.80.0",
+    "@types/vscode": "^1.91.0",
     "typescript": "^5.3.0"
   }
 }
