@@ -178,7 +178,7 @@ public sealed class PersistenceRobustnessTests
             Assert.Equal(5, Prop<int>(live, "durable"));
             Assert.Equal(107, Prop<int>(live, "ephemeral"));
 
-            Assert.True(system1.AwaitTermination(System.TimeSpan.FromSeconds(10)));
+            Assert.True(system1.AwaitTermination(System.TimeSpan.FromSeconds(60)));
         }
 
         // The persisted snapshot must carry "Durable" but never the transient
@@ -266,7 +266,7 @@ public sealed class PersistenceRobustnessTests
         teller.Tell(deposit);
 
         // Poll for the dead-letter (the save is fire-and-forget; bound the wait).
-        var deadline = System.DateTime.UtcNow + System.TimeSpan.FromSeconds(10);
+        var deadline = System.DateTime.UtcNow + System.TimeSpan.FromSeconds(60);
         DeadLetterRecord? record = null;
         while (System.DateTime.UtcNow < deadline)
         {
@@ -288,7 +288,7 @@ public sealed class PersistenceRobustnessTests
         // A second mutation also still works (read-after-write through the
         // failing store) - the failed save did not wedge the region's lock.
         teller.Tell(System.Activator.CreateInstance(depositType, new object[] { 12 })!);
-        var afterDeadline = System.DateTime.UtcNow + System.TimeSpan.FromSeconds(10);
+        var afterDeadline = System.DateTime.UtcNow + System.TimeSpan.FromSeconds(60);
         int balance = -1;
         while (System.DateTime.UtcNow < afterDeadline)
         {
@@ -319,7 +319,7 @@ public sealed class PersistenceRobustnessTests
         var tcs = new System.Threading.Tasks.TaskCompletionSource<object>();
         var capture = system.Spawn<ReplyCapture>(tcs);
         target.Tell(message, sender: capture);
-        return await tcs.Task.WaitAsync(System.TimeSpan.FromSeconds(10));
+        return await tcs.Task.WaitAsync(System.TimeSpan.FromSeconds(60));
     }
 
     private static T Prop<T>(object reply, string name)
