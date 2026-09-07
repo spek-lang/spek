@@ -18,7 +18,7 @@ dotnet run                      # prints 42, 7, 17, 20, 10
 ```
 
 The project imports `Spek.targets`, so `dotnet run` compiles `Modules.spek`
-into `obj/` and builds it in one step; there's no `.g.cs` beside the source to
+into `obj/` and builds it in one step. There's no `.g.cs` beside the source to
 commit. See [the language docs](../../docs/language/modules.md) for the full
 feature description.
 

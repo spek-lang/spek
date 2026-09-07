@@ -23,9 +23,8 @@ message Continue();
 message Reload();
 
 /// <summary>Emitted by the actor when startup has completed and
-/// it's ready to accept work. Adapters route this to host-readiness
-/// signals (systemd <c>READY=1</c>, ASP.NET Core
-/// <c>ApplicationStarted</c>).</summary>
+/// it's ready to accept work: the actor-side readiness signal an
+/// adapter can consume.</summary>
 message Started();
 
 /// <summary>System power-management event from the host
@@ -41,19 +40,18 @@ message PowerEvent(string EventName);
 /// lock, unlock, etc.).</summary>
 message SessionChange(string EventName);
 
-/// <summary>Custom command from the host (Windows SCM
-/// <c>SERVICE_CONTROL_DEVICEEVENT</c>, user-defined codes).</summary>
+/// <summary>Custom command from the host (Windows SCM user-defined
+/// control codes 128-255).</summary>
 message CustomCommand(int Code);
 
 /// <summary>Emitted by the actor to announce an intentional
-/// state transition. Adapters map the <see cref="State"/> value
-/// to whatever the underlying init system expects
-/// (`SetServiceStatus`, `sd_notify STATUS=`, etc.).</summary>
+/// state transition. The <see cref="State"/> value gives an adapter
+/// vocabulary for reflecting service state to its init
+/// system.</summary>
 message StateChanged(HostState State);
 
-/// <summary>Emitted by the actor for periodic health reporting.
-/// Adapters route this to host health-check endpoints (systemd
-/// <c>WATCHDOG=1</c>, ASP.NET Core <c>IHealthCheck</c>).</summary>
+/// <summary>Emitted by the actor for periodic health reporting:
+/// the health vocabulary an adapter can consume.</summary>
 /// <param name="IsHealthy">True if the actor is operating
 /// normally; false if it's degraded.</param>
 /// <param name="Message">Optional diagnostic message. May be

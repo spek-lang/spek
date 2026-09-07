@@ -24,8 +24,8 @@ public class ReferenceFinderTests
     [Fact]
     public void Message_References_NewExpr_AndPattern()
     {
-        // Ping is referenced 3 times (decl + new + pattern) - find all
-        // 4 occurrences (decl + 3 refs) when IncludeDeclaration = true.
+        // Ping is referenced twice (the two on-patterns) - find all
+        // 3 occurrences (decl + 2 refs) when IncludeDeclaration = true.
         const string src = """
             message Ping();
             message Pong();

@@ -4,7 +4,7 @@ layout: default
 parent: Language
 nav_order: 1
 permalink: /language/first-actor/
-description: "Learn Spek by building one small program that grows from a counter into a bank: one concept per step, with the compiler as your teacher."
+description: "Learn Spek by building one small program that grows from a counter into a bank, one concept per step."
 ---
 
 # Build your first actor
@@ -130,7 +130,7 @@ returns immediately. The actor processes its mailbox one message at a
 time, in order, so `n` ends up at `3`. There's no lock anywhere, and there
 doesn't need to be: `n` is private to `Counter`, and only one message is
 handled at a time. That single guarantee is what
-[isolation](/language/isolation/) buys you.
+[isolation](/language/isolation/) gives you.
 
 ## Getting a value back with `ask`
 
@@ -249,7 +249,7 @@ actor Account
 ```
 
 Now there are two behaviors. In `Open`, deposits land and `Lock` flips us
-to `Frozen`. In `Frozen` there's no `Deposit` handler at all; a deposit
+to `Frozen`. In `Frozen` there's no `Deposit` handler at all. A deposit
 that arrives while frozen isn't handled. It isn't silently lost
 either; it goes to the
 [dead-letter sink](/reference/runtime/#ideadlettersink). `Unlock` flips
@@ -258,11 +258,10 @@ back.
 Two constructs are new here. `init()` runs once when the actor is spawned, the
 constructor, and we use it to pick the starting behavior with `become Open;`.
 `become Frozen;` then switches the active behavior atomically, *after* the
-current handler finishes; its target must be a behavior declared on this actor.
+current handler finishes. Its target must be a behavior declared on this actor.
 
-That last rule is the compiler-as-teacher moment. Typo the target and you
-don't find out at runtime; you get a build error pointing right at the bad
-name:
+That last rule is a compile error, not a runtime surprise. Typo the target
+and you get a build error pointing at the bad name:
 
 <!-- spek-test: ignore -->
 ```spek
@@ -273,8 +272,8 @@ behavior Open
 ```
 
 [CE0011](/reference/errors/#ce0011) catches it before the program ever
-runs. That's the whole pitch of Spek in miniature: mistakes that are
-runtime surprises in other actor frameworks are build-time errors here.
+runs. A typo that would be a runtime surprise in other actor frameworks is
+a build-time error here.
 
 `init` and `become` get their full treatment, including
 [lifecycle hooks](/language/actors/#lifecycle-hooks), in the next chapter.
@@ -315,7 +314,7 @@ actor Account
 
 Two things to note. `sender` is an implicit `ActorRef` to whoever sent the
 current message, valid only inside an `on` handler. And the bare `return;`
-ends the handler without producing an `ask` reply; here it's how we say
+ends the handler without producing an `ask` reply. Here it's how we say
 "rejected, nothing more to do." The C# you can write inside a body is
 covered in [C# syntax in bodies](/language/csharp-syntax/).
 
@@ -392,9 +391,7 @@ In one short program you used every load-bearing concept in Spek:
   typo-proof transitions.
 - **`spawn`**: actors creating and supervising other actors.
 
-That's the core. The rest of the language is depth on these ideas plus the
-machinery around them. The natural next stop is the chapter that picks up
-right where this one left off:
+That's the core. Next is the full treatment of actors and behaviors:
 
 - [Actors and behaviors](/language/actors/): the full treatment of `init`,
   behaviors, `become`, lifecycle hooks, and visibility.

@@ -36,7 +36,7 @@ template-method (`EscalationPolicy`/`PagerPolicy`) with
 `init() : base(...)` chaining, and an `abstract actor` base
 (`NotifierBase`) whose `abstract behavior` the concrete notifier fills in
 with `override behavior`. Because each type lives in its own file, the
-sample also demonstrates whole-project cross-file compilation; the layout
+sample also demonstrates whole-project cross-file compilation: the layout
 a real C#-convention project would use.
 
 ## `Watchdog`: supervision policies and passivation

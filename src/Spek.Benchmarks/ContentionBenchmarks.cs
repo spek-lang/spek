@@ -15,8 +15,7 @@ namespace Spek.Benchmarks;
 /// - <see cref="BlockingWait_FanOut"/> models it with <c>Thread.Sleep</c>:
 ///   each handler parks a pool thread. Once N exceeds the pool's ready threads,
 ///   later actors wait for thread injection (~1–2/sec), so the batch time grows
-///   far past one wait. The ThreadingDiagnoser delta between the two makes the
-///   cost concrete.
+///   far past one wait.
 ///
 /// This is the runtime characteristic behind the test-suite flakiness: a
 /// blocking handler starves siblings. CE0083 flags <c>Thread.Sleep</c> /

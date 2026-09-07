@@ -46,7 +46,7 @@ public sealed class RedundantTaskAnnotationTests
     {
         // The textbook redundant hatch: the Task is bound to an explicit
         // type and then abandoned. The structured join awaits it, so the
-        // annotation buys nothing a bare call / `var` wouldn't.
+        // annotation does nothing a bare call / `var` wouldn't.
         const string src = """
             module Io
             {

@@ -13,8 +13,8 @@ namespace Spek.Tests.Compiler;
 /// here parse a Spek source string into the channel + messages,
 /// pass them to <see cref="ChannelToProtoEmitter"/>, and verify
 /// the output is shape-correct (header, package, messages,
-/// service+rpc declarations) and that the emitted proto re-parses
-/// via <c>Google.Protobuf</c> as a sanity check.
+/// service+rpc declarations) and that the emitted proto is
+/// shape-checked (balanced braces, required proto3 markers).
 /// </summary>
 public sealed class ChannelToProtoEmitterTests
 {
@@ -204,8 +204,6 @@ public sealed class ChannelToProtoEmitterTests
     [Fact]
     public void Emitted_Proto_ReParsesViaGoogleProtobuf()
     {
-        // Sanity check: Google.Protobuf can compile our output. If
-        // protoc would reject it, that's a synthesis bug.
         var (ch, msgs) = ParseFixture(
             """
             message GetUser(string id);

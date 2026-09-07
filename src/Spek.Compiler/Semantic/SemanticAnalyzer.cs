@@ -611,7 +611,7 @@ public static class SemanticAnalyzer
                 $"Shared region '{sr.Name} : Persisted' has no registered " +
                 $"snapshot-store provider. Add 'system.RegisterPersistenceProvider<{sr.Name}>(store);' " +
                 $"to a 'program' block before any actor that uses the region " +
-                $"is spawned, or change the region to ': Transient' (the default) " +
+                $"is spawned, or remove ': Persisted' (transient is the default) " +
                 $"if persistence isn't needed."));
         }
     }
@@ -3320,10 +3320,10 @@ public static class SemanticAnalyzer
     /// actor's own method, or a confined-class / module method that PROVABLY
     /// keeps the delegate on this thread.
     /// <para>
-    /// The confined-class and module trust is <em>earned</em>, not assumed. The
+    /// The confined-class and module trust is checked, not assumed. The
     /// original rule trusted any Spek-source method on the theory that it
     /// compiles under these same rules: but CE0135/CE0136 never run on class or
-    /// module method BODIES, so a method that quietly hands the delegate to a
+    /// module method BODIES, so a method that hands the delegate to a
     /// foreign sink (<c>void Take(Action a) {{ Acme.Global.Store(a); }}</c>) was
     /// trusted while doing exactly what the rule forbids. So the trust is now
     /// backed by <see cref="MethodKeepsDelegatesOnThread"/>: a confined-class or
@@ -3347,7 +3347,7 @@ public static class SemanticAnalyzer
         if (receiver is not null)
         {
             // A method on a confined-class actor field - Spek source. Trust is
-            // EARNED (keeps its delegate params on-thread), and it is judged
+            // checked (keeps its delegate params on-thread), and it is judged
             // here BEFORE the LINQ name table: a Spek class with a method named
             // `Where` that stores the callback is a sink, not a LINQ operator,
             // and must not borrow the name table's trust.
@@ -3356,7 +3356,7 @@ public static class SemanticAnalyzer
                 && classSyms.Methods.TryGetValue(call.Method, out var classMethod))
                 return MethodKeepsDelegatesOnThread(classMethod);
 
-            // A Spek module's function: same earned trust, same precedence.
+            // A Spek module's function: same checked trust, same precedence.
             if (st.Symbols.ResolveModule(receiver) is { } module
                 && module.Methods.FirstOrDefault(m => m.Name == call.Method) is { } moduleMethod)
                 return MethodKeepsDelegatesOnThread(moduleMethod);
@@ -5676,8 +5676,8 @@ public static class SemanticAnalyzer
     /// <summary>
     /// CE0116 support: true when a loop body contains a call to a method whose
     /// name ends in <c>Async</c> (the .NET async convention; invisible async
-    /// awaits it). Conservative: does NOT descend into a nested loop - that
-    /// inner loop earns its own hint.
+    /// awaits it). Conservative: does NOT descend into a nested loop. That
+    /// inner loop gets its own hint.
     /// </summary>
     private static bool LoopBodyHasAsyncCall(Stmt stmt) => stmt switch
     {
@@ -5813,7 +5813,7 @@ public static class SemanticAnalyzer
                             $"'reader on ...' handler may not mutate actor field " +
                             $"'{fieldRoot}'. Mark this handler 'writer on ...' or move " +
                             $"the mutation into a writer arm. Reader handlers are bound " +
-                            $"to read-only access to actor state so the future runtime can " +
+                            $"to read-only access to actor state so the runtime can " +
                             $"run them concurrently with other readers."));
                     }
                     else
@@ -5946,7 +5946,7 @@ public static class SemanticAnalyzer
                 // The invisible-async pass rewrites this to the *Async sibling
                 // and awaits it in handler/method bodies (AsyncRewriter), so it
                 // doesn't block there; the warning steers you to write the async
-                // form directly (and still earns its keep in init/ctor, where
+                // form directly (and still fires in init/ctor, where
                 // there's no await context to rewrite into).
                 if (staticName is not null
                     && SyncIoStaticCallsWithAsyncSibling.Contains(staticName))

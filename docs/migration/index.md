@@ -60,6 +60,9 @@ decide how to model request-reply in your own Spek actors.
 | F# (MailboxProcessor)          | `actor` + fields + `behavior`; DU cases → `message` declarations   | No DU-native pattern match at message level       |
 | Go (goroutines + channels)     | `actor` = goroutine + owned channel, but addressable & supervised  | No `select`, no channel close, no `context.Context` |
 
+The same ancestry, written as a design map rather than a rewrite guide, is
+[Where Spek comes from](/heritage/).
+
 ## Design-heritage philosophy
 
 Where Spek does something that looks identical to another framework, it's

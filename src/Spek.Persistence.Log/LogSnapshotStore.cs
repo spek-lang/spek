@@ -196,7 +196,7 @@ public sealed class LogSnapshotStore : ISnapshotStore
         // NUMERIC sequence. Skipping unparseable filenames here means LoadAsync /
         // ReadHistoryAsync / SegmentCount never mistake a stray "garbage.snapshot.json"
         // for the latest segment (which previously crashed ReadSegmentAsync's JSON
-        // parse). Numeric ordering is also robust to non-zero-padded names.
+        // parse). Numeric ordering also handles non-zero-padded names.
         return Directory
             .EnumerateFiles(keyDir, "*" + SegmentExtension, SearchOption.TopDirectoryOnly)
             .Select(p => (Path: p, Seq: ParseSeqOrNegative(p)))

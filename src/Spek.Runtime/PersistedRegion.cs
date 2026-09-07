@@ -163,10 +163,8 @@ public abstract class PersistedRegion : SharedRegion
         }
         if (droppedKeys.Count == 0) return;
 
-        // Console-log for now; future work could route through a
-        // proper diagnostics channel. The dead-letter sink isn't quite
-        // right (this isn't a dropped message), so a stderr line is
-        // the simplest first-shipped behaviour.
+        // A stderr line, on purpose: the dead-letter sink is the wrong
+        // channel because this isn't a dropped message.
         Console.Error.WriteLine(
             $"WARN: PersistedRegion '{Name}' snapshot has {droppedKeys.Count} " +
             $"key(s) with no matching field: [{string.Join(", ", droppedKeys)}]. " +

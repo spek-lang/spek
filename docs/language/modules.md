@@ -112,10 +112,9 @@ actor Normalizer
 ```
 
 Because a module holds no state, calling one from a handler is always safe:
-there is nothing for two actors to race over. The
-[isolation guarantees](/language/isolation/) you rely on between actors are
-never at risk, so a module is the natural place to factor out logic that
-several actors share.
+there is nothing for two actors to race over, which makes a module the
+natural place to factor out [isolation](/language/isolation/)-safe logic
+that several actors share.
 
 ## Modules are stateless
 
@@ -282,8 +281,7 @@ module Io
 }
 ```
 
-Both methods emit as `async Task<int>`, and both call sites are awaited;
-you never annotate the chain. This is only a glance at the feature;
+Both methods emit as `async Task<int>`, and both call sites are awaited. You never annotate the chain. This is only a glance at the feature;
 [Async without await](/language/async/) is the full story (why it's safe,
 the `var`-for-concurrency lever, and the explicit-`Task<T>` escape hatch).
 

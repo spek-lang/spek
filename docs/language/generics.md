@@ -229,7 +229,7 @@ actor Holder<T> where T : class
 
 Because generics are passthrough, a *grammar* mistake (a stray `<`, a
 constraint on a kind that can't take one) is still a Spek
-[CE](/reference/errors/); Spek's parser owns the syntax. But a *type* mistake
+[CE](/reference/errors/). Spek's parser owns the syntax. But a *type* mistake
 is reported by **Roslyn**, on the generated C#:
 
 {: .note }
@@ -252,8 +252,7 @@ A few corners are intentionally out of scope:
 - **No variance markers.** `in` / `out` on a type parameter (declaration-site
   variance) isn't part of the grammar.
 - **`message` constraints aren't supported.** Type parameters on a `message`
-  work, but a `where` clause on a message is a parse error; constraints on
-  immutable data records are rare enough not to earn the grammar.
+  work, but a `where` clause on a message is a parse error. Constraints on immutable data records are rare enough that the grammar does not include them.
 - **Enums, channels, and shared regions aren't generic.** An
   [enum](/language/enums/) is a closed set of concrete variants, a
   channel is a concrete message contract, and a shared region holds concrete

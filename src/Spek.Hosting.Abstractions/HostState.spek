@@ -7,10 +7,9 @@ namespace Spek.Hosting;
 /// intentional transitions (e.g. <c>Degraded</c> when graceful
 /// failover kicks in).
 ///
-/// <para>SCM (Windows Services), systemd (Linux), and launchd
-/// (macOS) consume these via their adapter packages - each maps
-/// the enum value to whatever the underlying init system expects
-/// (`SetServiceStatus`, `sd_notify STATUS=`, etc.).</para>
+/// <para>The vocabulary an adapter package (Windows SCM, systemd,
+/// launchd) can consume to reflect service state to its init
+/// system.</para>
 /// </summary>
 enum HostState
 {

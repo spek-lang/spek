@@ -87,7 +87,7 @@ module Geometry
 
 ## Tuples
 
-Tuple literals `(a, b)` build a `ValueTuple`; C# infers the element types. A
+Tuple literals `(a, b)` build a `ValueTuple`. C# infers the element types. A
 single parenthesized expression stays a grouping; a tuple needs at least one
 comma.
 
@@ -187,7 +187,7 @@ module Sums
 ## Object & collection initializers
 
 `new T { … }` (object initializer with property assignments) and
-`new T(args) { … }` / collection initializers all work; Roslyn decides which
+`new T(args) { … }` / collection initializers all work. Roslyn decides which
 form is valid for the type:
 
 <!-- spek-test: compile -->
@@ -272,7 +272,7 @@ module Describe
 
 {: .note }
 > The switch statement adds no capability over `if / else if` (which also takes
-> full statement blocks); it's there for familiarity. Reach for the switch
+> full statement blocks). It's there for familiarity. Reach for the switch
 > *expression* when each branch yields a value; the statement when each branch
 > *does* something.
 

@@ -90,7 +90,7 @@ internal sealed class ActorSlot : IDisposable, IThreadPoolWorkItem
     private TaskCompletionSource? _writerReleased;
 
     // In-flight reader accounting: a counter plus a lazily
-    // created idle pulse (the r4 lazy-signaling pattern) replaces the old
+    // created idle pulse (the lazy-signaling pattern) replaces the old
     // task list + ContinueWith + O(n) removal - Stop / Restart / Dispose
     // wait for the counter to hit zero.
     private int _inFlightReaders;
@@ -855,7 +855,7 @@ internal sealed class ActorSlot : IDisposable, IThreadPoolWorkItem
         // ENQUEUING thread's local queue, which starves whenever that
         // thread keeps producing (a busy router) or blocks awaiting the
         // reply (an asker); measured as a fleet regression + ask jitter
-        // in perf round r2.
+        // in benchmarking.
         ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
     }
 
@@ -1022,7 +1022,7 @@ internal sealed class ActorSlot : IDisposable, IThreadPoolWorkItem
                     // counter. The histogram includes lock acquisition
                     // because that's what handler authors actually
                     // experience as "how long does my handler take";
-                    // separating lock-wait vs body-time is a follow-up.
+                    // the histogram does not separate lock-wait from body time.
                     var metricsOn = _system is { Metrics.Enabled: true };
                     var swStart = System.Diagnostics.Stopwatch.GetTimestamp();
                     if (metricsOn)
@@ -1106,7 +1106,7 @@ internal sealed class ActorSlot : IDisposable, IThreadPoolWorkItem
                     // A Restart that exceeds the actor's configured retry
                     // budget degrades to Stop. Primitives live on
                     // ActorBase; the emitter wires `supervise` decls to
-                    // the overrides in a future push.
+                    // these overrides.
                     if (resolved == FailureDirective.Restart && IsRestartBudgetExceeded(instance))
                     {
                         _deadLetterSink?.DeadLetter(item.Message,
@@ -1303,7 +1303,7 @@ internal sealed class ActorSlot : IDisposable, IThreadPoolWorkItem
     /// <see cref="DispatchItemAsync"/>). With no instance to consult, routes
     /// the failure through the same supervisor chain a handler failure uses:
     /// a parented actor escalates so the parent's <c>OnChildFailure</c>
-    /// decides, a root actor stops. A supervisor-blessed Restart/Resume earns
+    /// decides, a root actor stops. A supervisor-blessed Restart/Resume gets
     /// a bounded retry (the instance stays null so the next message rebuilds
     /// it); past <see cref="MaxMaterializationRetries"/> in the window, or on
     /// a Stop, the slot stops: subsequent mail then drains through the

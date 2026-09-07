@@ -6,11 +6,9 @@ namespace Spek.Persistence;
 /// is constructed with one of these; it reads on actor spawn (to restore state)
 /// and writes when an actor calls <c>persist</c>.
 ///
-/// Keys identify a persistent instance across restarts. The current key
-/// format is <c>"actorType/persistenceId"</c>; the emitter generates a
-/// stable id from the actor's declared persistence-id member (if any) or the
-/// runtime-assigned spawn id as a fallback. Persistent-identity semantics
-/// will firm up as the runtime's persistence story matures.
+/// Keys identify a persistent instance across restarts. The key is the
+/// caller-supplied persistence key from <c>SpawnPersistent</c> (regions
+/// use their <c>Name</c>).
 /// </summary>
 public interface ISnapshotStore
 {

@@ -101,7 +101,7 @@ internal actor AuditLogger    { on Open => { } }
 ```
 
 Fields are *always* private. There is no syntax to expose a field to another
-actor, and that is deliberate: the only legal thing to do with an `ActorRef`
+actor. The only legal thing to do with an `ActorRef`
 is `Tell` it a message or use it with `ask`. State leaves an actor only by
 being copied into an outgoing message, never by being read across the
 boundary.
@@ -205,7 +205,7 @@ actor BankAccount
 
 The arguments you give `init` are the arguments you pass when you spawn the
 actor, `system.Spawn<BankAccount>("alice", 100m)` here. Give parameters names
-distinct from your fields; the convention is a descriptive parameter that
+distinct from your fields. The convention is a descriptive parameter that
 reads naturally at the assignment:
 
 <!-- spek-test: compile -->
@@ -279,7 +279,7 @@ for logging or auditing.
 > **Where this comes from.** Named behaviors map closely to Erlang's
 > `gen_statem` states and to Akka's FSM extension. Unlike Akka's
 > `Become(handlerMethod)`, which takes a delegate, Spek's behaviors are
-> first-class declarations: the compiler can enumerate them, name them in
+> named declarations: the compiler can enumerate them, name them in
 > diagnostics, and reject a transition to one that doesn't exist. If you're
 > used to Proto.Actor's `Become(otherReceive)`, this is a compile-time-checked
 > version of the same idea.
@@ -401,10 +401,9 @@ actor Counter
 }
 ```
 
-This is the compiler-as-teacher pattern again: a dead behavior is almost
-always a mistake, a `become` you forgot to write, so Spek surfaces it at
-build time instead of letting messages quietly fall through to the
-dead-letter sink at runtime.
+A dead behavior is almost always a mistake (`become` you forgot to
+write), so Spek surfaces it at build time instead of letting messages
+fall through to the dead-letter sink at runtime.
 
 ## `become`
 
@@ -523,8 +522,7 @@ actor Account
 }
 ```
 
-Most actors don't need to write `on Restore` at all;
-persistent actors **auto-restore** their fields, and you only supply the hook
+Most actors don't need to write `on Restore` at all. Persistent actors **auto-restore** their fields, and you only supply the hook
 to do something custom. How `persist`, snapshots, passivation, and
 auto-restore fit together is the whole of
 [Persistence and passivation](/language/persistence/).

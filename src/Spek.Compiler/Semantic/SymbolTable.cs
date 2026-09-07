@@ -5,8 +5,8 @@ namespace Spek.Compiler.Semantic;
 /// <summary>
 /// Per-file index of named declarations. Resolves simple names (e.g. "Deposit")
 /// and qualified names (e.g. "MyBank.Messages.Deposit") against messages and
-/// actors declared in this compilation unit. Designed to extend to multi-file
-/// <c>SpekCompilation</c> later without callers needing to change.
+/// actors declared in this compilation unit. Also spans multi-file
+/// compilations via <c>BuildCombined</c>.
 /// </summary>
 public sealed class SymbolTable
 {
@@ -152,9 +152,9 @@ public sealed class SymbolTable
     /// <summary>Resolves a possibly-qualified name to a message declaration.</summary>
     public MessageDecl? ResolveMessage(QualifiedName name)
     {
-        // For now, if the name is fully qualified, we accept only the trailing
-        // simple part and require it to match an in-file declaration. Cross-file /
-        // cross-namespace resolution is a future SpekCompilation concern.
+        // A fully qualified name is accepted by its trailing simple part,
+        // which must match a declaration in this table. Resolution is flat
+        // by simple name; namespace-scoped lookup does not exist.
         return _messagesBySimpleName.GetValueOrDefault(name.Simple);
     }
 
@@ -198,7 +198,7 @@ public sealed class SymbolTable
     /// regardless of how many ancestors contributed it (diamond-safe).
     /// Bases that don't resolve are skipped - CE0093 reports them
     /// separately. Cycles are detected and broken (CE0094 surfaces them);
-    /// this method is robust against cycles via a visited-set guard.
+    /// this method is safe against cycles via a visited-set guard.
     /// </summary>
     public HashSet<string> FlattenChannelInputs(ChannelDecl channel)
     {
@@ -323,8 +323,7 @@ public sealed class SymbolTable
         // If every matching handler returns the same type, we can infer it
         // confidently. If different handlers return different types, the
         // call site is ambiguous: return null so the emitter falls back
-        // to `object` (the caller has to cast). A dedicated CE0044 for
-        // this case is planned.
+        // to `object` (the caller has to cast).
         var canonical = collected[0].ToString();
         return collected.All(t => t.ToString() == canonical) ? collected[0] : null;
     }

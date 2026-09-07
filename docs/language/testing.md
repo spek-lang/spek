@@ -82,8 +82,7 @@ class WalletTests                          // name ends in `Tests` → a test co
 
 The actor under test and its tests can share a file, as above, and three things
 about that example are worth pulling out. The `init` block runs before each
-test: the runner builds a fresh instance of the `…Tests` class every time, so
-fields reset between tests and no state leaks across them, which makes `init`
+test: the runner builds a fresh instance of the `…Tests` class every time, so fields reset between tests, which makes `init`
 the place for shared setup like constructing the `TestActorSystem`. That
 `TestActorSystem` field is then disposed for you after each test, so there is no
 teardown method to write. And the body is ordinary Spek:
@@ -585,8 +584,7 @@ class LedgerTests
 
 This is a `class …Tests` without a `TestActorSystem` field, because the test
 manages two systems by hand and disposes them explicitly. `SpawnPersistent`
-takes the persistence key that ties an actor to its snapshot; spawn under the
-same key in the second system and [auto-restore](/language/persistence/) brings
+takes the persistence key that ties an actor to its snapshot. Spawn under the same key in the second system and [auto-restore](/language/persistence/) brings
 the fields back with no `on Restore` handler in sight.
 
 ## Virtual time: controlling the clock
@@ -890,8 +888,7 @@ actor Feeder
 ```
 
 The simulator's surface is host-side C#. It replaces the scheduler, so it
-stands where the scheduler stands, outside the actor world; its natural home
-is a C# test file next to your `.spek` sources in the same test project, where
+stands where the scheduler stands, outside the actor world. Its natural home is a C# test file next to your `.spek` sources in the same test project, where
 every Spek message and actor is visible and `dotnet test` runs it beside your
 Spek tests:
 
@@ -925,7 +922,7 @@ public sealed class InterleavingTests
 `Run()` drains mailboxes in seed-determined order until the system is
 quiescent: nothing left to dispatch, no handler still running. The host-side
 `Ask` sends its message, drains, and hands back the reply, so a simulated test
-needs no probe and no timeout; by the time `Ask` returns, everything the seed
+needs no probe and no timeout. By the time `Ask` returns, everything the seed
 had to say has been said. For seed 1 the collector's story reads
 `aabaaabbbb`. For seed 3 it reads `abbabaaabb`. For the same seed twice it
 reads identically, down to the last message, which is what the test above
@@ -995,11 +992,10 @@ far as Spek source reaches, and stops at the interop boundary.
 The simulator is also the replay half of the runtime's flight recorder. A
 production system constructed with `new ActorSystem(name, trace: recorder)`
 journals its *ingress*, the messages entering from outside the actor world,
-into a bounded ring buffer; since deterministic re-execution re-derives all
+into a bounded ring buffer. Since deterministic re-execution re-derives all
 internal traffic, ingress is all a replay needs. After an incident: dump the
 recorder, load the resulting `SpekTrace`, re-create the recorded topology in
-a simulator, and `ReplayIngress(trace)` feeds the recorded inputs back in
-arrival order. A build-fingerprint check refuses cross-build replays unless
+a simulator, and call `ReplayIngress(trace)` to feed the recorded inputs back in arrival order. A build-fingerprint check refuses cross-build replays unless
 you pass `allowFingerprintMismatch: true`, the deliberate path when validating
 a candidate fix against the incident's own inputs. The recorder itself
 (`FlightRecorder`, `SpekTrace`) belongs to the
@@ -1042,10 +1038,9 @@ edits the recorded choice list and replays. It deletes chunks first, largest
 first, which removes messages and the preemptions between them; then it lowers
 individual choices, halving before stepping down, which simplifies values.
 Every probe replays deterministically from its edited list, so a probe either
-still fails and becomes the new best case, or passes and is discarded; the
-shrinker never has to guess whether a change mattered. Choices past the edited
+still fails and becomes the new best case, or passes and is discarded. The shrinker never has to guess whether a change mattered. Choices past the edited
 list read as zero rather than as fresh randomness, because deleting a choice
-must genuinely simplify the case; re-rolling the tail from the seed would turn
+must genuinely simplify the case. Re-rolling the tail from the seed would turn
 each probe into a *different* case rather than a smaller one. And since
 schedule picks live in the same list, shrinking minimizes the interleaving
 alongside the data. A framework that shrinks only data routinely hands back a
@@ -1134,7 +1129,7 @@ shrunk: 48 choices -> 7, in 78 probes
 minimal repro: [Add { n = 31 }, Add { n = 38 }, Add { n = 32 }] — rerun with seed 20260839
 ```
 
-Every line earns its keep. The minimal repro is readable on sight, three
+None of it needs decoding. The minimal repro is readable on sight, three
 deposits totalling 101, the shortest road past the saturation point, where the
 falsifying original consumed 48 choices' worth of messages and schedule. And
 the seed makes the report a coordinate rather than an anecdote: rerun with
@@ -1231,7 +1226,7 @@ lands on the same message in every run: jobs 3 and 6 are the dropped ones
 every time, and the third dispatch is the crashing one on any machine. In the
 crash test the default supervision directive (`Stop`) takes the worker down,
 the undelivered mail dead-letters with the injected exception as its recorded
-cause, and both facts are assertable deterministically. Delay earns a special
+cause, and both facts are assertable deterministically. Delay needs a special
 note: because it re-enqueues on the *system clock*, a delayed message under
 virtual time or simulation is held until the test advances past its due time,
 and a thirty-second delay costs the suite nothing. Chaos tests end up as fast
@@ -1310,7 +1305,7 @@ A `class …Tests` keeps per-test state in fields set in `init` (run before each
 test), and its `TestActorSystem` field is disposed automatically afterward, so
 there's nothing to clean up. For per-test output, take an
 `Xunit.Abstractions.ITestOutputHelper` parameter in `init` (xUnit injects it)
-and write to it; `Console.WriteLine` isn't attributed to a specific test because
+and write to it. `Console.WriteLine` isn't attributed to a specific test because
 actor work is async and runs on shared threads.
 
 A runnable example lives in

@@ -540,8 +540,8 @@ public sealed class DistinctStreamOperatorTests
 /// <summary>
 /// ComposeOperator: wraps several operators as one chain link. Inner
 /// operators are lazily wired on the first offer and run in declaration
-/// order; StopAsync fans out to every inner operator (the async
-/// StopAsync state machine the coverage report flagged).
+/// order; StopAsync fans out to every inner operator (an async
+/// state machine, exercised below).
 /// </summary>
 public sealed class ComposeStreamOperatorTests
 {

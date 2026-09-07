@@ -1,8 +1,8 @@
-// Full BankAccount example from docs/spek-v1-grammar.md §14.
+// Full BankAccount example from docs/spek-v1-grammar.md §16.
 // This is the canonical integration test fixture - exercises every
 // Core language features: visibility, fields, init, multiple behaviors,
 // inline/block handlers, become, persist, passivate, lifecycle hooks,
-// spawn, Tell, ask, supervise, and program entry point.
+// spawn, Tell, and program entry point.
 
 namespace MyBank.Actors;
 

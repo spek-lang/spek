@@ -135,7 +135,7 @@ module Fit
 So `(300L).TryTo<byte>()` is `null` because 300 doesn't fit,
 `(2.9).TryTo<int>()` is `null`, never a truncated `2`, and
 `(0.1d).TryTo<float>()` is `null` because the nearest `float` to `0.1`
-drifts from the `double`. A fraction never silently disappears; if you want
+drifts from the `double`. A fraction never silently disappears. If you want
 it gone, the next section is how you say so.
 
 {: .note }
@@ -172,12 +172,11 @@ module Rounding
 
 All five strategies work: `ToEven`, `AwayFromZero`, `ToZero`,
 `ToNegativeInfinity`, and `ToPositiveInfinity`. The precise names matter for
-negative values, where "round down" is ambiguous; `ToZero` and
-`ToNegativeInfinity` disagree about `-2.5`. The strategy refines the
+negative values, where "round down" is ambiguous. `ToZero` and `ToNegativeInfinity` disagree about `-2.5`. The strategy refines the
 contract without bending it: the result is `null` only when the *rounded*
 value doesn't fit the target, so `(1e300).TryTo<int>(MidpointRounding.ToZero)`
 and `double.NaN` are still `null`. The parameter exists only on the
-floating-to-integral overloads; there is nothing to round anywhere else,
+floating-to-integral overloads. There is nothing to round anywhere else,
 and overload resolution polices that.
 
 ### The known-fits idiom

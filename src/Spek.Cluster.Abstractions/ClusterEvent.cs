@@ -2,7 +2,7 @@ namespace Spek.Cluster;
 
 /// <summary>
 /// Notification raised when a cluster member's state changes. Subscribed
-/// to by user code (and by Spek's own routing layer) via
+/// to by user code via
 /// <see cref="IClusterMembership.Subscribe"/>.
 ///
 /// Discriminated-union style (separate record per event kind) keeps

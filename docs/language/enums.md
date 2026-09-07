@@ -43,7 +43,7 @@ message Alert(Severity level, string description);
 ```
 
 The trailing comma after the last variant is optional. Each variant is a
-bare name; an enum is *flat*, so a variant carries no payload of its own
+bare name. An enum is *flat*, so a variant carries no payload of its own
 (if you need data alongside the tag, that's what the message fields beside
 it are for, as `Alert` shows).
 
@@ -69,7 +69,7 @@ internal enum Phase { Warmup, Steady }       // hidden inside the assembly
 ### Explicit member values
 
 Variants are auto-numbered from `0` by default, and most enums should
-leave it that way; the numbers are an implementation detail. Sometimes the
+leave it that way. The numbers are an implementation detail. Sometimes the
 numbers *are* the point. A code that must match a wire protocol, a
 register layout, a vendor's status table: give those variants their values
 with `=`:
@@ -122,7 +122,7 @@ actor Smoke
 }
 ```
 
-Nothing new in the grammar made this work; Spek's expression syntax
+Nothing new in the grammar made this work. Spek's expression syntax
 already covers member access. Declaring the `enum` just adds another named
 scope for the parser to resolve `Severity.High` against.
 
@@ -232,7 +232,7 @@ actor Triage
 
 A `when` guard on an arm does **not** count as covering that variant. The
 compiler can't prove a guard is always true, so a guarded arm leaves the
-variant uncovered; you still need an unguarded arm for it, or a `_`.
+variant uncovered. You still need an unguarded arm for it, or a `_`.
 
 ### What "the compiler can see the enum" means
 
@@ -250,7 +250,7 @@ habit when you switch on an enum that arrived in a message.
 > which is the form you reach for when each branch yields a result. The
 > C-style switch **statement** (`switch (value) { case … }`, covered in
 > [C# syntax](/language/csharp-syntax/#switch-statement)) is passthrough
-> and is *not* exhaustiveness-checked; prefer the expression when you're
+> and is *not* exhaustiveness-checked. Prefer the expression when you're
 > branching on an enum and want CE0103 watching your back.
 
 ## Flags enums
@@ -343,7 +343,7 @@ flags enum Access
 `ReadWrite` is `3`, and the generated C# spells it symbolically
 (`ReadWrite = Read | Write`) so a reader of the emitted code sees the
 intent rather than a magic number. A union may only name members declared
-before it in the same enum; a forward reference is rejected at the
+before it in the same enum. A forward reference is rejected at the
 declaration.
 
 ### Gated operators
@@ -472,7 +472,7 @@ rule is that every set bit must correspond to a defined flag.
 `raw.TryTo<Access>()` accepts `3` as `Read | Write` without a `ReadWrite`
 member existing, accepts `0` as `None`, and returns `null` for `8` or
 `9`, where an undefined bit is set. `Enum.IsDefined`, the test a C# hand
-would reach for, stops at named members and gets flags wrong; `TryTo` is
+would reach for, stops at named members and gets flags wrong. `TryTo` is
 the right spelling in both worlds.
 
 <!-- spek-test: compile -->
@@ -498,9 +498,8 @@ actor Loader
 
 The modifier changes member numbering, so retrofitting it is not always
 free. On an enum whose members already carry hand-assigned powers of two,
-adding `flags` is a no-op; explicit values are kept as written. On an
-enum that relied on auto-numbering, it renumbers every member;
-`Low, Medium, High` is `0, 1, 2` as a plain enum and becomes `1, 2, 4`
+adding `flags` is a no-op. Explicit values are kept as written. On an
+enum that relied on auto-numbering, it renumbers every member. `Low, Medium, High` is `0, 1, 2` as a plain enum and becomes `1, 2, 4`
 under `flags`, with the provided `None` taking `0`. If those numbers ever
 left the process (persisted [region state](/language/persistence/), wire
 values, any integer you round-trip through `TryTo`), renumbering is a
@@ -542,9 +541,9 @@ public enum Access
 }
 ```
 
-The attribute is the interop footnote, not the feature. It makes
+The `[Flags]` attribute is for interop. It makes
 `ToString()` render a combined value as `"Read, Write"` and keeps
-`Enum.Parse` symmetrical, and that is all it ever did in C# too; the
+`Enum.Parse` symmetrical, and that is all it ever did in C# too. The
 guarantees live in the Spek compiler. Consumers of the generated assembly
 see a well-formed flags enum.
 

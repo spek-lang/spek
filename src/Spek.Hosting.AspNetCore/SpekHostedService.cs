@@ -13,8 +13,8 @@ namespace Spek.Hosting.AspNetCore;
 /// drives the same shutdown when triggered externally.
 ///
 /// Spek actor exit codes flow into the Generic Host the same way a
-/// regular `IHostedService` propagates errors - we don't currently
-/// surface Option-D return values into <c>Environment.ExitCode</c>
+/// regular `IHostedService` propagates errors - we don't surface the
+/// handler's return-value reply into <c>Environment.ExitCode</c>
 /// because the Generic Host owns that decision via
 /// <c>HostOptions.BackgroundServiceExceptionBehavior</c>.
 /// </summary>

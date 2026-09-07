@@ -36,4 +36,4 @@ Plus a `spek.actor.{TypeName}.handler` Activity (trace span) for every dispatche
 - `MicrosoftExtensionsLoggerStructuredLogger`: wires `IStructuredLogger` to `Microsoft.Extensions.Logging.ILogger`.
 - `SpekOpenTelemetryExtensions`: `UseOpenTelemetryMetrics()` and `UseLoggerFactory()` extension methods on `ActorSystem`.
 
-The package itself doesn't take a dependency on the OpenTelemetry SDK. It uses only the BCL primitives (`Meter`, `Activity`, `ILogger`) that the OTel SDK consumes. You wire OTel exporters in your host program; this package is the bridge from Spek's pluggable surface to those primitives.
+The package itself doesn't take a dependency on the OpenTelemetry SDK. It uses only the BCL primitives (`Meter`, `Activity`, `ILogger`) that the OTel SDK consumes. You wire OTel exporters in your host program. This package is the bridge from Spek's pluggable surface to those primitives.

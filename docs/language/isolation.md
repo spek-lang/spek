@@ -12,19 +12,16 @@ description: "Share-XOR-mutate and invisible ownership: why Spek needs no locks,
 You have just seen how actors talk: [`Tell`](/language/messaging/) drops a
 message in a mailbox, [`ask`](/language/messaging/) waits for a reply, and
 the runtime delivers each message to the receiver one at a time. That
-"one at a time" is doing a lot of quiet work. This chapter is about
-*why* it is safe, and why, as a result, you will never write a `lock`
-in Spek.
+serialization is why handlers don't race. This chapter is about
+*why* it is safe, and why you don't write a `lock` in Spek.
 
 If you have written concurrent C#, you know the failure this prevents.
 Two threads share a `Dictionary`, one writes while the other reads, and
 you get a torn read, a corrupted entry, or an `InvalidOperationException`
 deep in a call stack at 3am. The usual fixes (a `lock`, a
 `ConcurrentDictionary`, an `Interlocked`) are discipline you have to
-remember to apply every time, forever. Spek's bet is that the language
-should not let you get into that situation at all. This chapter explains
-the single rule that delivers on that bet, and the handful of compile
-errors that enforce it.
+remember to apply every time, forever. Spek refuses that situation at
+compile time. This chapter is the rule, and the CE codes that enforce it.
 
 {: .note }
 > **Where this comes from.** Share-XOR-mutate is Rust's ownership rule, shared
@@ -47,7 +44,7 @@ Forbid those two from coexisting and the race is impossible. There is
 nothing left to lock, because there is nothing two threads can fight
 over.
 
-Read it as a slogan: if a value can't be written, share it freely; if
+If a value can't be written, share it freely; if
 it can be written, give it a single owner. The rest of this chapter
 names the places each case lives.
 
@@ -113,7 +110,7 @@ The last two are the *mutable* kinds, exactly where the danger would be
 in plain C#. An `actor` owns its fields privately, and the runtime
 serialises the handlers that touch them. A
 [`shared`](/language/shared-regions/) region is mutable state several
-actors coordinate on; it carries its own reader/writer lock that the
+actors coordinate on; it has its own reader/writer lock that the
 compiler acquires and releases for you, so concurrent reads are free and
 writes are exclusive. (Shared regions get their own chapter later; for
 now, the point is that even the "several actors reach it" case is made safe
@@ -301,7 +298,7 @@ actor Counter
 > `error[CE0087]: 'reader on ...' handler may not mutate actor field 'n'.`
 > `Mark this handler 'writer on ...' or move the mutation into a writer arm.`
 
-Put the read on a reader and the write on a writer; the runtime then runs
+Put the read on a reader and the write on a writer. The runtime then runs
 reads concurrently while keeping the write exclusive:
 
 <!-- spek-test: compile -->

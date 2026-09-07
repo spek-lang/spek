@@ -9,7 +9,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// The wedge/stuck/dropped suite (r8's lesson made systematic): each test
+/// The wedge/stuck/dropped suite: each test
 /// floods a runtime feature PAIR with true parallelism and asserts the
 /// terminal-state invariants: every message handled or dead-lettered,
 /// every ask completed exactly once, no reply duplicated, nothing wedged.

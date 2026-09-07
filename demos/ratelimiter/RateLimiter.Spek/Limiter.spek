@@ -1,7 +1,7 @@
 namespace RateLimiter;
 
 // The rate limiter, Spek pane. Every API key is an actor holding its own
-// token bucket. That buys three things the C# twin has to build by hand:
+// token bucket. Three things the C# twin has to build by hand come with that:
 // per-key decisions are serialized by the mailbox (no lock, no CAS loop),
 // the time source is self.Clock (virtualizable in tests), and idle keys
 // cost nothing; the passivate clause below handles eviction.

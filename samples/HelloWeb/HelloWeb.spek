@@ -61,9 +61,9 @@ program Main
 
     app.MapGet("/", () => "Hello, World! (served by Spek)");
 
-    // NOTE: `app.RunAsync()` would NOT be auto-awaited - invisible async can't
-    // see AspNetCore types (they aren't in the rewriter's BCL reference set),
-    // so the Task would be fire-and-forgot and the process would exit. The
-    // blocking `app.Run()` keeps the host alive without needing an await.
+    // Run() blocks until shutdown, which keeps the host alive. (RunAsync()
+    // would be auto-awaited as well - the rewriter sees AspNetCore's
+    // Task-returning APIs through the project references - so either form
+    // works; the blocking form reads plainest here.)
     app.Run();
 }

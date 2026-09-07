@@ -50,7 +50,6 @@ the default membership / placement implementations.
 ```csharp
 using Spek;                          // ActorRef
 using Spek.Cluster;                  // Cluster.Bind
-using Spek.Cluster.Abstractions;     // NodeIdentity, ISpekTransport
 using Spek.Cluster.Tcp;              // TcpClusterTransport
 using Spek.Runtime;                  // ActorSystem
 
@@ -64,14 +63,17 @@ var transport = new TcpClusterTransport(new TcpClusterOptions
 });
 
 var cluster = Cluster.Bind(system, transport);
-cluster.RegisterPeer("user-svc", new NodeIdentity(/* known UUID */, "user-svc"));
+var userSvc = new NodeIdentity(/* known UUID */, "user-svc");
+cluster.RegisterPeer("user-svc", userSvc);
+await transport.ConnectToPeerAsync(userSvcEndpoint, userSvc);
 
 // ... spawn actors, get remote refs as needed
 ```
 
 ## Status
 
-Shipped: wire framing, serialization, the identity handshake, lazy
-single-connection-per-peer, and `DeliveryFailed` reporting. **Not implemented:
+Shipped: wire framing, serialization, the identity handshake, explicit
+single-connection-per-peer (`ConnectToPeerAsync`), and `DeliveryFailed`
+reporting. **Not implemented:
 any wire encryption or peer authentication.** There is no TLS/mTLS, and
 `ClusterSharedKey` is not validated. Treat the transport as trusted-network-only.

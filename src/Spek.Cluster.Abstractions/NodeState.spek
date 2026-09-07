@@ -15,27 +15,24 @@ namespace Spek.Cluster;
 enum NodeState
 {
     /// <summary>
-    /// Initial state for a node we've heard about (via seed-config or
-    /// gossip) but haven't successfully connected to yet. The local
-    /// transport is attempting handshake; on success the state advances
-    /// to <see cref="Up"/>. On failure it advances to
-    /// <see cref="Unreachable"/>.
+    /// Initial state for a node we've heard about (via seed-config)
+    /// but haven't successfully connected to yet. `Cluster.MarkPeerUp`
+    /// advances the state to <see cref="Up"/> once the transport
+    /// handshake completes.
     /// </summary>
     Joining,
 
     /// <summary>
-    /// Steady-state. The peer has completed its handshake, is exchanging
-    /// heartbeats, and accepts inbound traffic. The vast majority of the
-    /// time a healthy cluster member sits here.
+    /// Steady-state. The peer has completed its handshake and accepts
+    /// inbound traffic. The vast majority of the time a healthy cluster
+    /// member sits here.
     /// </summary>
     Up,
 
     /// <summary>
-    /// The peer announced its intent to leave (via a graceful shutdown
-    /// gossip). Pending sends to actors on this node continue to
-    /// dead-letter cleanly with a "node leaving" reason rather than
-    /// timing out as unreachable; once in-flight traffic drains, the
-    /// state advances to <see cref="Exiting"/>.
+    /// The peer announced its intent to leave gracefully. Once
+    /// in-flight traffic drains, the state advances to
+    /// <see cref="Exiting"/>.
     /// </summary>
     Leaving,
 
@@ -47,19 +44,16 @@ enum NodeState
     Exiting,
 
     /// <summary>
-    /// The peer's heartbeats stopped without a graceful leave gossip.
-    /// May come back (the failure detector hasn't promoted it to
-    /// <see cref="Down"/> yet). Pending sends fail with a
-    /// <c>RemoteNodeUnreachable</c>-style error.
+    /// The peer stopped responding without a graceful leave. It may
+    /// come back (see <c>ClusterEvent.NodeReachableAgain</c>). Sends to
+    /// an unreachable node surface through the transport's
+    /// <c>DeliveryFailed</c> event.
     /// </summary>
     Unreachable,
 
     /// <summary>
-    /// The peer is permanently offline - either it gracefully exited
-    /// or the failure detector promoted it from Unreachable after
-    /// missed-heartbeat threshold. Local actor refs targeting this
-    /// node fail their <c>Tell</c>s deterministically; user code can
-    /// observe via <see cref="Spek.ActorRef.IsStopped"/>.
+    /// The peer is permanently offline: it gracefully exited, or the
+    /// caller marked it down after deciding it will not return.
     /// </summary>
     Down,
 }

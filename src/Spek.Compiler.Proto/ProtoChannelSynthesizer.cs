@@ -34,8 +34,8 @@ namespace Spek.Compiler.Proto;
 /// Streaming RPCs (<c>stream</c> in the request or response) are
 /// detected and reported via <see cref="Diagnostics"/>; the
 /// service is still emitted but with the streaming methods
-/// commented out and a TODO marker. The synthesizer ships unary-only;
-/// streaming patterns rejoin in a follow-up.
+/// commented out and a TODO marker. The synthesizer is unary-only;
+/// streaming RPCs are skipped with a warning.
 /// </para>
 /// </summary>
 public sealed class ProtoChannelSynthesizer
@@ -180,8 +180,8 @@ public sealed class ProtoChannelSynthesizer
     /// Covers the proto3 scalar set; nested messages emit as their
     /// Spek-side type name (the synthesizer assumes the message is
     /// also synthesized into the same source file). Repeated and
-    /// map fields are not yet supported: they raise a synthesis
-    /// warning and emit as <c>object</c>.
+    /// map fields are not supported: they silently emit as
+    /// <c>object</c>.
     /// </summary>
     private static string SpekFieldType(FieldDescriptor field)
     {

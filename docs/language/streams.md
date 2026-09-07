@@ -34,8 +34,7 @@ on Search s =>            ← the message pattern (Chapter on Messages)
 The shape is the handler you already know from
 [Sending messages](/language/messaging/), with one or more `=>` operator steps
 spliced in before the body. A handler with no operator steps is exactly the
-plain handler from earlier chapters; the chain is opt-in, and adds nothing
-when you don't use it.
+plain handler from earlier chapters. The chain is opt-in.
 
 {: .note }
 > **Where this comes from.** `debounce` / `throttle` / `distinct` are ReactiveX
@@ -256,8 +255,6 @@ directly. It posts a synthetic self-message back into the actor's own mailbox.
 That message re-enters dispatch like any other, takes the writer lock, restores
 the binding, and runs the body. So the body still runs under the actor lock,
 serialized against every other handler, exactly as if no chain were present.
-Per-actor invariants from [Isolation and ownership](/language/isolation/) hold
-unchanged: no two writer handlers run at once.
 
 Two consequences follow from operators living *outside* the lock:
 
@@ -307,8 +304,7 @@ public static class MyOperators
 }
 ```
 
-At the call site it looks just like a built-in. Import the namespace and chain
-the factory; because it has a single type parameter the compiler supplies `<T>`
+At the call site it looks just like a built-in. Import the namespace and chain the factory. Because it has a single type parameter, the compiler supplies `<T>`
 for you, the same as `debounce`:
 
 <!-- spek-test: parse -->
@@ -338,7 +334,7 @@ ones.)
 `debounce` and `throttle` arm their windows through the system clock, so
 under a `TestActorSystem` with `virtualTime: true` they follow the virtual
 clock: send the burst, `AdvanceClock` past the quiet window, and the emit
-fires deterministically inside the advance, with no sleeps to tune and nothing timing-sensitive to flake. The
+fires deterministically inside the advance. The
 [next chapter](/language/testing/) covers the pattern. On a real-time
 system, drive the assertion off an observable condition instead:
 `TestActorSystem.WaitUntilAsync(() => …)` polls your predicate until it

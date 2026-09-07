@@ -227,7 +227,7 @@ per-child override can declare its own arm list.
 - **CE0020**: `Tell(someString)` is a compile error because `string`
   isn't declared with `message`. Messages must be explicit records.
 - **CE0080**: `using System.Reflection;` is a compile error. The
-  immutability guarantees can't be quietly worked around at runtime (`interop using` is the explicit, visible opt-out).
+  immutability guarantees can't be bypassed at runtime (`interop using` is the explicit, visible opt-out).
 
 ## What Akka.NET has that Spek doesn't
 

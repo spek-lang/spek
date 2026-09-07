@@ -30,7 +30,7 @@ Press F5 in any `.spek` file, or use **Spek: Run Project of This File** and
 works out which project runs the file: the nearest `.csproj` above the file is
 the project that compiles it, and if that project is a library, the run target
 is an executable project nearby that references it. The harness layout in
-`demos/elevators` is the canonical case: `Elevators.spek` lives in the
+`demos/elevators` is the usual layout: `Elevators.spek` lives in the
 `Elevators.Spek` library, and F5 finds and launches `Elevators.Harness`. When
 several projects qualify, a quickpick asks once and the answer is remembered
 for the workspace.

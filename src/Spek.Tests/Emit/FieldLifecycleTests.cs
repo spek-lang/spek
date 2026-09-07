@@ -7,8 +7,7 @@ namespace Spek.Tests.Emit;
 
 /// <summary>
 /// Field lifecycle markers (`deprecated`, `retired`) on shared
-/// regions and actors. The full migration mechanism is parked to a
-/// later release; for now we ship just these informational markers so
+/// regions and actors. Spek ships these informational markers so
 /// data providers know which keys to drop and so authors get
 /// compile-time guidance about which fields not to reach for in new
 /// code.

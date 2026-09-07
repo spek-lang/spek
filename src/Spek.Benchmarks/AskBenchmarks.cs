@@ -36,7 +36,7 @@ public class AskBenchmarks
     /// cell (one entry on the system's shared deadline sweeper) instead of
     /// wrapping the ValueTask in <c>AsTask().WaitAsync(timeout)</c>, so the
     /// delta over <see cref="SequentialAsk"/> should be near zero. The
-    /// timeout (30s) never fires; before r11 this row cost ~2x the plain
+    /// timeout (30s) never fires; previously this row cost ~2x the plain
     /// ask's allocation (the bridging Task plus WaitAsync's timer).
     /// </summary>
     [Benchmark]

@@ -82,7 +82,7 @@ Console.WriteLine($"{"check throughput",-26}{Rate(s),12:N0}/s{Rate(c),12:N0}/s")
 Console.WriteLine();
 Console.WriteLine("Eviction on the Spek pane is the passivate clause in Limiter.spek;");
 Console.WriteLine("idle keys leave memory on their own, and the window equals the refill");
-Console.WriteLine("time so a reset is indistinguishable from a refill. The C# pane earns");
+Console.WriteLine("time so a reset is indistinguishable from a refill. The C# pane gets");
 Console.WriteLine("the same row with a sweeper timer, a lock per bucket, and an");
 Console.WriteLine("evict-vs-refill race argument (ShardedLimiter.cs).");
 

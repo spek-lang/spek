@@ -107,7 +107,7 @@ Prefer the async `WhenIdleAsync` / `WaitUntilAsync` (they poll without parking
 a thread) over the blocking `WaitForIdle`: under fully-parallel test
 execution a parked thread competes with the actors that need it. With async
 waits the whole suite runs **fully in parallel** (no serialized collections,
-no thread cap); the only accommodations are `TestThreadPoolConfig` raising the
+no thread cap). The only accommodations are `TestThreadPoolConfig` raising the
 thread-pool floor and generous timeouts on the few tests that verify
 time-based behavior (passivation timers, shutdown grace), so a CPU-saturation
 burst delays them rather than failing them.
@@ -334,7 +334,7 @@ Shipped implementations:
 ## `IngressPolicy` {#ingresspolicy}
 
 A gate the runtime consults before a message reaches its handler. Attach
-one or more to any `ActorRef`; the dispatch loop evaluates the chain in
+one or more to any `ActorRef`. The dispatch loop evaluates the chain in
 attachment order, and the first non-Allow decision wins. Attaching to a
 remote ref is a no-op: apply ingress policies on the actor's home node,
 not on the caller's side.
@@ -389,8 +389,7 @@ A re-admitted message enters at the tail of the mailbox and runs the full
 policy chain again, which means arrival order across a deferral is not
 preserved. The message yielded its slot, and anything admitted during the
 park window overtakes it. That is the honest cost of deferral: Defer
-trades ordering for smoothing. Senders notice none of this; `Tell` keeps
-its fire-and-forget contract, and an `Ask` that would have timed out
+trades ordering for smoothing. Senders notice none of this. `Tell` keeps its fire-and-forget contract, and an `Ask` that would have timed out
 against a hard drop instead gets a real chance to complete.
 
 The shipped rate limiters pick the verdict from limiter metadata: a denial
@@ -445,9 +444,7 @@ using var tap = system.Observe(teller, m =>
 ```
 
 Dispose the handle to detach. Detaching is graceful: events already
-buffered still drain to the callback before the pump exits, so a
-short-lived tap reports everything it admitted. Observers are local-node
-only; a tap on a remote ref would observe nothing, so `Observe` throws
+buffered still drain to the callback before the pump exits. Observers are local-node only. A tap on a remote ref would observe nothing, so `Observe` throws
 `InvalidOperationException` instead; attach on the actor's home node.
 
 For tests, `Spek.Testing` ships `RecordingObserver`, the tap-side mirror of
@@ -494,8 +491,7 @@ public sealed record ActorSnapshot(
 ```
 
 Sampling is non-perturbing: counters and cheap queue reads only, with no
-mailbox locks taken and no messages injected, so polling in a tight
-dashboard loop is safe. The view is metadata only. Actor field contents are
+mailbox locks taken and no messages injected. The view is metadata only. Actor field contents are
 deliberately absent, because a state dump leaks whatever the actor happens
 to hold and needs a redaction story first; until that story exists, the
 runtime refuses to be the leak.
@@ -580,7 +576,7 @@ The ring keeps the last `capacity` events, so a dump is the window leading
 up to the incident rather than an unbounded log. Payloads are
 JSON-serialized at capture, the same contract clustering already imposes on
 remote messages. A message type that fails to serialize is recorded as a
-gap and reported in `UnserializableTypes`, never silently skipped, so a
+gap and reported in `UnserializableTypes`, so a
 hole in the journal is visible before conclusions get built on top of it.
 
 ### Replay: `SimulatedActorSystem.ReplayIngress`
@@ -609,8 +605,7 @@ Events feed in recorded arrival order, and each drains fully before the
 next enters: recorded order is a causal boundary, while scheduling inside a
 drain belongs to this run's seed. Targets are matched by display identity,
 the same `Path` that [introspection](#live-introspection) shows, so the
-host must first re-create the recorded topology; an event addressed to an
-actor the simulation has not spawned throws with that guidance.
+host must first re-create the recorded topology. An event addressed to an actor the simulation has not spawned throws with that guidance.
 
 Every trace is pinned to a build fingerprint (entry-assembly name and
 version plus the Spek runtime version), and replaying against a different
@@ -626,8 +621,8 @@ rules as a database dump, not as a build artifact to attach to a ticket.
 ## Chaos plans: `ChaosPlan` {#chaos-plans}
 
 A `ChaosPlan` injects faults at the runtime's own enqueue and dispatch
-choke points, per actor and per message type, so a resilience claim gets
-tested against the machinery that will actually back it.
+choke points, per actor and per message type, so a resilience claim is
+tested on the same enqueue and dispatch path production uses.
 
 ```csharp
 public sealed class ChaosPlan
@@ -719,7 +714,7 @@ assertion library alone, not the runner). Tests written in C# use xUnit's
 `[Fact]` and `Assert.*` as normal, plus the Testing types below for actor
 wiring. Tests written in Spek itself use the `…Tests` naming convention
 instead, where each public method of a `…Tests` module or class is a test
-under `dotnet test`; [Testing actors](/language/testing/) covers that
+under `dotnet test`. [Testing actors](/language/testing/) covers that
 story end to end, and it rides on the same types documented here.
 
 ### `TestActorSystem`

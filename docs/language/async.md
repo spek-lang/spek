@@ -194,8 +194,7 @@ module Sink
 
 **Hold the raw task.** Bind with the explicit `Task<T>` type and the binding
 *doesn't* await; you get the actual `Task` to pass to a `Task`-shaped C# API
-or hold onto. (It's still joined at scope exit if you abandon it, so it can't
-leak.)
+or hold onto. (It's still joined at scope exit if you abandon it.)
 
 <!-- spek-test: compile -->
 ```spek
@@ -274,8 +273,7 @@ way through.
 
 Why no `CancellationToken` parameter on handlers? Same reason there's no
 `async`/`await`: it's plumbing, not your concern. And an actor's unit of
-work is a *message*, not a cancellable operation, so you let the message
-finish; the runtime just stops dispatching new ones. The token is threaded
+work is a *message*, not a cancellable operation, so you let the message finish. The runtime just stops dispatching new ones. The token is threaded
 in actor handlers, where `this.ShutdownToken` is in scope; module and static
 methods, which have no `this`, are left alone.
 
@@ -288,11 +286,11 @@ A few cases fall back to a plain await:
 - Concurrency (lazy `var`) applies to bindings at the method's top level.
   Early returns, before *or* after the binding, are handled (the compiler
   joins the task before each exit). A binding declared inside a **loop or a
-  nested block** falls back to eager await: correct, just sequential.
+  nested block** falls back to eager await.
 - A `var` binding of a call that returns a **non-generic `Task`** (a
   void-result async) inside such a nested block can't defer. Call it as a
   statement (`LogAsync(x);`) or bind the explicit type (`Task t = …`)
-  instead; a `Task<T>` binding is unaffected.
+  instead. A `Task<T>` binding is unaffected.
 - `ValueTask<T>` is always awaited eagerly (it can't be awaited twice).
 - No auto-await inside `init` blocks or property accessors, since those can't
   be async.

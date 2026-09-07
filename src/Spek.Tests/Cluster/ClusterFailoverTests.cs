@@ -242,8 +242,8 @@ public class ClusterFailoverTests
     }
 
     // ── Reply capture: spawned in the same ActorSystem as the target, sets a
-    //    TaskCompletionSource the moment a message arrives. Mirrors the model
-    //    files' reply-capture pattern.
+    //    TaskCompletionSource the moment a message arrives. Mirrors the
+    //    reply-capture pattern used by the other cluster tests.
     private sealed class ReplyProbe
     {
         public readonly TaskCompletionSource<object> Tcs =

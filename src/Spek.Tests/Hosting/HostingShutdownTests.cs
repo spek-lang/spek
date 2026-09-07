@@ -104,7 +104,7 @@ public class HostingShutdownTests
     // ---------------------------------------------------------------
 
     /// <summary>Entry actor that, on <see cref="Shutdown"/>, replies a
-    /// typed exit code to its sender (Spek's the inferred-reply convention reply convention)
+    /// typed exit code to its sender (Spek's inferred-reply convention)
     /// and stops itself.</summary>
     private sealed class ExitingEntryActor : ActorBase
     {
@@ -140,7 +140,7 @@ public class HostingShutdownTests
         // Wait until RunAsync has registered its OnShutdownRequested handler
         // (it does so synchronously inside RunAsync, but RunAsync only starts
         // running after the first await yields). Poll with a deadline rather
-        // than a fixed sleep so the test is robust under load.
+        // than a fixed sleep so the test holds up under load.
         var armed   = false;
         var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
         while (!armed && DateTime.UtcNow < deadline)

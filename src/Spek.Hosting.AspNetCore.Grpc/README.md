@@ -9,7 +9,7 @@ builder.Services.AddGrpc();
 builder.Services.AddSpekGrpcStatusMap();
 
 var app = builder.Build();
-app.MapGrpcService<UserServiceGrpcBridge>();   // compiler-generated bridge
+app.MapGrpcService<UserServiceGrpcBridge>();   // hand-written bridge (see samples/GrpcUserApi)
 await app.RunAsync();
 ```
 

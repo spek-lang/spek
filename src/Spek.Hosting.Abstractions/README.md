@@ -20,8 +20,8 @@ Container Apps, custom orchestrator, etc.), you reference this
 package for the standard message vocabulary without pulling any
 specific adapter implementation as a dependency.
 
-The shipped adapter packages (`Spek.Hosting.Console`,
-`Spek.Hosting.WindowsService`, `Spek.Hosting.AspNetCore`,
-`Spek.Hosting.Systemd`, `Spek.Hosting.Launchd`) all reference
+The adapter packages in this repo (`Spek.Hosting.Console`,
+`Spek.Hosting.WindowsService`, `Spek.Hosting.Systemd`,
+`Spek.Hosting.Launchd`) all reference
 this and re-export the same messages, so your `.spek` source
 declares them once and they work across every hosting target.

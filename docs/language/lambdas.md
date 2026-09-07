@@ -212,7 +212,7 @@ module Adjustments
 > x => x + 1;`) but **not** on the right of a bare assignment to an
 > existing variable (`f = x => x + 1;` is a syntax error). When you need
 > a different function under the same name, declare a fresh
-> delegate-typed local (`Func<int, int> g = x => x + 1;`); there is no
+> delegate-typed local (`Func<int, int> g = x => x + 1;`). There is no
 > in-place reassignment form.
 
 ## Captures and closures
@@ -343,7 +343,7 @@ turn.
 
 Past both rules lie the residues neither can reach: a method call on a
 foreign-typed field the analysis cannot classify; a delegate laundered
-through reflection on the far side of `interop using`; and a confined
+through reflection after `interop using`; and a confined
 class that stores a read-capturing delegate and then fires it from a
 concurrent reader handler, where the storage looks on-thread and the
 race lives in reader/writer concurrency no per-method check models.

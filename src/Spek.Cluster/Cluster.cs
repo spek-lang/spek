@@ -70,8 +70,8 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     ///
     /// If <paramref name="membership"/> is null, a default
     /// <see cref="StaticSeedClusterMembership"/> is constructed bound
-    /// to the transport's local node identity. For future gossip-based
-    /// clusters, pass an explicit membership impl.
+    /// to the transport's local node identity. To use a different
+    /// membership strategy, pass an explicit impl.
     /// </summary>
     public static Cluster Bind(
         ActorSystem system,
@@ -113,9 +113,8 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     /// <summary>
     /// Mark a registered peer as <see cref="NodeState.Up"/> - typically
     /// called once the transport-level handshake completes successfully.
-    /// The static-seed membership leaves this transition user-driven so tests can sequence the state machine.; for
-    /// the static-seed impl it's user-driven so tests can sequence
-    /// the state machine deterministically.
+    /// The static-seed membership leaves this transition user-driven,
+    /// so tests can sequence the state machine deterministically.
     /// </summary>
     public void MarkPeerUp(NodeIdentity identity)
     {
@@ -135,9 +134,9 @@ public sealed class Cluster : IClusterAdapter, IAsyncDisposable
     }
 
     /// <summary>
-    /// Announce that this node is gracefully leaving. Hosting adapters
-    /// call this in their shutdown sequence so peers see a clean
-    /// leave rather than a phantom unreachable.
+    /// Announce that this node is gracefully leaving. Call this from
+    /// your shutdown sequence so peers see a clean leave rather than
+    /// a phantom unreachable.
     /// </summary>
     public Task LeaveAsync(CancellationToken cancellationToken = default)
         => _membership.LeaveAsync(cancellationToken);

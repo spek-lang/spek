@@ -10,9 +10,9 @@ namespace Spek.Hosting.Systemd;
 /// <summary>
 /// Hosts a Spek actor as a Linux systemd service. Translates SIGTERM
 /// → user's Shutdown message and SIGHUP → user's Reload message;
-/// emits sd_notify events back to systemd when the actor produces
-/// the corresponding output messages on its <c>LinuxServiceHost</c>
-/// channel.
+/// notifies systemd via sd_notify (READY=1 when
+/// <see cref="IHostApplicationLifetime.ApplicationStarted"/> fires,
+/// STOPPING=1 in <see cref="StopAsync"/>).
 ///
 /// Composes with <see cref="SystemdHostBuilderExtensions.UseSystemd(IHostBuilder)"/>
 /// from <c>Microsoft.Extensions.Hosting.Systemd</c> for journald

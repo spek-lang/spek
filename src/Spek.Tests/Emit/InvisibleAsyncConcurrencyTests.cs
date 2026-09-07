@@ -10,9 +10,6 @@ namespace Spek.Tests.Emit;
 /// structured join, gated to single-exit methods (defer only when
 /// provably safe; eager fallback otherwise). See
 /// the async chapter of the language guide.
-///
-/// Written test-first: these assert the Stage 1 contract before the
-/// rewriter implements it.
 /// </summary>
 public sealed class InvisibleAsyncConcurrencyTests(ITestOutputHelper output)
 {

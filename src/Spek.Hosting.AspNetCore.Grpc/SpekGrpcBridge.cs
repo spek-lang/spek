@@ -4,16 +4,15 @@ using Spek.Runtime;
 namespace Spek.Hosting.AspNetCore.Grpc;
 
 /// <summary>
-/// Runtime helpers for compiler-generated gRPC bridge
-/// classes. The bridge subclasses a protoc-generated server base
+/// Runtime helpers for gRPC bridge classes. The bridge subclasses a
+/// protoc-generated server base
 /// (e.g. <c>UserApi.UserApiBase</c>), overrides each RPC method,
 /// and routes the request to the actor system via these helpers.
 ///
 /// <para>
-/// The compiler emits the bridge per channel as part of its
-/// gRPC-aware codegen. User code never instantiates
-/// these helpers directly: they're compiler-internal utilities
-/// exposed publicly so the generated bridges can call them.
+/// The bridge class is hand-written; see samples/GrpcUserApi for the
+/// canonical shape. These helpers exist so each bridge method stays
+/// a thin call into the actor system.
 /// </para>
 /// </summary>
 public static class SpekGrpcBridge
@@ -22,9 +21,9 @@ public static class SpekGrpcBridge
     /// Resolves the actor instance from the gRPC call's DI scope
     /// and asks it with <paramref name="message"/>. Translates the
     /// reply into a tuple of (status, payload) for the bridge to
-    /// map into a gRPC response. Replies that map to non-OK
-    /// statuses are returned with <c>null</c> payload - the bridge
-    /// throws an <see cref="RpcException"/> to surface the status
+    /// map into a gRPC response. The reply is returned with its
+    /// resolved status; the bridge calls
+    /// <see cref="ThrowIfErrorStatus"/> to surface non-OK statuses
     /// to the gRPC client.
     /// </summary>
     public static async Task<(StatusCode Status, object? Payload)>

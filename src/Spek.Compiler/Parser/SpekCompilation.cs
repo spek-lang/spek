@@ -10,9 +10,9 @@ namespace Spek.Compiler.Parser;
 /// <c>ask</c> in file B) resolve without triggering false-positive
 /// "undeclared message" diagnostics.
 ///
-/// Namespaces are informational for now: resolution is flat-by-simple-name
+/// Namespaces are informational: resolution is flat-by-simple-name
 /// across the whole compilation. Namespace-scoped resolution (with
-/// <c>using</c>-aware lookup) is future work.
+/// <c>using</c>-aware lookup) is not implemented.
 /// </summary>
 public sealed record SpekCompilation(
     IReadOnlyList<SpekFile> Files,

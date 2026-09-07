@@ -3,13 +3,6 @@ using System.Threading.Tasks.Sources;
 namespace Spek.Runtime;
 
 /// <summary>
-/// The slotless reply target behind <see cref="ActorRef.AskAsync{T}(object)"/>.
-/// The cell is an <see cref="IValueTaskSource{T}"/> and the
-/// ask returns a <c>ValueTask</c>: no <c>Task&lt;T&gt;</c> allocation. The
-/// token exists letting a cell reject stale sender refs; the
-/// current cell is fresh per ask (see the class remarks for why).
-/// </summary>
-/// <summary>
 /// Test-kit invariant counters: "every ask delivered
 /// exactly once" should be an assertion, not a console-print archaeology
 /// session. Cheap Interlocked increments, aggregated across all reply
@@ -68,6 +61,12 @@ internal sealed class ReplyDiagnosticsScope
     internal long Failed => Interlocked.Read(ref _failed);
 }
 
+/// <summary>
+/// The slotless reply target behind <see cref="ActorRef.AskAsync{T}(object)"/>.
+/// The cell is an <see cref="IValueTaskSource{T}"/> and the ask returns a
+/// <c>ValueTask</c>: no <c>Task&lt;T&gt;</c> allocation. The token lets a
+/// cell reject stale sender refs; the current cell is fresh per ask.
+/// </summary>
 internal abstract class ReplyCell
 {
     /// <summary>Delivers the reply for the given generation; stale tokens no-op.</summary>
@@ -82,7 +81,7 @@ internal abstract class ReplyCell
 
 internal sealed class PooledReplyCell<T> : ReplyCell, IValueTaskSource<T>
 {
-    // Deliberately NOT pooled (r7 finding): pooling requires serializing the
+    // Deliberately NOT pooled: pooling requires serializing the
     // version check with the set against reset - a per-completion lock that
     // cost more time than the pooled bytes were worth on a latency-shaped
     // path. A fresh cell per ask has no reuse hazard, so completion is one

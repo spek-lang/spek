@@ -29,7 +29,7 @@ public sealed class LambdaCaptureEscapeTests
     [Fact]
     public void CE0135_IssueExample_RegisterTaintedLocal_Errors()
     {
-        // The G8 issue's headline example, verbatim: binding is fine, direct
+        // The rule's headline example, verbatim: binding is fine, direct
         // invocation is fine, registration is the escape.
         const string src = $$"""
             {{Registry}}
@@ -457,8 +457,8 @@ public sealed class LambdaCaptureEscapeTests
     {
         // The documented residue: a method call on a FOREIGN-typed field.
         // Whether StringBuilder.Append mutates is unknowable without foreign
-        // type resolution, so CE0135 stays silent - that remainder belongs to
-        // the runtime turn guard (in design).
+        // type resolution, so CE0135 stays silent - that remainder is out of
+        // scope for compile-time analysis.
         const string src = $$"""
             {{Registry}}
 

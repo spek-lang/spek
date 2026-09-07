@@ -40,8 +40,8 @@ actor Echo
 {: .note }
 > **New to Spek? Start with [Understanding Spek](/understanding-spek/).** It's a
 > few minutes on who the language is for, how it borrows from C#, and the handful
-> of places it deliberately differs. That's the mental model that makes the rest
-> of the docs click.
+> of places it deliberately differs. [Where Spek comes from](/heritage/) is the
+> ancestry: Erlang, Akka, Orleans, Rust, and what Spek left behind.
 
 ## Who Spek is for
 
@@ -54,8 +54,8 @@ state, Spek does exactly that. If you've used Akka.NET or Proto.Actor, liked the
 model, and then got tired of inheriting from `ReceiveActor`, wiring up `Become`
 by hand, and finding out about mistakes only at runtime, Spek moves those checks
 to compile time. And if you want the "let it crash" discipline of Erlang/OTP but
-in a language that reads like modern C# and pulls NuGet packages natively, that's
-the language this is trying to be.
+in a language that reads like modern C# and pulls NuGet packages natively,
+that's Spek.
 
 ## Core philosophy
 
@@ -68,7 +68,7 @@ handlers with `become`, so its behavior changes as its state does. When
 something goes wrong, hierarchical supervision applies the "let it crash" model
 instead of defensive error handling.
 
-Most of this rests on a surface that reads like C#, with the same visibility
+Most of this sits on a surface that reads like C#, with the same visibility
 defaults, namespace conventions, and type syntax. What isn't C# is the
 enforcement: the actor-model rules surface as compile-time diagnostics rather
 than runtime surprises. Every one of them carries a `CE####` code and a
@@ -76,7 +76,7 @@ triggering example in the [CE code catalog](/reference/errors/).
 
 ## What Spek includes
 
-Spek covers a full actor-model surface: messages, actors, behaviors with
+The language includes messages, actors, behaviors with
 `become`, `init` and lifecycle hooks, `persist` and `passivate`, `Ask` and
 `Tell`, `spawn`, and hierarchical supervision (`Resume`, `Restart`, `Escalate`,
 `Stop`, with retry budgets and parent supervision). Alongside the language sit
@@ -90,6 +90,8 @@ and quick-fixes to any LSP-aware editor.
 
 - [Understanding Spek](/understanding-spek/): read this first. Who Spek is for,
   how it relates to C#, and where it deliberately differs.
+- [Where Spek comes from](/heritage/): Erlang, Akka, Orleans, Rust, and the
+  rest: which idea Spek borrowed and where it shows up.
 - [Getting started](/getting-started/): install the toolchain and walk through
   `HelloBank`, a runnable example.
 - [Build your first actor](/language/first-actor/): learn the language by

@@ -78,9 +78,8 @@ program Main
         // the convention engine (verb from prefix, /{id} from id field).
         routes.Override<ChangeEmail>(HttpVerb.Patch, "/{id}/email");
     });
-    // NOTE: blocking `Run()`, not `RunAsync()` - Spek has no `await` keyword,
-    // and invisible async doesn't cover AspNetCore types, so `app.RunAsync()`
-    // would be fire-and-forgotten and the process would exit immediately.
-    // (Same idiom as samples/HelloWeb.)
+    // Blocking `Run()` keeps Main synchronous until shutdown. (`RunAsync()`
+    // would be auto-awaited too; either form works.) Same idiom as
+    // samples/HelloWeb.
     app.Run();
 }

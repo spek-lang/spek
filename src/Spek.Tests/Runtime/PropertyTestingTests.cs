@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Property-based actor testing with integrated shrinking (D3): properties
+/// Property-based actor testing with integrated shrinking: properties
 /// run under the deterministic simulator, failures shrink to a minimal
 /// (input, schedule) pair, and every repro is seed-exact.
 /// </summary>
@@ -33,7 +33,7 @@ public sealed class PropertyTestingTests
         }
     }
 
-    /// <summary>The bug: quietly saturates - deposits past 100 are lost.</summary>
+    /// <summary>The bug: saturates without a diagnostic. Deposits past 100 are lost.</summary>
     private sealed class SaturatingCounter : ActorBase
     {
         private int _total;

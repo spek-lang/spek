@@ -376,8 +376,7 @@ program Main
 Use it for counters, in-flight handles, and derived caches: anything cheaper
 to recompute than to serialise. After a restart, a transient field holds its
 initializer value. (The keyword also parses on actor fields and on
-non-persisted regions, where it's a harmless no-op, since there's nothing to opt
-out of.)
+non-persisted regions, where it's a harmless no-op.)
 
 ### Borrowing region values into actor fields
 
@@ -420,8 +419,7 @@ actor Trader
 ```
 
 This isn't lock guidance; the runtime already serialises around the region's
-RW lock. The check exists because reference-typed data still escapes when the
-lock releases; forcing the borrow through a local (or a deep-copy call) makes
+RW lock. The check exists because reference-typed data still escapes when the lock releases. Forcing the borrow through a local (or a deep-copy call) makes
 you decide, on purpose, whether a snapshot or a copy is what you actually want.
 
 ### Phasing fields out: `deprecated` and `retired`

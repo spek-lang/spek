@@ -4,7 +4,7 @@ namespace Spek.Hosting;
 /// Emitted by the Spek compiler on every <c>channel</c>
 /// declaration. Carries the channel's input message types and emitted
 /// message types so hosting adapters (<c>Spek.Hosting.AspNetCore.Rest</c>,
-/// the hosting adapters (Spek.Hosting.AspNetCore.Rest, Spek.Hosting.AspNetCore.Grpc)) can discover what a channel accepts
+/// <c>Spek.Hosting.AspNetCore.Grpc</c>) can discover what a channel accepts
 /// and produces via reflection.
 ///
 /// The compiler emits one marker interface per channel

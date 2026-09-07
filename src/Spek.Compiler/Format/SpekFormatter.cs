@@ -68,7 +68,7 @@ public static class SpekFormatter
                 continue;
             }
 
-            // The lexer's whitespace rule is `WS -> skip`, so newlines
+            // The lexer's whitespace rule is `WHITESPACE -> skip`, so newlines
             // never reach us as tokens. We instead derive vertical
             // whitespace from the source line numbers carried on each
             // real token. If the gap between prev and this token spans

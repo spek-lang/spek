@@ -237,8 +237,8 @@ public sealed class SpawnClassArgTests
         // PINNED RESIDUE: a FOREIGN-typed field argument stays silent, the
         // same stance CE0135/CE0136 take: whether a StringBuilder is mutable
         // is knowable to a human, but the analyzer has no foreign type
-        // resolution and does not guess. That remainder belongs to the
-        // runtime turn guard (in design).
+        // resolution and does not guess. That remainder is out of scope for
+        // compile-time analysis.
         const string src = """
             message Go();
 
@@ -340,7 +340,7 @@ public sealed class SpawnClassArgTests
     [Fact]
     public void CE0137_LaunderingChain_DelegateInClassViaSpawn_Errors()
     {
-        // The launder2 repro, verbatim: a name-capturing delegate is parked
+        // The delegate-laundering repro, verbatim: a name-capturing delegate is parked
         // inside the class (legal: CE0136 trusts the confined receiver
         // precisely because the class cannot reach another thread), then the
         // class itself is spawned away. Without CE0137 the child fires the

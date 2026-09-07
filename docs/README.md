@@ -7,7 +7,7 @@ GitHub Pages.
 The theme gives us three things with no extra tooling: side navigation generated
 from each page's front matter (`parent` and `nav_order`), client-side full-text
 search (`search_enabled: true` in `_config.yml`), and styling built for technical
-documentation. Contributors edit Markdown; there is no Node toolchain or local
+documentation. Contributors edit Markdown. There is no Node toolchain or local
 build step required for a change to ship.
 
 ## Syntax highlighting
@@ -39,7 +39,7 @@ versions as CI.
 
 Every ` ```spek ` block in these docs is checked against the real compiler by the
 `DocSnippetTests` suite, so a published snippet cannot silently drift from the
-language. `dotnet test` runs it; there is no separate build step.
+language. `dotnet test` runs it. There is no separate build step.
 
 A block that opens with a top-level keyword (`program`, `module`, `actor`,
 `message`, `enum`, `shared`, `channel`, `using`, `namespace`) is syntax-checked.

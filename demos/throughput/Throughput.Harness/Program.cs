@@ -12,8 +12,8 @@ using Throughput;
 //
 // After every measured pass the books are settled: each actor is asked for
 // its counter, and the total must equal the messages dispatched - exactly.
-// Any discrepancy exits non-zero. Host-side Task.Run is the load driver,
-// same as the fleet harness; the system under test is the actor runtime.
+// Any discrepancy exits non-zero. Host-side Task.Run drives the tell/ask
+// modes; the system under test is the actor runtime.
 
 var mode = Arg("--mode", "pingpong");
 var rounds = ArgInt("--rounds", 250_000);

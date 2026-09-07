@@ -9,7 +9,7 @@ namespace Spek.Tests.Runtime;
 /// Targeted coverage for supervision directives the existing suite under-tests:
 /// parent-driven <see cref="FailureDirective.Resume"/> (state preserved, same
 /// instance), multi-level escalation through a grandparent → parent → child
-/// hierarchy (and the depth-cap degrade-to-Stop), and the per-child restart
+/// hierarchy (and the degrade-to-Stop at the root), and the per-child restart
 /// budget exposed via <see cref="ActorBase.ApplyRestartPolicy"/>.
 ///
 /// All actors are hand-written C# (sealed : ActorBase, override DispatchAsync)
@@ -126,16 +126,14 @@ public class SupervisionDirectiveTests
     //   parent) and the IMMEDIATE supervisor returns Restart → the child is
     //   restarted (fresh instance, stays alive).
     //
-    // Variant B (depth-cap): every supervisor in reach returns Escalate → the
-    //   escalation walk in ActorSlot.ResolveEscalation hits its depth cap (8)
-    //   and degrades to Stop with an "escalation chain exceeded max depth"
-    //   reason.
+    // Variant B (escalate at root): every supervisor in reach returns
+    //   Escalate → the escalation walk in ActorSlot.ResolveEscalation climbs
+    //   to the root, runs out of supervisors, and degrades to Stop with an
+    //   "escalate at root" reason.
     //
-    // Variant C (true climb to grandparent): documents a runtime gap;
-    //   ResolveEscalation re-invokes the failing child's IMMEDIATE parent on
-    //   every Escalate instead of climbing to the grandparent, so a
-    //   grandparent that would return Restart is never consulted. Skipped +
-    //   recorded as a bug.
+    // Variant C (true climb to grandparent): ResolveEscalation climbs the
+    //   supervisor chain, so a grandparent that returns Restart is consulted
+    //   past the escalating parent and the leaf is restarted (alive).
     // ─────────────────────────────────────────────────────────────────────────
 
     private sealed class EscalatingLeaf : ActorBase

@@ -42,8 +42,7 @@ generated `.g.cs` lives under `obj/`, a path relative to it would be brittle, so
 ## Prerequisites
 
 - **A Debug build.** Debug is what produces a PDB and disables the
-  optimizations that make stepping jumpy; `dotnet build` and `dotnet run`
-  default to it. (A Release build with `DebugType=portable` can be debugged too,
+  optimizations that make stepping jumpy. `dotnet build` and `dotnet run` default to it. (A Release build with `DebugType=portable` can be debugged too,
   but expect optimized-code stepping.)
 - **A .NET debugger.** In VS Code that's the
   [C# extension](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp)

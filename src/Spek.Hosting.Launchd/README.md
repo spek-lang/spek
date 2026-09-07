@@ -12,7 +12,7 @@ into a Spek actor's `Shutdown` message and wraps the process in a
 // Spek.Hosting.Abstractions.
 namespace MyDaemon;
 
-public actor Worker : LaunchdHost
+public actor Worker
 {
     behavior Running
     {
@@ -68,7 +68,7 @@ process as ordinarily killable.
 launchd has no `sd_notify` equivalent. There is no readiness signal,
 no watchdog protocol, no freeform status string. Health is inferred
 from process exit code and `ThrottleInterval`. So this adapter has
-nothing to emit back beyond the transaction-busy hint, and the
-`LaunchdHost` channel stays small (`on Shutdown;` only).
+nothing to emit back beyond the transaction-busy hint, and its
+message surface stays small: just `Shutdown` in.
 
 This package is `[SupportedOSPlatform("macos")]`.

@@ -16,8 +16,7 @@ The main differences are:
 - **Spek is a language, Proto.Actor is a library.** Spek rules are
   compile-time errors; Proto.Actor relies on convention.
 - **Virtual actors aren't a Spek concept.** Spek has clustering, but
-  Proto's virtual-actor / "Cluster" grain model is closer to Orleans;
-  the nearest Spek analogue is persist + passivate.
+  Proto's virtual-actor / "Cluster" grain model is closer to Orleans. The nearest Spek analogue is persist + passivate.
 
 ## Concept mapping
 

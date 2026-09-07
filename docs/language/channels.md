@@ -109,8 +109,7 @@ actor Worker : Audited, Pingable
 ```
 
 If `Audited` and `Pingable` both declared `on Ping`, the single
-`on Ping` handler above would satisfy both; there is no double-coverage
-requirement.
+`on Ping` handler above would satisfy both.
 
 ## Reply types stay on the handlers
 
@@ -141,7 +140,7 @@ neither knows nor needs to. Keeping replies on the handler avoids
 restating the reply type in two places and letting them drift apart.
 
 There is also no typed `ActorRef<Pingable>`. An [`ActorRef`](/language/messaging/)
-stays untyped; channel verification is entirely actor-side, at the
+stays untyped. Channel verification is entirely actor-side, at the
 declaration.
 
 ## Emitting events with `emits`
@@ -219,7 +218,7 @@ strict enforcement.
 The fix is in the message itself: either `Unrelated` *is* the reply (make
 it a `return`), or it's a genuine event (add `emits Unrelated;` to the
 channel). CE0092 only fires for actors that implement at least one
-channel; an actor with no channel has no contract to violate, so its
+channel. An actor with no channel has no contract to violate, so its
 `sender.Tell` calls are unrestricted.
 
 ### `emits any`: the escape hatch
@@ -249,8 +248,7 @@ actor Diagnostics : DiagnosticsPort
 ```
 
 With `emits any;` present, CE0092 is suppressed for the whole actor.
-Reach for it only when strict typing actively gets in the way; it's an
-advisory hatch, not the default.
+Reach for it only when strict typing actively gets in the way. It's an advisory hatch, not the default.
 
 ## Composing channels through inheritance
 
@@ -321,7 +319,7 @@ copied in rather than referenced across assemblies.
 
 ## A worked example
 
-Channels earn their keep when an actor's protocol spans several behaviors.
+A channel is worth writing when an actor's protocol spans several behaviors.
 Here a connection accepts `Open` and `Close` and may emit a `Disconnected`
 event, all stated once in the channel; the `Opened` reply stays on the
 handler's `return`, as replies always do. The actor

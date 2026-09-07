@@ -10,8 +10,8 @@ namespace Spek.Testing;
 /// attribute on each generated test method; referencing this package binds that
 /// name to xUnit. Because it derives from <see cref="Xunit.FactAttribute"/>,
 /// xUnit's default discovery picks it up - no custom test-case discoverer is
-/// needed. A future <c>Spek.Testing.NUnit</c> adapter binds the same attribute
-/// name to an NUnit test instead; the emitter stays framework-agnostic.
+/// needed. Another adapter package can bind the same attribute name to a
+/// different framework; the emitter stays framework-agnostic.
 /// </para>
 ///
 /// <para>The <c>DisplayName</c> (the test description) is inherited from

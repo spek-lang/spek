@@ -9,9 +9,9 @@ namespace Spek.Tests.ClusterIntegration.Membership;
 /// Coverage for cluster membership: state-machine transitions,
 /// event subscription, locality metadata, and leave-on-shutdown
 /// integration. Drives <see cref="SpekClusterNs.StaticSeedClusterMembership"/>
-/// directly (deterministic, no real gossip - full SWIM gossip is a
-/// follow-up that lives behind the same
-/// <see cref="SpekClusterNs.IClusterMembership"/> interface).
+/// directly (deterministic; no gossip implementation exists, and
+/// StaticSeedClusterMembership is the only
+/// <see cref="SpekClusterNs.IClusterMembership"/> implementation).
 /// </summary>
 public class ClusterMembershipTests
 {
@@ -175,9 +175,8 @@ public class ClusterMembershipTests
 
     /// <summary>
     /// End-to-end leave: cluster.LeaveAsync() transitions the local
-    /// node through Leaving → Exiting and fires both events. Test
-    /// for the integration the hosting adapters will tap to wire
-    /// graceful Shutdown into clean cluster departure.
+    /// node through Leaving → Exiting and fires both events. Covers
+    /// the leave path end-to-end through the cluster facade.
     /// </summary>
     [Fact]
     public async Task Cluster_LeaveAsync_FiresLeavingThenExitingAsync()

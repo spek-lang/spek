@@ -25,7 +25,7 @@ program from scratch; this one is just the five-minute setup.
   bodies are a [subset of C#](/language/csharp-syntax/), and Roslyn does the
   type-checking. If you can read C#, you can read Spek.
 - **A C# editor** (Rider, Visual Studio, or VS Code with the C# Dev Kit). Any of
-  them will pick up the generated C#; a Spek-aware [language
+  them will pick up the generated C#. A Spek-aware [language
   server](/reference/) adds live diagnostics on the `.spek` source itself.
 
 ## Installing the toolchain
@@ -48,7 +48,7 @@ That produces `spekc.dll`. You can invoke it directly, or through
 dotnet run --project src/Spek.Cli -- compile path/to/file.spek
 ```
 
-The rest of this page writes `spekc compile …` for brevity; the arguments
+The rest of this page writes `spekc compile …` for brevity. The arguments
 are identical either way. See the [CLI reference](/reference/cli/) for the
 full flag surface (`--out`, `--check`, `--ref`).
 
@@ -101,7 +101,7 @@ anything else is a compile error (see [messages](/language/messages/)).
 
 `actor Greeter { … }` is an isolated unit of state and behavior. The
 `on Greet g => { … }` handler says "when a `Greet` arrives, run this." A
-single-handler actor needs no `behavior` wrapper; there's more on
+single-handler actor needs no `behavior` wrapper. There's more on
 [actors and behaviors](/language/actors/) later.
 
 `program Main { … }` is the entry point. It creates an `ActorSystem` (the
@@ -216,7 +216,7 @@ dotnet run
 The target is incremental (a `.spek` older than its `.g.cs` is skipped) and
 passes your project's references to the compiler, so framework `Task` APIs
 [auto-await](/language/async/) correctly. The `samples/HelloBank` project is
-wired exactly this way; copy its `.csproj` as a starting point.
+wired exactly this way. Copy its `.csproj` as a starting point.
 
 If you ran `spekc compile` by hand earlier, delete the `.g.cs` it left beside
 your source first: the SDK would compile both it and the `obj/` copy and report

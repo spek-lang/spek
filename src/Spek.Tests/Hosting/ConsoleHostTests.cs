@@ -53,11 +53,10 @@ public class ConsoleHostTests
         using var system = new ActorSystem("console-host-shutdown");
         var entry        = system.Spawn<GracefulActor>();
 
-        // Send the shutdown ourselves. The actor's reply goes to
-        // NoSender (since we Tell with no sender override), so the
-        // host's receiver never sees the 42 - the host returns the
-        // default. This isn't the full signal flow but it exercises
-        // the wait-and-return surface.
+        // Send StopYourself ourselves. The actor stops without
+        // replying, so the host's receiver captures nothing and the
+        // host falls back to defaultExitCode. This isn't the full
+        // signal flow but it exercises the wait-and-return surface.
         var hostTask = SpekConsoleHost.RunAsync(
             system, entry,
             shutdownFactory: () => new Shutdown(),
@@ -70,12 +69,12 @@ public class ConsoleHostTests
 
         var exitCode = await hostTask;
 
-        Assert.Equal(7, exitCode);          // default: actor's reply went to NoSender
+        Assert.Equal(7, exitCode);          // default: the actor stopped without replying
         Assert.True(entry.IsStopped);
     }
 
     [Fact]
-    public async Task ExitCodeReceiver_CapturesOptionDReply_ViaTellWithSenderAsync()
+    public async Task ExitCodeReceiver_CapturesTypedExitCodeReply_ViaTellWithSenderAsync()
     {
         // Direct test of the inner machinery: spawn the receiver,
         // give it a Tell-with-sender of an int, verify the holder

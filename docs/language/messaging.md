@@ -94,8 +94,7 @@ program Main
 The three `Tell`s above don't block and don't interleave: each one appends
 to the account's mailbox, and the account processes them strictly in order,
 one at a time, on its own turn. That single-message-at-a-time guarantee is
-what makes `balance += d.amount` safe without a lock; the reason why is the
-subject of the next chapter, [Isolation and ownership](/language/isolation/).
+what makes `balance += d.amount` safe without a lock. The reason why is the subject of the next chapter, [Isolation and ownership](/language/isolation/).
 
 `Tell` is the idiomatic way to communicate in Spek. Reach for it for
 *everything* that doesn't strictly need a reply on the very next line.
@@ -119,7 +118,7 @@ Because `Tell` returns nothing, a reply can't come back as a return value.
 It comes back the only way anything moves between actors: as **another
 message**, delivered to a **different handler**.
 
-This is where **`sender`** earns its keep. Inside a handler, `sender` is an
+This is what **`sender`** is for. Inside a handler, `sender` is an
 `ActorRef` pointing at whoever sent the message you're currently processing.
 To answer them, you `Tell` them back:
 
@@ -418,7 +417,7 @@ type out at the call site is never wrong. Inference is the default;
 `Ask` looks synchronous, and that's exactly its hazard: it introduces a
 stop-and-wait dependency that gives up some of the pipelining that makes the
 actor model fast. The honest default is `Tell` plus a response handler.
-Keep `Ask` for the places that earn it: test code, program boundaries, and
+Keep `Ask` for the places that need it: test code, program boundaries, and
 request-scoped workflows where the reply genuinely *must* land before the
 next step.
 

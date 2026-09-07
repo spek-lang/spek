@@ -11,7 +11,9 @@ description: "The Spek language guide, as a book: read it front to back and each
 
 This section is a **book**. Read it front to back and each chapter builds on the
 one before it. If you've written C#, the syntax will feel familiar: Spek is C#
-with shared mutable state removed and an actor model put in its place.
+with shared mutable state removed and an actor model put in its place. The
+ancestry of the non-C# pieces (Erlang supervision, Akka names, Rust isolation,
+and the rest) is collected in [Where Spek comes from](/heritage/).
 
 A `.spek` file is an optional file-scoped namespace, some `using` imports, and a
 sequence of top-level declarations (`message`, `actor`, `module`, and an
@@ -36,7 +38,7 @@ actor BankAccount
 }
 ```
 
-All *stateful* computation runs inside actors; there are no globals and no
+All *stateful* computation runs inside actors. There are no globals and no
 shared mutable state. The only way two actors affect each other is by sending a
 `message`. Stateless helper code lives in `module`s.
 
@@ -81,7 +83,7 @@ shared mutable state. The only way two actors affect each other is by sending a
 
 The first is the ownership rule: a value is either *shared and immutable* or
 *owned and mutable*, never both. Actor fields are private by definition, so
-mutable state is always owned by exactly one actor; a `message` is the only thing
+mutable state is always owned by exactly one actor. A `message` is the only thing
 that crosses an actor boundary, and every field on one must be immutable
 (primitives, `string`, `ActorRef`, other messages, and `System.Collections.Immutable.*`
 containers; `List<T>` and even `IReadOnlyList<T>` are rejected). This is
@@ -89,7 +91,7 @@ containers; `List<T>` and even `IReadOnlyList<T>` are rejected). This is
 
 The second: every rule that *can* be checked
 at compile time is. `become` targets, `ask` placement, message immutability, and
-dozens more. Each produces a Rust-style caret diagnostic; the full catalog is the
+dozens more. Each produces a Rust-style caret diagnostic. The full catalog is the
 [errors reference](/reference/errors/).
 
 And third, concurrency is the default and its syntax is invisible. You
@@ -101,7 +103,7 @@ checkpoint, not in. That's [chapter 8](/language/async/).
 ## Where to start
 
 New to Spek? Start with **[Build your first actor](/language/first-actor/)**. You'll
-write a working program and meet actors, messages, `Tell`, `ask`, and `become` in
-one sitting. Then read straight through. Whatever you skip, don't skip
+write a working program and meet actors, messages, `Tell`, `ask`, and `become`.
+Then read straight through. Whatever you skip, don't skip
 [Isolation and ownership](/language/isolation/): it's the single idea the rest of
 the language is built on.

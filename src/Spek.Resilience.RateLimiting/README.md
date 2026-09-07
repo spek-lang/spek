@@ -19,7 +19,9 @@ actor.AttachIngressPolicy(policy);
 
 Policies are attached per-`ActorRef`. You can chain several on the same actor,
 where they are evaluated in attachment order and the first non-`Allow` decision
-wins; rejected and deferred messages are dead-lettered with the policy's reason.
+wins. Rejected messages are dead-lettered with the policy's reason; deferred
+messages are re-admitted after the policy's `RetryAfter`, and dead-lettered
+only once the defer budget is exhausted.
 
 For per-tenant or per-actor-instance limiting, build a
 `PartitionedRateLimiter<ResilienceContext>` and wrap it with

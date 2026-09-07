@@ -138,8 +138,7 @@ a key, which is exactly what the naming layer above would add.
   guarantee that the arguments are immutable.
 - **Lightweight.** An `ActorRef` in Spek is a reference to a slot,
   local by default. A single-process program carries no silo and no
-  cluster plumbing, so small programs have no cold-start cost;
-  clustering is opt-in packages when you want it.
+  cluster plumbing, so small programs have no cold-start cost. Clustering is opt-in packages when you want it.
 
 ## Orleans features with no Spek equivalent
 

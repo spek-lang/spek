@@ -3,8 +3,7 @@
   <!--
     Shared NuGet packaging metadata for shippable Spek packages
     (Spek.Runtime, Spek.Testing, Spek.Cli). Non-shippable projects opt out
-    with <IsPackable>false</IsPackable> in their own csproj (Spek.Tests
-    already does this; Spek.Compiler would too if we ever pack it).
+    with <IsPackable>false</IsPackable> in their own csproj (Spek.Tests and Spek.Compiler both do).
 
     Versioning: 0.<era>.<build> while in preview.
     The whole 0.x line IS the preview: 0 = preview major (no stability promise);

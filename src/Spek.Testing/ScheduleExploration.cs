@@ -212,11 +212,10 @@ internal sealed record ScheduleExplorationResult(
 /// violating schedule (reported exactly) or when the tree is exhausted.
 ///
 /// <para>Scope: schedule count is factorial in scenario size, so this is for
-/// SMALL scenarios: a handful of actors, tens of steps. The known upgrades,
-/// deliberately not in this round: state hashing to merge converged prefixes,
-/// and dynamic partial-order reduction (DPOR) to skip interleavings that only
-/// permute commuting dispatches. Both shrink the tree without shrinking the
-/// proof.</para>
+/// SMALL scenarios: a handful of actors, tens of steps. State hashing to
+/// merge converged prefixes and dynamic partial-order reduction (DPOR) to
+/// skip interleavings that only permute commuting dispatches would shrink
+/// the tree without shrinking the proof; neither is implemented.</para>
 /// </summary>
 internal static class ScheduleExplorer
 {

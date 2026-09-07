@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Chaos hooks (D4): drop / delay / duplicate at the enqueue path,
+/// Chaos hooks: drop / delay / duplicate at the enqueue path,
 /// crash-on-nth at the dispatch path - attach-only-at-construction, and
 /// an injected crash unwinds through the real supervision machinery.
 /// </summary>

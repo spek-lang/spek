@@ -19,7 +19,7 @@ namespace Spek.Benchmarks;
 /// way). The serialize-only rows isolate the message→wire-bytes step by
 /// calling <see cref="JsonSpekSerializer"/> directly.
 ///
-/// Remote asks aren't a runtime primitive yet - <c>AskAsync</c> on a remote
+/// Remote asks are not supported - <c>AskAsync</c> on a remote
 /// ref throws <see cref="NotSupportedException"/> - so the transport ask arms
 /// use the wire request/reply idiom instead: Tell with a named-root sender,
 /// reply routed back across the transport into a <see cref="ReplySinkActor"/>
@@ -104,10 +104,10 @@ public class ClusterBenchmarks
     /// <summary>
     /// The same request/reply crossing the in-memory transport between two
     /// in-process nodes. Each round trip pays, twice (request and reply): a
-    /// named-root path lookup on the send side (O(1) map since r16), a
+    /// named-root path lookup on the send side (an O(1) map), a
     /// RemoteEnvelope, the fabric's transport lookup, and the receive side's
-    /// cached remote-sender ref resolution (per-envelope RemoteEndpoint +
-    /// ActorRef allocation retired in r16) - plus the target's mailbox
+    /// cached remote-sender ref resolution (no per-envelope RemoteEndpoint
+    /// or ActorRef allocation) - plus the target's mailbox
     /// hop on each node. No bytes are produced; this is the envelope-and-
     /// dispatch machinery with serialization at zero.
     /// </summary>

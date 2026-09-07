@@ -653,7 +653,7 @@ public sealed class ReaderFenceTests
         Assert.False(Parse(src).Success);
     }
 
-    [Fact] // p09a: spawning a child from a reader. OUT OF SCOPE per the task: a
+    [Fact] // p09a: spawning a child from a reader. OUT OF SCOPE: a
             // low-priority design question (does a reader lock permit a spawn?),
             // deliberately left as-is. Pinned clean so closing it later is a
             // conscious choice, not an accident.

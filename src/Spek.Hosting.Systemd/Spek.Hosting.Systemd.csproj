@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Hosting.Systemd</RootNamespace>
     <AssemblyName>Spek.Hosting.Systemd</AssemblyName>
     <PackageId>Spek.Hosting.Systemd</PackageId>
-    <Description>Linux systemd host adapter for Spek. Translates SIGTERM/SIGHUP/SIGINT into Spek messages and emits sd_notify(READY=1, STOPPING=1, RELOADING=1, WATCHDOG=1, STATUS=...) back to systemd.</Description>
+    <Description>Linux systemd host adapter for Spek. Translates SIGTERM/SIGHUP into Spek messages and notifies systemd via sd_notify (READY=1, STOPPING=1).</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 

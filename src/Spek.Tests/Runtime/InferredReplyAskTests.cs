@@ -20,7 +20,7 @@ public class InferredReplyAskTests
     public void InlineReturn_RoutesToSender_AskReceivesTypedReply()
     {
         const string src = """
-            namespace OptionDDemo;
+            namespace InferredReplyDemo;
 
             message Ping();
             message Pong();
@@ -62,12 +62,12 @@ public class InferredReplyAskTests
         // (not AskAsync<Ping>). Pre-the inferred-reply convention would have emitted <Ping>.
         Assert.Contains("AskAsync<Pong>", csharp);
 
-        var assembly = RoslynCompileHelper.CompileAndLoad(csharp, "OptionDInline");
+        var assembly = RoslynCompileHelper.CompileAndLoad(csharp, "InferredReplyInline");
 
-        var pingerType     = assembly.GetType("OptionDDemo.Pinger")!;
-        var pongerType     = assembly.GetType("OptionDDemo.Ponger")!;
-        var startRoundType = assembly.GetType("OptionDDemo.StartRound")!;
-        var roundDoneType  = assembly.GetType("OptionDDemo.RoundDone")!;
+        var pingerType     = assembly.GetType("InferredReplyDemo.Pinger")!;
+        var pongerType     = assembly.GetType("InferredReplyDemo.Ponger")!;
+        var startRoundType = assembly.GetType("InferredReplyDemo.StartRound")!;
+        var roundDoneType  = assembly.GetType("InferredReplyDemo.RoundDone")!;
 
         using var system = new TestActorSystem("optd-inline");
         var probe  = system.CreateProbe();
@@ -84,7 +84,7 @@ public class InferredReplyAskTests
     public void BlockReturn_WithIntermediateStatements_StillInferred()
     {
         const string src = """
-            namespace OptionDDemo2;
+            namespace InferredReplyDemo2;
 
             message GetBalance();
             message Balance(decimal amount);
@@ -133,11 +133,11 @@ public class InferredReplyAskTests
         var csharp = new FileEmitter().Emit(parse.Tree!);
         Assert.Contains("AskAsync<Balance>", csharp);
 
-        var assembly  = RoslynCompileHelper.CompileAndLoad(csharp, "OptionDBlock");
-        var clientTy  = assembly.GetType("OptionDDemo2.Client")!;
-        var accountTy = assembly.GetType("OptionDDemo2.Account")!;
-        var startTy   = assembly.GetType("OptionDDemo2.Start")!;
-        var resultTy  = assembly.GetType("OptionDDemo2.Result")!;
+        var assembly  = RoslynCompileHelper.CompileAndLoad(csharp, "InferredReplyBlock");
+        var clientTy  = assembly.GetType("InferredReplyDemo2.Client")!;
+        var accountTy = assembly.GetType("InferredReplyDemo2.Account")!;
+        var startTy   = assembly.GetType("InferredReplyDemo2.Start")!;
+        var resultTy  = assembly.GetType("InferredReplyDemo2.Result")!;
 
         using var system = new TestActorSystem("optd-block");
         var probe   = system.CreateProbe();
@@ -252,7 +252,7 @@ public class InferredReplyAskTests
         // falls back to `AskAsync<object>`. Not ideal (caller has to
         // pattern-match), but better than guessing.
         const string src = """
-            namespace OptionDDemo3;
+            namespace InferredReplyDemo3;
 
             message Ping();
             message Start();

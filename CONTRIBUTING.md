@@ -3,8 +3,7 @@
 Thanks for your interest in Spek, an actor-based, C#-inspired language for
 .NET. The compiler lowers `.spek` source to C#, which builds against the Spek
 runtime. This guide covers building, testing, how the compiler is organized,
-and the conventions the codebase follows. It is the authoritative guide for
-humans and coding agents alike.
+and the conventions the codebase follows.
 
 ## Prerequisites
 
@@ -64,7 +63,7 @@ the emitted C# can carry the check.
 
 The grammar lives in `src/Spek.Compiler/Grammar/*.g4`. After editing, re-run
 `regenerate.sh`. Never hand-edit files under `Grammar/Generated/`: they are
-git-ignored and rebuilt from the `.g4` sources.
+gitignored and rebuilt from the `.g4` sources.
 
 ## Testing conventions
 

@@ -7,7 +7,7 @@
     <RootNamespace>Spek.Hosting.WindowsService</RootNamespace>
     <AssemblyName>Spek.Hosting.WindowsService</AssemblyName>
     <PackageId>Spek.Hosting.WindowsService</PackageId>
-    <Description>Windows Service (SCM) host adapter for Spek. Routes SCM control commands (Start, Stop, Pause, Continue, Shutdown, PowerEvent, SessionChange, CustomCommand) into a Spek actor's channel handlers and emits state machine events back via SetServiceStatus.</Description>
+    <Description>Windows Service (SCM) host adapter for Spek. Routes SCM control commands (Start, Stop, Pause, Continue, Shutdown, PowerEvent, SessionChange, CustomCommand) into a Spek actor's message handlers.</Description>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
   </PropertyGroup>

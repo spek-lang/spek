@@ -12,7 +12,7 @@ immutable-message alternative would allocate a fresh object at every stage.
 
 Confinement keeps it race-free with no annotation on your part. The context
 can't ride a message to another actor (`CE0010`) or be a shared-region field
-(`CE0112`), so it never escapes the one actor handling the request; the actor
+(`CE0112`), so it never escapes the one actor handling the request. The actor
 boundary and immutable messages still do all the concurrency work. When the
 result must leave the actor, `Egress.Finalize` snapshots the mutable context into
 an immutable `Response` message, the one copy you couldn't avoid, paid once.
@@ -32,7 +32,7 @@ Expected output:
 ```
 
 The project imports `Spek.targets`, so `dotnet run` compiles `Transport.spek`
-into `obj/` and builds it in one step; there's no `.g.cs` to commit. The program
+into `obj/` and builds it in one step. There's no `.g.cs` to commit. The program
 ends on its own: `AwaitTermination()` returns once the handler has drained its
 mailbox and gone idle, so a finite workload needs no explicit shutdown.
 

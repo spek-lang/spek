@@ -6,18 +6,9 @@ namespace Spek.Cluster;
 /// no dynamic discovery, but a real state machine + leave-on-shutdown
 /// + cluster-view subscription.
 ///
-/// Alternative implementations plug into the same interface:
-/// <list type="bullet">
-///   <item><c>SwimClusterMembership</c> - SWIM gossip, phi-accrual
-///         failure detection.</item>
-///   <item><c>KubernetesServiceDiscoveryMembership</c> - auto-discover
-///         peers via K8s headless service DNS / API.</item>
-///   <item><c>ConsulMembership</c>, <c>EtcdMembership</c> - external
-///         registry adapters.</item>
-/// </list>
-///
-/// All sit behind this same interface - switching membership strategies
-/// is config, not code.
+/// Other membership strategies (gossip protocols, service-discovery
+/// or registry adapters) plug in behind this same interface, so
+/// switching membership strategies is config, not code.
 /// </summary>
 public interface IClusterMembership : IAsyncDisposable
 {
@@ -44,10 +35,10 @@ public interface IClusterMembership : IAsyncDisposable
 
     /// <summary>
     /// Announce that this node is gracefully leaving. Transitions
-    /// local state to <see cref="NodeState.Leaving"/>, propagates the
-    /// announcement to peers, and waits for them to acknowledge.
-    /// Hosting adapters call this in their shutdown sequence so
-    /// peers see a clean leave rather than a phantom unreachable.
+    /// local state to <see cref="NodeState.Leaving"/>; implementations
+    /// may propagate the announcement to peers. Call this from your
+    /// shutdown sequence so peers see a clean leave rather than a
+    /// phantom unreachable.
     /// </summary>
     Task LeaveAsync(CancellationToken cancellationToken = default);
 }

@@ -28,7 +28,7 @@ public sealed class GrpcServiceCollectionTests
         await using var provider = services.BuildServiceProvider();
         var map = provider.GetRequiredService<SpekGrpcStatusMap>();
 
-        // Built-in convention table is present out of the box.
+        // The built-in convention table is registered by default.
         Assert.Equal(StatusCode.NotFound, map.ResolveFor(typeof(NotFound)));
         Assert.Equal(StatusCode.OK, map.ResolveFor(typeof(Custom)));
 

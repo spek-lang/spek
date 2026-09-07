@@ -59,8 +59,7 @@ class ReportBuilder
 ```
 
 Fields and methods both default to `private`, exactly as in C#. A method
-that implements an interface member must be declared `public` explicitly;
-Roslyn enforces that on implicit implementations. Inside a method, a
+that implements an interface member must be declared `public` explicitly. Roslyn enforces that on implicit implementations. Inside a method, a
 field is referred to directly (`buffer = …`) or through `self`
 (`self.buffer = …`), which lowers to C#'s `this`. Method bodies are ordinary
 [handler-style bodies](/language/csharp-syntax/), so everything you can write in
@@ -331,7 +330,7 @@ actor Worker
 }
 ```
 
-You never annotate `Add` or `AddTwice` as mutating; the compiler works it out
+You never annotate `Add` or `AddTwice` as mutating. The compiler works it out
 and only complains at the point where a concurrent reader would actually race.
 
 ## Interfaces: the class contract
@@ -368,8 +367,7 @@ inside the thing it implements. A body or a field inside an `interface` is
 The payoff is polymorphism with confinement intact. An actor can hold an
 interface-typed field and call it through a single call site, swapping one
 implementation for another without touching the caller, and the instance is
-still owned by the one actor, so nothing about the [confinement](#confinement-how-a-class-stays-race-free)
-guarantee changes:
+still owned by the one actor, with the [confinement](#confinement-how-a-class-stays-race-free) guarantee intact:
 
 ```spek
 actor Gatekeeper
@@ -429,8 +427,7 @@ class Circle : Shape
 Two things are worth calling out. The subclass's constructor chains to the base
 with `init(...) : base(...)`, the C# idiom. And `Circle.Area` needs no `override`
 keyword: Spek sees that it implements the base's abstract `Area` and emits the
-`override` for you. That is the whole point of leaving `virtual`/`override` out;
-the only methods a subclass can specialize are the abstract ones, so marking them
+`override` for you. That is the whole point of leaving `virtual`/`override` out. The only methods a subclass can specialize are the abstract ones, so marking them
 is redundant.
 
 Only an `abstract class` can be a base ([CE0123](/reference/errors/#ce0123)); a
@@ -457,7 +454,7 @@ for an [interface](#interfaces-the-class-contract) instead.
   `virtual`/`override`: swappable polymorphism lives in an
   [interface](#interfaces-the-class-contract).
 - **No `immutable class`.** Use a [`message`](/language/messages/) for immutable
-  data; that's exactly what it's for.
+  data.
 
 ## Related reading
 

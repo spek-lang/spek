@@ -7,7 +7,7 @@ namespace Spek.Resilience.RateLimiting;
 /// derived from the <see cref="ResilienceContext"/>. The classic use
 /// case is "100 req/sec per tenant": derive the tenant id from the
 /// inbound message and let the partitioned limiter manage one bucket
-/// per tenant under the hood.
+/// per tenant internally.
 ///
 /// Wraps <see cref="PartitionedRateLimiter{TResource}"/> so all the
 /// BCL's partition factories are available.
@@ -45,7 +45,7 @@ public sealed class PartitionedRateLimitIngressPolicy<TKey> : IngressPolicy, IAs
     /// <summary>
     /// Convenience factory for "N permits/sec per key, derived from
     /// the message via <paramref name="keySelector"/>". Builds a
-    /// token-bucket-per-partition under the hood.
+    /// token bucket per partition internally.
     /// </summary>
     public static PartitionedRateLimitIngressPolicy<TKey> PerKeyTokenBucket(
         Func<ResilienceContext, TKey> keySelector,

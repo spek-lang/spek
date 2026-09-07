@@ -40,8 +40,7 @@ public sealed class InMemoryClusterFabric : IDisposable
         // Target not registered: silent dead-letter. A production
         // transport would surface this via DeliveryFailed; for the
         // in-memory transport (test target), letting it slide is the
-        // simpler default. Tests that care about misrouted-message
-        // detection can swap to a custom fabric subclass.
+        // simpler default.
         return Task.CompletedTask;
     }
 

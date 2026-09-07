@@ -1,9 +1,10 @@
-# Throughput: the runtime at full tilt
+# Throughput
 
-Every other demo in this directory is about something: elevators heal, the
-fleet survives firmware faults. This one is about nothing but speed. It
-spawns actors, pours messages through them, and reports how many dispatches
-per second the runtime sustains across the machine's cores.
+This demo is a load generator. It spawns actors, pours messages through
+them, and reports how many dispatches per second the runtime sustains
+across the machine's cores. The other demos in this directory have a
+story (elevators heal, the fleet survives firmware faults). This one
+does not.
 
 ```bash
 ./demos/run.sh throughput                            # ping-pong sweep, the number to quote
@@ -18,7 +19,7 @@ its sender. A paddle that receives a `Fire` counts the hit and returns
 `new Fire(remaining - 1)`; a handler's return value routes to the sender of
 the message it answers, so the pair rallies with no further help from the
 harness. A single pair is a strictly ordered chain of dispatches and
-therefore measures round-trip dispatch latency; the sweep over pair counts
+therefore measures round-trip dispatch latency. The sweep over pair counts
 (1, 2, 4, and so on up to the processor count) measures how well those
 chains overlap across cores. The other two modes bracket the ping-pong number:
 `tell` is fire-and-forget mailbox pressure from parallel host tasks, and
@@ -30,20 +31,19 @@ tiering effects.
 
 A throughput number is only as good as its delivery guarantee, so after
 every measured pass the harness asks each actor for its counter and
-requires the exact expected total: every message dispatched exactly once,
-none lost, none duplicated. Any discrepancy exits non-zero, which makes the
+requires the exact expected total: every message dispatched once,
+with no loss and no duplicates. Any discrepancy exits non-zero, which makes the
 demo double as an integration test of the public runtime surface, in the
 same spirit as the other demos' contracts.
 
 ## Why there is no C# twin
 
-The fleet demo owns the like-for-like comparison, and it earns it by making
-both panes keep the same promises. Pure throughput has no honest twin: a
+The fleet demo owns the like-for-like comparison, because both panes keep
+the same promises. Pure throughput has no honest twin: a
 rival stripped down to raw channels would carry none of the actor model's
 guarantees (supervision, per-actor ordering, introspection), it would win,
-and the number would mean nothing. This demo instead tracks one number
-against itself, release over release, and that number is the one to quote for
-the dispatcher-era runtime work ahead.
+and that number would not be comparable. This demo instead tracks one number
+against itself, release over release.
 
 ## Watching it run
 
@@ -52,5 +52,5 @@ panel) attaches to the harness process and shows every paddle's and
 counter's message count climbing live, with no instrumentation in the demo
 code. Everything the runtime is being measured on is in
 [`Throughput.Spek/Throughput.spek`](Throughput.Spek/Throughput.spek), which
-fits on one screen; the load driver and the bookkeeping are
+fits on one screen. The load driver and the bookkeeping are
 [`Throughput.Harness/Program.cs`](Throughput.Harness/Program.cs).

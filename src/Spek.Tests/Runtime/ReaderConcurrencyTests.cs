@@ -140,7 +140,7 @@ public sealed class ReaderConcurrencyTests
     public async Task ReaderException_DeadLettersMessage_AndFailsAskersTaskWithAskExceptionAsync()
     {
         // Reader handler triggers a runtime exception (divide-by-zero
-        //: `throw` itself isn't in the language until try/catch lands).
+        // keeps the fixture minimal).
         // Two assertions:
         //   1. The actor stays alive (no supervision triggered).
         //   2. An asker awaiting a reply sees AskException - not a hang.

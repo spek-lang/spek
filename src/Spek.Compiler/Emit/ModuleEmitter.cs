@@ -11,7 +11,7 @@ namespace Spek.Compiler.Emit;
 ///   module Foo { … }                  → public static class Foo { … }
 ///   internal module Foo { … }         → internal static class Foo { … }
 ///   public bool IsX(string s) { … }   → public static bool IsX(string s) { … }
-///   void LogIt(string s) { … }        → ??? static void LogIt(string s) { … }
+///   void LogIt(string s) { … }        → private static void LogIt(string s) { … }
 ///   module Bar { … } (nested)         → public static class Bar { … } (nested)
 ///
 /// Modules are stateless: there are no instance fields, no <c>self</c>,

@@ -10,8 +10,7 @@ namespace Spek.Tests.Semantic;
 /// handled in NO behavior of that actor (nor its base-actor chain) is provably
 /// dead mail and errors at compile time. Handled-in-another-behavior stays
 /// legal (that's the <c>become</c> state machine); unknown-origin refs stay
-/// silent (the cross-boundary story is typed <c>ActorRef&lt;Channel&gt;</c>,
-/// reserved CE0030). <c>on any</c> counts as handling everything; private
+/// silent (conservative: no static type is known). <c>on any</c> counts as handling everything; private
 /// handlers count only for <c>self.Tell</c>.
 /// </summary>
 public sealed class TypedSendTests
@@ -213,7 +212,7 @@ public sealed class TypedSendTests
     public void UnknownOriginRef_IsSilent()
     {
         // A ref that arrived in a message field has no statically-known type;
-        // conservative silence (typed ActorRef<Channel> is the eventual answer).
+        // conservative silence (cross-boundary typing is the reserved CE0030).
         AssertClean("""
             message Nope();
             message Carry(ActorRef Target);

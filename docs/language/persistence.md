@@ -77,7 +77,7 @@ mutations you want to durably record, as in the `Deposit` handler above.
 
 ### Where `persist;` is allowed
 
-`persist;` is a write; it commits the actor's state, so it belongs in code
+`persist;` is a write. It commits the actor's state, so it belongs in code
 that is allowed to mutate that state:
 
 - It must appear inside an `on` handler **body**. Using it in `init`, a plain
@@ -108,8 +108,7 @@ ActorRef acc = system.SpawnPersistent<Account>("account-alice");
 `SpawnPersistent` binds the actor to a stable key. If the store already holds a
 snapshot for that key, because a previous process saved one, the actor is
 restored from it *before the first message is dispatched*. So the same actor
-type is free to run as a throwaway in a test and as a durable entity in
-production; only the spawn call differs. See the
+type is free to run as a throwaway in a test and as a durable entity in production. Only the spawn call differs. See the
 [runtime reference](/reference/runtime/#spawning) for the full spawning API and
 [`ISnapshotStore`](/reference/runtime/#isnapshotstore) for the bundled stores
 (in-memory, file, SQLite, and append-only log).
@@ -211,8 +210,7 @@ care about. A few things to know:
 - **`Snapshot.Get<T>(name)` is type-safe.** A wrong type throws, so a field
   rename or type change during a schema migration fails loudly instead of
   silently reading a default.
-- **`become` is allowed here** even though `on Restore` isn't a message
-  handler; the semantic analyzer permits `become` in lifecycle hooks. Without
+- **`become` is allowed here** even though `on Restore` isn't a message handler. The semantic analyzer permits `become` in lifecycle hooks. Without
   it, a multi-behavior actor would restore its data but resume in the wrong
   behavior.
 - The same handler serves both restore paths: a `SpawnPersistent` against a key
@@ -272,8 +270,7 @@ The actor reference stays valid the whole time. The *next* message rematerialize
 the actor from its snapshot, runs the restore (auto-generated or your
 `on Restore`), and then delivers the queued message. A passivated persistent
 actor therefore wakes with its state intact; a passivated session-scoped actor
-(no key) wakes fresh from `init`, having only released memory. Either way the
-sender never sees the round trip; it is invisible from the outside.
+(no key) wakes fresh from `init`, having only released memory. Either way the sender never sees the round trip.
 
 {: .note }
 > Passivation and persistence are orthogonal. You can `passivate` without ever
@@ -330,7 +327,7 @@ from a schema. `transient` excludes a field that should always be recomputed.
 `deprecated` then `retired` is the safe two-step retirement: deprecate it
 while readers migrate off (the data still survives), then retire it to evict it
 from the store. Both `transient` and `retired` fields are excluded from
-auto-restore, exactly as they are from capture, so the symmetry holds.
+auto-restore, exactly as they are from capture.
 
 {: .note }
 > The reference-level policing of these markers, a compile *warning*

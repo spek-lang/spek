@@ -23,7 +23,7 @@ grpcurl -plaintext -d '{"name":"Bob","email":"bob@x.com"}' localhost:5000 userap
 |---|---|
 | `user_api.proto` | **Canonical contract.** Defines the gRPC service, RPC methods, request/response messages. In a Google-style workflow this lives in a proto registry. |
 | `GrpcUserApi.spek` | Spek-side channel + actor handlers **and the host**: a `program Main` block (`AddGrpc()` + `MapGrpcService<UserServiceGrpcBridge>()`), same shape as `RestUserApi`. Channel name (`UserApi`) matches the proto service name. |
-| `UserServiceGrpcBridge.cs` | Hand-written bridge: subclasses `protoc`'s `UserApiBase`, overrides each RPC, calls `SpekGrpcBridge.AskAsync` to route to the actor. The **only** C# file here; the gRPC codegen will eventually generate it (see below). |
+| `UserServiceGrpcBridge.cs` | Hand-written bridge: subclasses `protoc`'s `UserApiBase`, overrides each RPC, calls `SpekGrpcBridge.AskAsync` to route to the actor. The only C# file here. |
 | `GrpcUserApi.csproj` | Project file. References `Grpc.Tools` for the protoc → C# generation; references the Spek packages. |
 
 ## How the pieces fit
@@ -80,10 +80,3 @@ builder.Services.AddSpekGrpcStatusMap(map =>
 });
 ```
 
-## Future: auto-generated bridge
-
-The hand-written bridge class is mechanical: every method does the same three
-steps, translating the request, asking the actor, then translating the response.
-`UserServiceGrpcBridge` is written by hand from the channel
-declaration plus the proto; it is the one hand-written C# file in this
-sample, and the canonical example of the bridge shape.

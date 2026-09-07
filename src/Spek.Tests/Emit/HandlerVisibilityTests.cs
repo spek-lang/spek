@@ -78,8 +78,7 @@ public sealed class HandlerVisibilityTests
     [Fact]
     public void InternalOnHandler_EmitsNoSenderCheck()
     {
-        // `internal` is a marker: runtime enforcement is deferred
-        // to when cluster-aware sender tracking lands. For now it
+        // `internal` is a marker with no runtime enforcement; it
         // behaves like public at runtime.
         const string src = """
             message Tick();

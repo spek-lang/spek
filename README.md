@@ -3,7 +3,7 @@
 Spek is an actor-based, C#-inspired programming language for .NET, with
 compile-time concurrency safety.
 
-Shared mutable state, locks, and data races are gone by design. In their place
+Shared mutable state, locks, and data races don't compile. In their place
 are isolated actors that talk only through immutable messages. Spek is a real
 compiled language with its own syntax and toolchain: it plugs into the normal
 `dotnet` build pipeline, produces ordinary .NET assemblies, and works with the
@@ -39,7 +39,7 @@ a value is either shared-and-immutable or owned-and-mutable, never both. Message
 are immutable because the `message` keyword compiles to a C# `record`, and only
 declared messages can be sent.
 
-The same posture extends past concurrency. Spek has no cast operator:
+Conversions work the same way. Spek has no cast operator:
 conversions are either proven lossless at compile time (`x.To<long>()`) or
 return nullable (`x.TryTo<byte>()`); no silent overflow, no runtime cast
 exceptions. A `flags enum` assigns its bit values by construction, gates

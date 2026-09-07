@@ -42,7 +42,7 @@ makes a message *valid*, and why the compiler is so strict about it.
 
 ## Why messages must be immutable
 
-Actor isolation buys you freedom from locks only if the value handed from one
+Actor isolation frees you from locks only if the value handed from one
 actor to another can't smuggle in a shared, mutable reference. If a message
 could carry a `List<T>`, the sender and the receiver would both hold a pointer
 to the *same* list, and now two actors can mutate the same memory at the same
@@ -174,7 +174,7 @@ message RetryPolicy(int maxAttempts = 3, decimal backoffSeconds = 0.5m, bool jit
 These lower to record primary-constructor defaults verbatim. The default must be
 a **literal** (a string, number, `bool`, `char`, or `null`) or a bare name
 (such as an enum member). A computed expression like `TimeSpan.FromSeconds(1)`
-is *not* a valid field default; pass it explicitly at the construction site, or
+is *not* a valid field default. Pass it explicitly at the construction site, or
 default the field to `null` and compute the fallback in the handler.
 
 ## Naming reply messages
@@ -262,7 +262,7 @@ actor Account
 
 `d.amount` reads a field off the incoming `Deposit`; `new Balance(balance)`
 builds a fresh reply message. Because `Balance` is immutable, returning it can't
-leak a handle to the actor's state; the caller gets a frozen snapshot of
+leak a handle to the actor's state. The caller gets a frozen snapshot of
 `balance`, not a live view of it. That is the isolation guarantee from
 [Actors and behaviors](/language/actors/), now extended across the boundary.
 

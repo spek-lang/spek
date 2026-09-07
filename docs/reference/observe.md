@@ -13,8 +13,7 @@ Every Spek process carries a live introspection surface. Attach `spekc
 observe` to one by process id and it prints a once-per-second table of every
 actor in the system: the active behavior, how deep the mailbox is, how many
 times supervision has restarted it, and the type of the last message it
-dispatched. Nothing has to be enabled in the program and no package added;
-if it runs on `Spek.Runtime`, it can be observed.
+dispatched. Nothing has to be enabled in the program and no package added. If it runs on `Spek.Runtime`, it can be observed.
 
 Run it the way the [CLI page](/reference/cli/) runs the other verbs:
 
@@ -50,8 +49,7 @@ sample every second until you interrupt it with Ctrl-C.
 
 Emit one JSON object per sample on stdout (NDJSON) instead of the rendered
 table, for piping into `jq` or a dashboard collector. Errors become
-`{"error": ...}` objects rather than prose, so a consumer never has to
-parse human text. Combine with `--once` for a single machine-readable
+`{"error": ...}` objects rather than prose. Combine with `--once` for a single machine-readable
 snapshot.
 
 ## The actor table
@@ -115,8 +113,7 @@ EventPipe session over the .NET diagnostics IPC channel that every .NET
 process exposes (a Unix domain socket, or a named pipe on Windows) and
 subscribes to the runtime's `Spek-Introspection` event provider. While at
 least one session is attached, the runtime samples each actor system once
-per second and publishes the table as an event. Detach, and the sampling
-stops; when nobody is attached, the entire cost to the program is one weak
+per second and publishes the table as an event. Detach, and the sampling stops. When nobody is attached, the entire cost to the program is one weak
 reference per actor system.
 
 The alternatives were a web dashboard or a TCP command server, and both

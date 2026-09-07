@@ -4,7 +4,7 @@ layout: default
 parent: Language
 nav_order: 20
 permalink: /language/footguns/
-description: "The sharp edges of writing actors on .NET: and the compiler responses (rewrite / suggest / warn / error) that catch each one before it ships."
+description: "The sharp edges of writing actors on .NET, and the compiler responses (rewrite / suggest / warn / error) that catch each one before it ships."
 ---
 
 # Common pitfalls
@@ -12,8 +12,8 @@ description: "The sharp edges of writing actors on .NET: and the compiler respon
 You've now seen the whole language: actors and behaviors, immutable
 messages, `Tell` and `ask`, the isolation guarantees, supervision,
 persistence, invisible async, and the C# you can write inside a body.
-This last chapter is the field guide to the places people still trip, and,
-more importantly, to the compiler that catches them.
+This last chapter is the field guide to the places people still trip,
+and to the compiler that catches them.
 
 Most of these pitfalls are not Spek's invention. Spek compiles to C# and
 runs on .NET, so it inherits .NET's hazards: the call that parks a
@@ -58,7 +58,7 @@ There are four rungs, from invisible to fatal:
 
 When there's an equivalent that preserves the observable result, Spek's
 [invisible-async](/language/async/) pass emits it and the program behaves as if you had
-written the await yourself. The canonical cases are the sync-over-async blockers: `.Result`,
+written the await yourself. The usual cases are the sync-over-async blockers: `.Result`,
 `.Wait()`, and `.GetAwaiter().GetResult()`. You read a `Task<T>` as if it
 were a value and Spek emits the `await`:
 
@@ -72,8 +72,8 @@ on Lookup l =>
 ```
 
 You never have to think about them: reach for whichever reads naturally
-and the compiler makes it correct. This is the machinery you met in
-[Async without await](/language/async/), seen from the pitfall side.
+and the compiler makes it correct. You met this rewrite in
+[Async without await](/language/async/).
 
 A rewrite must preserve meaning *exactly*. That's why `Task.WaitAny`
 (which returns the **index** of the first completed task) is **not**
@@ -127,8 +127,7 @@ body Spek **rewrites it** (the Rewrite rung): the emitted code is
 fires, for two reasons: it nudges you to write the async form directly (the
 editor offers a one-click fix), and it covers the one spot the rewrite
 can't reach, an `init` block or constructor, which can't be `async`, so
-there the sync call genuinely blocks and you must decide. Warn *and*
-rewrite, by deliberate design.
+there the sync call genuinely blocks and you must decide. Warn and rewrite.
 
 ### Error: never acceptable
 
@@ -161,8 +160,7 @@ actor LedgerWriter
 `self.System.Shutdown()` is non-blocking: the handler returns normally,
 then every actor drains its mailbox, each `on Shutdown` and shared-region
 `term {}` runs, and the host exits. It reaches the node through an ambient
-accessor (`self.System`, a sibling of `self.Log` / `self.Metrics`); nothing
-is injected into your actor. That's the difference from `Environment.Exit`,
+accessor (`self.System`, a sibling of `self.Log` / `self.Metrics`). Nothing is injected into your actor. Unlike `Environment.Exit`,
 which severs the handler, and every sibling, where it stands.
 
 ## How Spek chooses a rung
@@ -188,8 +186,7 @@ Triaging a pitfall follows the same four questions every time:
 
 The rest of this chapter walks the specific traps you're most likely to
 hit, grouped by the part of the language they touch. Each one names the
-chapter that introduced the concept and the `CE` code that guards it; the
-full catalog lives in the [error-code reference](/reference/errors/).
+chapter that introduced the concept and the `CE` code that guards it. The full catalog lives in the [error-code reference](/reference/errors/).
 
 ### Mutable message payloads
 
@@ -275,8 +272,7 @@ actor Sender
 
 The whole point of the actor model is that state is private and the only
 way in is a message. So any member access on an `ActorRef` other than
-`Tell` or `ask` is [CE0012](/reference/errors/#ce0012); reading a peer's
-field or calling its method directly would bypass the mailbox entirely:
+`Tell` or `ask` is [CE0012](/reference/errors/#ce0012). Reading a peer's field or calling its method directly would bypass the mailbox entirely:
 
 <!-- spek-test: ignore; demonstrates the CE0012 trigger -->
 ```spek
@@ -301,8 +297,7 @@ Send a message instead. If you need a value back, that's exactly what
 A cluster of identifiers and statements only make sense *during message
 dispatch*. `ask` ([CE0042](/reference/errors/#ce0042)), `self` and
 `sender` ([CE0043](/reference/errors/#ce0043)), and `persist`
-([CE0050](/reference/errors/#ce0050)) all require an `on` handler; there's
-no "current message" inside `init`, a lifecycle hook, or a plain helper
+([CE0050](/reference/errors/#ce0050)) all require an `on` handler. There's no "current message" inside `init`, a lifecycle hook, or a plain helper
 method. Likewise `become` is rejected inside a plain helper method
 ([CE0051](/reference/errors/#ce0051)), to keep behavior switches visible in
 the handler that drives them.
@@ -415,8 +410,8 @@ exists to prevent. So all of them are rejected in Spek source,
 [CE0119](/reference/errors/#ce0119).
 
 Concurrency in Spek comes from actors. To move work off the current turn, spawn a
-child actor and `Tell` it the job; the child's mailbox serializes the work just
-like any other actor, so there's nothing to race:
+child actor and `Tell` it the job. The child's mailbox serializes the work just
+like any other actor.:
 
 <!-- spek-test: compile -->
 ```spek
@@ -477,8 +472,7 @@ actor Counter
 Still in shared-region territory: assigning a region read *directly* into
 an actor field is [CE0100](/reference/errors/#ce0100). The actor would then
 hold a live reference to data the region still owns, and a later writer
-could mutate it mid-read. Route the value through a local; the local makes
-the borrow a deliberate, visible decision:
+could mutate it mid-read. Route the value through a local. The local makes the borrow a deliberate, visible decision:
 
 <!-- spek-test: compile -->
 ```spek
@@ -579,14 +573,7 @@ the result, so the fix is complete, not just a renamed call.
 
 ## Where to go next
 
-That's the language. You've built actors, sent messages, survived failures,
-persisted state, and learned the compiler's whole repertoire of guardrails.
-The pattern across every chapter has been the same: Spek pushes the classes
-of bug that plague concurrent .NET code (data races, blocked dispatchers,
-unhandled variants, process escapes) out of *runtime* and into a
-compile-time error with a caret under the exact span.
-
-From here, the [error-code reference](/reference/errors/) is the exhaustive
+The [error-code reference](/reference/errors/) is the exhaustive
 catalog of every `CE` rule, and the [CLI reference](/reference/cli/)
 covers `spekc` and the language server. If you want to see how the pieces
 fit together at scale, the sample programs put a full actor system,

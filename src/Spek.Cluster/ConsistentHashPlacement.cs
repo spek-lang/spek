@@ -34,7 +34,7 @@ public sealed class ConsistentHashPlacement : IPlacementStrategy
         // Compute (key, node) hash for each candidate; pick the max.
         // SHA-256 of UTF-8(actorType + "/" + actorKey + ":" + node-uuid).
         // Cryptographic strength is overkill for placement, but it's
-        // available everywhere with zero allocations vs hand-rolling.
+        // available everywhere and saves hand-rolling a hash.
         ulong bestHash = 0;
         NodeIdentity? best = null;
 

@@ -6,7 +6,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Demo.Benchmarks</RootNamespace>
-    <!-- BenchmarkDotNet requires a Release build to produce meaningful numbers. -->
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

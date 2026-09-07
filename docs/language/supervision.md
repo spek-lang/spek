@@ -408,7 +408,7 @@ Supervision handles handlers that *throw*. A related question is what happens to
 messages that have nowhere to go: sent to an actor that has already stopped, or
 arriving when the active behavior has no matching `on` handler. Spek does not
 drop these silently. Every such message is routed to the runtime's
-**dead-letter sink**, so a misrouted message is observable instead of vanishing.
+**dead-letter sink**.
 
 Three sinks ship with the runtime:
 

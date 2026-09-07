@@ -286,8 +286,8 @@ public abstract class ActorBase
     }
 
     /// <summary>
-    /// Used by generated code (visibility checks, future
-    /// per-handler diagnostics) to route a message to the dead-letter
+    /// Used by generated code (visibility checks) to route a
+    /// message to the dead-letter
     /// sink with a custom reason. Wrapper around the private sink
     /// reference so emitted code in derived classes can call it.
     /// </summary>

@@ -46,7 +46,7 @@ spekc compile src/Messages.spek src/Actors/ --out build/generated
 
 Everything passed in one invocation compiles as **one unit**: a type declared
 in one file resolves when referenced from another, so an enum can live in
-`State.spek` while the message that carries it lives in `Messages.spek`. The
+`State.spek` while the message that carries it is declared in `Messages.spek`. The
 same name declared twice across files (in the same namespace) is a
 [CE0013](/reference/errors/#ce0013). Files that only make sense together must
 therefore be compiled together; one invocation, not one per file. (The
