@@ -9,7 +9,7 @@ description: "Shape a flood of inbound messages before a handler runs: chain deb
 
 # Streams
 
-A [channel](/language/channels/) pins down *which* messages may cross an
+A [channel](channels.md) pins down *which* messages may cross an
 actor's boundary. This chapter is about the message that arrives *too often*.
 A mouse fires hundreds of move events a second; a search box emits a keystroke
 per character; an at-least-once transport redelivers the same event twice. The
@@ -32,7 +32,7 @@ on Search s =>            ← the message pattern (Chapter on Messages)
 ```
 
 The shape is the handler you already know from
-[Sending messages](/language/messaging/), with one or more `=>` operator steps
+[Sending messages](messaging.md), with one or more `=>` operator steps
 spliced in before the body. A handler with no operator steps is exactly the
 plain handler from earlier chapters. The chain is opt-in.
 
@@ -74,12 +74,12 @@ actor Cursor
 
 `throttle(16)` emits at most one `MouseMove` per 16 ms window and drops the
 rest. Without it, every single move would run the body, taking the actor's
-writer lock each time (see [Isolation and ownership](/language/isolation/)).
+writer lock each time (see [Isolation and ownership](isolation.md)).
 With it, the body runs at a sane rate and the bound message `m` is whichever
 move won the window.
 
 The number is **milliseconds**. Both timer operators also accept a
-[`System.TimeSpan`](/language/csharp-syntax/) if you'd rather be explicit:
+[`System.TimeSpan`](csharp-syntax.md) if you'd rather be explicit:
 
 <!-- spek-test: compile -->
 ```spek
@@ -152,7 +152,7 @@ actor SearchBox
 ### distinct: drop the unchanged
 
 `distinct` deduplicates by a **key** you extract with a lambda (see
-[Lambdas](/language/lambdas/)). It emits the first message it ever sees, then
+[Lambdas](lambdas.md)). It emits the first message it ever sees, then
 emits again only when the key changes. It's the natural filter for an event
 that gets redelivered: an at-least-once transport replaying the same
 `ConfigChanged`, a watcher firing repeatedly with identical contents.
@@ -192,7 +192,7 @@ when the *last* operator emits. Read the chain top to bottom as a pipeline.
 This sensor throttles a noisy feed to one sample per 16 ms, then debounces so
 the body only runs once the readings settle for 100 ms, then replies with the
 value it landed on (the return-to-reply idiom from
-[Sending messages](/language/messaging/)):
+[Sending messages](messaging.md)):
 
 <!-- spek-test: compile -->
 ```spek
@@ -267,7 +267,7 @@ Two consequences follow from operators living *outside* the lock:
 
 Each handler also gets its **own** operator-chain instance, created once when
 the actor starts. Two different handlers (even two `on Tick` arms in different
-[behaviors](/language/actors/)) never share operator state through the chain.
+[behaviors](actors.md)) never share operator state through the chain.
 A debounce timer is private to the one handler it sits in front of.
 
 ## Custom operators
@@ -335,7 +335,7 @@ ones.)
 under a `TestActorSystem` with `virtualTime: true` they follow the virtual
 clock: send the burst, `AdvanceClock` past the quiet window, and the emit
 fires deterministically inside the advance. The
-[next chapter](/language/testing/) covers the pattern. On a real-time
+[next chapter](testing.md) covers the pattern. On a real-time
 system, drive the assertion off an observable condition instead:
 `TestActorSystem.WaitUntilAsync(() => …)` polls your predicate until it
 holds (and throws a descriptive `TimeoutException` if it never does), so
@@ -345,17 +345,17 @@ you wait exactly as long as the debounce needs and no longer.
 
 You've now seen the whole language surface: actors, messages, supervision,
 persistence, regions, channels, and the stream operators that shape what
-reaches a handler. The [next chapter, Testing actors](/language/testing/),
+reaches a handler. The [next chapter, Testing actors](testing.md),
 brings it all under test with `TestActorSystem` to spawn the system,
 `TestProbe` with `ExpectMsg`/`ExpectStop`/`ExpectRestart` to assert on what
 comes back, and the `…Tests` convention that runs under `dotnet test`.
 
 ## Related
 
-- [Channels](/language/channels/): pins down *which* messages cross the
+- [Channels](channels.md): pins down *which* messages cross the
   boundary that streams then rate-shape.
-- [Lambdas](/language/lambdas/): the key selector passed to `distinct(by: …)`.
-- [Isolation and ownership](/language/isolation/): why the body still runs
+- [Lambdas](lambdas.md): the key selector passed to `distinct(by: …)`.
+- [Isolation and ownership](isolation.md): why the body still runs
   serialized under the actor lock even though operators run outside it.
-- [Common pitfalls](/language/footguns/): more on the timer-and-scheduler
+- [Common pitfalls](footguns.md): more on the timer-and-scheduler
   edges to watch for.

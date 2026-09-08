@@ -9,9 +9,9 @@ description: "Test actors in Spek: TestActorSystem to spawn the system under tes
 
 # Testing actors
 
-You have now built the whole surface: [actors](/language/actors/) that hold
-state, [messages](/language/messages/) that carry data, [supervision](/language/supervision/)
-that handles failure, [persistence](/language/persistence/) that survives a
+You have now built the whole surface: [actors](actors.md) that hold
+state, [messages](messages.md) that carry data, [supervision](supervision.md)
+that handles failure, [persistence](persistence.md) that survives a
 restart. This chapter answers the obvious next question: **how do you test any
 of it?**
 
@@ -86,7 +86,7 @@ test: the runner builds a fresh instance of the `…Tests` class every time, so 
 the place for shared setup like constructing the `TestActorSystem`. That
 `TestActorSystem` field is then disposed for you after each test, so there is no
 teardown method to write. And the body is ordinary Spek:
-`wallet.Ask(new GetBalance())` is the same [Ask](/language/messaging/) you already use,
+`wallet.Ask(new GetBalance())` is the same [Ask](messaging.md) you already use,
 `Xunit.Assert` is just the xUnit assertion library called by its full name, and
 `using Spek.Testing;` is added for you in a test project so `TestActorSystem`
 resolves unqualified.
@@ -104,17 +104,17 @@ the tests, but never run as one.
 {: .note }
 > The `…Tests` convention only kicks in for a **test project**, one that
 > references `Microsoft.NET.Test.Sdk`. In a normal project the very same type is
-> just an ordinary [module](/language/modules/) or [class](/language/classes/).
+> just an ordinary [module](modules.md) or [class](classes.md).
 > The [Running tests](#running-tests) section below covers the project setup.
 
 ## `TestActorSystem`: spawn the system under test
 
-`TestActorSystem` is a thin, test-scoped [actor system](/reference/runtime/).
+`TestActorSystem` is a thin, test-scoped [actor system](../reference/runtime.md).
 It's where the actors you want to exercise come to life, and it's the handle you
 use to assert on supervision outcomes. The methods you'll use most:
 
 - `Spawn<TActor>(args)`: start the actor under test and get its `ActorRef`.
-- `SpawnPersistent<TActor>(key, args)`: start a [persistent](/language/persistence/)
+- `SpawnPersistent<TActor>(key, args)`: start a [persistent](persistence.md)
   actor under a persistence key.
 - `CreateProbe()`: make a [`TestProbe`](#testprobe-a-stand-in-actor) (next
   section).
@@ -124,7 +124,7 @@ use to assert on supervision outcomes. The methods you'll use most:
   [supervision](#asserting-on-supervision) outcome.
 
 The simplest possible test spawns an actor, tells it something, and asks for the
-result. Because [Ask](/language/messaging/) blocks until the reply arrives, you
+result. Because [Ask](messaging.md) blocks until the reply arrives, you
 often don't need any further synchronization:
 
 <!-- spek-test: compile -->
@@ -166,8 +166,8 @@ class TallyTests
 ```
 
 The three `Tell`s land in the mailbox in order and are processed one at a time
-(an actor never runs two handlers at once, the [isolation
-guarantee](/language/isolation/)), so by the time the `Ask` is processed,
+(an actor never runs two handlers at once, the [isolation guarantee](isolation.md)),
+so by the time the `Ask` is processed,
 all three increments have already run. The Ask gives you a natural barrier: its
 reply can't arrive until everything queued before it has been handled.
 
@@ -281,7 +281,7 @@ class PriceFeedTests
 
 `probe.Send(target, msg)` sends *as the probe*, so a handler's `return reply`
 routes its answer back to the probe's inbox instead of to your test thread. Use
-it to test the [return-to-reply idiom](/language/messaging/) without an Ask:
+it to test the [return-to-reply idiom](messaging.md) without an Ask:
 send, then `ExpectMsg` the reply:
 
 <!-- spek-test: compile -->
@@ -377,7 +377,7 @@ class GateTests
 
 ## Asserting on supervision
 
-[Supervision](/language/supervision/) is failure handling, and failure handling
+[Supervision](supervision.md) is failure handling, and failure handling
 deserves tests. `TestActorSystem` lets you assert on what supervision *did* to a
 child after it crashed:
 
@@ -388,8 +388,8 @@ child after it crashed:
   directly.
 
 Both `Expect…` calls poll until the condition holds and throw a
-`TimeoutException` if it never does. They auto-await under [invisible
-async](/language/async/), so you write them as plain statements.
+`TimeoutException` if it never does. They auto-await under [invisible async](async.md),
+so you write them as plain statements.
 
 This test crashes a child two ways and checks the parent's strategy did the
 right thing each time. The parent supervises one child with `Restart` and the
@@ -529,7 +529,7 @@ of waiting on it.
 
 ## Testing persistent actors
 
-A [persistent](/language/persistence/) actor's whole point is that its state
+A [persistent](persistence.md) actor's whole point is that its state
 survives a restart, so the test that matters spans *two* lifetimes: write with
 one system, then bring up a second system over the same store and prove the
 state came back. Share a single snapshot store between two `TestActorSystem`s to
@@ -584,7 +584,7 @@ class LedgerTests
 
 This is a `class …Tests` without a `TestActorSystem` field, because the test
 manages two systems by hand and disposes them explicitly. `SpawnPersistent`
-takes the persistence key that ties an actor to its snapshot. Spawn under the same key in the second system and [auto-restore](/language/persistence/) brings
+takes the persistence key that ties an actor to its snapshot. Spawn under the same key in the second system and [auto-restore](persistence.md) brings
 the fields back with no `on Restore` handler in sight.
 
 ## Virtual time: controlling the clock
@@ -646,7 +646,7 @@ Virtual time is opt-in, per test system. Construct the `TestActorSystem` with
 `virtualTime: true` and its clock stands still: no idle window elapses, no
 timer fires, `self.Clock` returns the same instant on every read, until the
 test moves time forward with `AdvanceClock`. Here is a ten-minute
-[passivation](/language/persistence/) window, tested in milliseconds:
+[passivation](persistence.md) window, tested in milliseconds:
 
 <!-- spek-test: compile -->
 ```spek
@@ -752,7 +752,7 @@ same system: advance the clock an hour and the direct read still reports
 lunchtime. The compiler flags exactly this. Inside an actor body, a direct
 read of `DateTime.Now` / `UtcNow` / `Today` (or the `DateTimeOffset`
 equivalents), `Environment.TickCount`, or `Stopwatch.StartNew` /
-`Stopwatch.GetTimestamp` draws [CE0134](/reference/errors/#ce0134). This is
+`Stopwatch.GetTimestamp` draws [CE0134](../reference/errors.md#ce0134). This is
 the `Audit` actor from above with one line changed back:
 
 <!-- spek-test: compile -->
@@ -788,7 +788,7 @@ exercise that. The fix is the one-line swap back to `self.Clock`.
 The lint is scoped to actor bodies on purpose. A `program` block, a module, or
 a class is host-side code with no `self.Clock`, no passivation window, and no
 virtual-time guarantee to uphold, so reading real time there is legitimate and
-stays silent. The stance mirrors [CE0119](/reference/errors/#ce0119) one layer
+stays silent. The stance mirrors [CE0119](../reference/errors.md#ce0119) one layer
 up: the compiler defends a runtime guarantee exactly where the guarantee
 applies, and nowhere else.
 
@@ -837,7 +837,7 @@ same execution out, message for message, on any machine.
 > **Where this comes from.** Whole-system deterministic simulation is the
 > discipline FoundationDB and TigerBeetle built their reliability stories on;
 > shrinking a recorded choice sequence (next section) is Hypothesis's internal
-> shrinking. Spek's spin: [CE0119](/reference/errors/#ce0119) makes the whole
+> shrinking. Spek's spin: [CE0119](../reference/errors.md#ce0119) makes the whole
 > language simulable by construction, so the guarantee needs no carefully
 > disciplined subset of it.
 
@@ -978,7 +978,7 @@ bug usually moves the timing and hides the bug.
 ### The boundary of the guarantee: CE0119
 
 A simulator can only replay decisions it owns, and Spek can promise it owns
-all of them because [CE0119](/reference/errors/#ce0119) forbids raw
+all of them because [CE0119](../reference/errors.md#ce0119) forbids raw
 concurrency in Spek source: no `Task.Run`, no threads, no raw timers. In pure
 Spek, every scheduling decision therefore belongs to the runtime, and under
 simulation the runtime hands each one to the seed. The guarantee extends
@@ -999,7 +999,7 @@ a simulator, and call `ReplayIngress(trace)` to feed the recorded inputs back in
 you pass `allowFingerprintMismatch: true`, the deliberate path when validating
 a candidate fix against the incident's own inputs. The recorder itself
 (`FlightRecorder`, `SpekTrace`) belongs to the
-[runtime reference](/reference/runtime/#flight-recorder).
+[runtime reference](../reference/runtime.md#flight-recorder).
 
 ## Property-based testing: shrinking data and schedule together
 
@@ -1140,7 +1140,7 @@ test failure.
 
 ## Chaos in tests: faults on purpose
 
-[Supervision](/language/supervision/) is a set of promises about failure, and
+[Supervision](supervision.md) is a set of promises about failure, and
 promises deserve hostile tests. Real deployments drop messages, deliver
 duplicates, delay traffic, and crash actors on the unluckiest message of the
 week. A `ChaosPlan` makes each of those faults happen deliberately, at the
@@ -1160,7 +1160,7 @@ idempotency. The fourth fault acts at the dispatch path:
 dispatch, before the handler runs, and the exception unwinds through the real
 supervision machinery, so the recovery a chaos test certifies is the recovery
 production runs, not a mock of it. The full rule catalog, with the targeting
-overloads, lives in the [runtime reference](/reference/runtime/#chaos-plans).
+overloads, lives in the [runtime reference](../reference/runtime.md#chaos-plans).
 
 <!-- spek-test: compile -->
 ```spek
@@ -1309,7 +1309,7 @@ and write to it. `Console.WriteLine` isn't attributed to a specific test because
 actor work is async and runs on shared threads.
 
 A runnable example lives in
-[`samples/NativeTesting`](https://github.com/spek-lang/spek/tree/main/samples/NativeTesting).
+[`samples/NativeTesting`](https://github.com/spek-lang/spek/tree/develop/samples/NativeTesting).
 
 ## Next
 
@@ -1317,22 +1317,22 @@ You can now write actors, drive them under test, and prove they behave,
 including the moments when they fail, when they're restarted, when nothing
 happens but time, and when a hostile schedule or an injected fault does its
 worst. The last chapter,
-[Common pitfalls](/language/footguns/), gathers the sharp edges of the language
+[Common pitfalls](footguns.md), gathers the sharp edges of the language
 in one place: the blocking calls that starve siblings, the handler shapes that
 fight the actor model, and how the compiler catches each one before it reaches
 production.
 
 ## See also
 
-- [Sending messages: Tell and Ask](/language/messaging/): `Tell`, `ask`, and
+- [Sending messages: Tell and Ask](messaging.md): `Tell`, `ask`, and
   the return-to-reply idiom your tests drive.
-- [Supervision and failure](/language/supervision/): the strategies and
+- [Supervision and failure](supervision.md): the strategies and
   directives `ExpectStop` / `ExpectRestart` assert on.
-- [Persistence and passivation](/language/persistence/): `persist`,
+- [Persistence and passivation](persistence.md): `persist`,
   snapshots, and the auto-restore the two-lifetime test exercises.
-- [Runtime reference](/reference/runtime/): `ActorSystem` and `ActorRef`
+- [Runtime reference](../reference/runtime.md): `ActorSystem` and `ActorRef`
   underneath `TestActorSystem` and `SimulatedActorSystem`.
-- [Errors reference: CE0134](/reference/errors/#ce0134): the warning that
+- [Errors reference: CE0134](../reference/errors.md#ce0134): the warning that
   keeps actor time reads on `self.Clock`.
-- [Errors reference: CE0119](/reference/errors/#ce0119): the no-raw-concurrency
+- [Errors reference: CE0119](../reference/errors.md#ce0119): the no-raw-concurrency
   rule the simulator's determinism guarantee stands on.

@@ -147,7 +147,7 @@ actor Switch
   are narrower than Proto's.
 - **A gRPC wire transport between actors.** Spek's TCP transport
   speaks its own binary protocol; Spek's gRPC support
-  ([hosting](/hosting/grpc/)) exposes channels to external clients
+  ([hosting](../hosting/grpc.md)) exposes channels to external clients
   rather than carrying actor-to-actor traffic.
 
 ## A note on mailbox semantics

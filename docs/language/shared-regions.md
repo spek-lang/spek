@@ -9,7 +9,7 @@ description: "shared read-concurrent regions: per-ActorSystem state behind a rea
 
 # Shared regions
 
-[Isolation and ownership](/language/isolation/) drew a hard line: an
+[Isolation and ownership](isolation.md) drew a hard line: an
 `actor` owns its fields privately, and the runtime serialises every handler
 that touches them. That ownership is what lets Spek delete locks from your
 vocabulary, but it also means two actors can never share a single piece of
@@ -21,11 +21,11 @@ A **`shared` region** is the other answer. It is mutable state that several
 actors can reach, kept race-free not by an owning actor but by a
 reader/writer lock the compiler acquires and releases for you. Reads run
 concurrently; writes run alone. You already met this on the
-[ownership table](/language/isolation/#invisible-ownership): the `shared`
+[ownership table](isolation.md#invisible-ownership): the `shared`
 row, "yes, mutable + concurrent." This chapter is that row in full.
 
 You also already know the two halves of the lock. Back in
-[isolation](/language/isolation/#guarantee-4-concurrent-readers-cant-write-ce0087)
+[isolation](isolation.md#guarantee-4-concurrent-readers-cant-write-ce0087)
 you wrote `reader on X` and `writer on X` handlers to let an *actor's own*
 reads overlap. A region reuses exactly that discipline, applied to state
 that lives outside any single actor.
@@ -95,8 +95,8 @@ of each: every `PriceReader` you spawn talks to the same `MarketCache`.
 Notice the handler modes carry their isolation meaning across the boundary:
 `PriceWriter` updates the region under a `writer` handler, `PriceReader`
 queries it under a `reader` handler and replies with the
-[return-to-reply idiom](/language/messaging/) you learned in
-[Tell and Ask](/language/messaging/).
+[return-to-reply idiom](messaging.md) you learned in
+[Tell and Ask](messaging.md).
 
 The local name is a plain identifier, but pick something that is *not* a soft
 keyword used in expression position. `writer`, `reader`, `after`, and friends
@@ -153,7 +153,7 @@ program Main
 ## The reader/writer concurrency model
 
 The region's lock has the same shape as the per-actor lock behind
-[`reader` / `writer` handlers](/language/isolation/#guarantee-4-concurrent-readers-cant-write-ce0087):
+[`reader` / `writer` handlers](isolation.md#guarantee-4-concurrent-readers-cant-write-ce0087):
 fair, no reader cap, async-friendly. Concretely:
 
 - **Multiple readers run concurrently.** Every `reader on ...` handler, across
@@ -176,7 +176,7 @@ writer lock.
 Because a reader handler may overlap with other readers, it must never mutate
 region state: a write inside a reader would race the readers running beside
 it. This is the very same **CE0087** you saw guarding actor fields in
-[isolation](/language/isolation/#guarantee-4-concurrent-readers-cant-write-ce0087),
+[isolation](isolation.md#guarantee-4-concurrent-readers-cant-write-ce0087),
 now extended to region fields:
 
 <!-- spek-test: ignore -->
@@ -269,7 +269,7 @@ actor Counter
 
 By default a region is **transient**: it lives in memory and dies with the
 process. Add `: Persisted` to make its state survive a restart. As with
-[actor persistence](/language/persistence/), the Spek source declares the
+[actor persistence](persistence.md), the Spek source declares the
 *capability*; the host wires up the actual store in a `program` block.
 
 <!-- spek-test: compile -->
@@ -320,7 +320,7 @@ What you get:
   are present onto the fields. Missing keys keep their initializer values
   (additive schema rule). If a snapshot exists, **`init` is skipped**: the
   snapshot wins, exactly as it does for
-  [auto-restored actors](/language/persistence/).
+  [auto-restored actors](persistence.md).
 - **Auto-save on writer-exit.** After every `writer on ...` handler completes
   and releases the writer lock, the runtime captures the current field values
   and writes them through the store. Saves are serialised per region, so the
@@ -487,18 +487,18 @@ writes the new one before the region is first accessed.
 ## Where to next
 
 A shared region coordinates state. The next chapter,
-[Channels](/language/channels/), coordinates *conversations*: typed message
+[Channels](channels.md), coordinates *conversations*: typed message
 protocols that say which messages an actor must handle, with the compiler
 checking your coverage (CE0090) so a protocol can't drift out of sync with its
 handlers.
 
 ## Related reading
 
-- [Isolation and ownership](/language/isolation/): the `reader`/`writer`
+- [Isolation and ownership](isolation.md): the `reader`/`writer`
   discipline this chapter builds on, and the ownership table the `shared` row
   comes from
-- [Persistence and passivation](/language/persistence/): the snapshot plumbing
+- [Persistence and passivation](persistence.md): the snapshot plumbing
   region persistence reuses
-- [CE0097](/reference/errors/#ce0097): `use X foo;` referencing an unknown region
-- [CE0098](/reference/errors/#ce0098): a `: Persisted` region with no provider
-- [CE0100](/reference/errors/#ce0100): borrowing a region value into an actor field
+- [CE0097](../reference/errors.md#ce0097): `use X foo;` referencing an unknown region
+- [CE0098](../reference/errors.md#ce0098): a `: Persisted` region with no provider
+- [CE0100](../reference/errors.md#ce0100): borrowing a region value into an actor field

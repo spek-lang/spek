@@ -9,7 +9,7 @@ description: "The actor declaration in full: fields, init, named behaviors, beco
 
 # Actors and behaviors
 
-You met actors in [Build your first actor](/language/first-actor/): you
+You met actors in [Build your first actor](first-actor.md): you
 declared one, gave it a field and an `on` handler, switched it between two
 behaviors with `become`, and never wrote a lock. This chapter is the precise
 version of that tour. It covers everything that can appear inside an `actor`
@@ -17,8 +17,8 @@ declaration (fields, the `init` constructor, named behaviors, `become`, and
 the three lifecycle hooks) and the rules the compiler enforces around each.
 
 The *why* behind the no-locks guarantee is the subject of
-[Isolation and ownership](/language/isolation/); the rules for the messages
-that flow between actors are in [Messages](/language/messages/). This page is
+[Isolation and ownership](isolation.md); the rules for the messages
+that flow between actors are in [Messages](messages.md). This page is
 the practical, complete guide to the actor itself.
 
 {: .note }
@@ -27,7 +27,7 @@ the practical, complete guide to the actor itself.
 > production-grade by Erlang/OTP and brought to the JVM by Akka. If you've
 > written a `ReceiveActor` in Akka.NET, a `gen_server` in Erlang, or an
 > `IActor` in Proto.Actor, this is the same concept. See the
-> [migration guide](/migration/) for a concept-by-concept map.
+> [migration guide](../migration/index.md) for a concept-by-concept map.
 >
 > Actors and `become` are that same Erlang/Akka model: an Erlang process with a
 > `receive` loop, or an Akka actor hot-swapping behavior. The difference is that
@@ -76,13 +76,13 @@ The body of an actor may contain, in any order: field declarations, a single
 lifecycle hooks `on PreStart` / `on PostStop` / `on Restore`, a `term`
 disposal block (the teardown counterpart of `init`), and private
 helper methods. The sections below cover each of these except `term`,
-which works the same way as [its region counterpart](/language/shared-regions/#cleanup-with-term).
+which works the same way as [its region counterpart](shared-regions.md#cleanup-with-term).
 
 A few features visible in larger actors are covered in their own chapters and
 only pointed to here: `supervise` declarations belong to
-[Supervision and failure](/language/supervision/), `persist` and `passivate`
-to [Persistence and passivation](/language/persistence/), and `use` (attaching
-a [shared region](/language/shared-regions/)) to its own chapter.
+[Supervision and failure](supervision.md), `persist` and `passivate`
+to [Persistence and passivation](persistence.md), and `use` (attaching
+a [shared region](shared-regions.md)) to its own chapter.
 
 ## Visibility
 
@@ -166,10 +166,10 @@ actor Account
 Because each actor processes one message at a time, fields need no locks and
 no `volatile`: there is only ever one thread inside the actor, so reads and
 writes can never race. This is the whole reason the actor model exists, and
-[Isolation and ownership](/language/isolation/) is where that claim is made
+[Isolation and ownership](isolation.md) is where that claim is made
 airtight.
 
-A field name is a [soft keyword](/spek-v1-grammar/) position:
+A field name is a [soft keyword](../spek-v1-grammar.md) position:
 `message`, `actor`, `after`, and friends are usable as ordinary field names.
 
 ## The `init` block
@@ -272,7 +272,7 @@ actor BankAccount
 While `Open`, deposits land; `FreezeAccount` switches to `Frozen`, which
 declares no `Deposit` handler. A deposit arriving in that state goes
 unhandled, and unhandled is observable rather than silent: the runtime
-routes the message to the [dead-letter sink](/reference/runtime/#ideadlettersink)
+routes the message to the [dead-letter sink](../reference/runtime.md#ideadlettersink)
 for logging or auditing.
 
 {: .note }
@@ -291,6 +291,15 @@ inline statement terminated with `;`. Both forms appear above. `on
 GetBalance => return new Balance(balance);` is the inline form, `on Deposit d
 => { ... }` is the block form. Use whichever reads better; they compile
 identically.
+
+### Handler modes {#handler-modes}
+
+By default an `on` handler is a writer. It is serialised against every other
+handler on that actor, so it may assign fields. Prefix it `reader on` when
+the body only reads; overlapping readers can then run at the same time.
+[Guarantee 4](isolation.md#guarantee-4-concurrent-readers-cant-write-ce0087)
+is the rule. [Shared regions](shared-regions.md) use the same prefixes on
+state that several actors attach to.
 
 ### Binding the message
 
@@ -322,7 +331,7 @@ message currently being handled, and `self` is this actor's own `ActorRef`.
 Prefer `return` for a single reply to the asker; reach for `sender.Tell(...)`
 or `self.Tell(...)` only for fan-out or for re-queueing work to yourself. The
 mechanics of `Tell`, `ask`, `sender`, and `return` are the subject of
-[Sending messages](/language/messaging/).
+[Sending messages](messaging.md).
 
 ### The implicit `Default` behavior
 
@@ -377,7 +386,7 @@ Mixing the two, some bare handlers *and* an explicit `behavior X { ... }`
 block, is allowed, but every behavior an actor declares must be reachable.
 If the bare handlers fold into `Default` but nothing ever does `become
 Default;`, the compiler rejects it as
-[CE0014](/reference/errors/#ce0014) ("behavior declared but never reached"):
+[CE0014](../reference/errors.md#ce0014) ("behavior declared but never reached"):
 
 <!-- spek-test: compile -->
 ```spek
@@ -411,7 +420,7 @@ fall through to the dead-letter sink at runtime.
 takes effect *after* the current handler finishes; the rest of the handler
 runs under the old behavior, and the next message is dispatched against the
 new one. The target must be a behavior declared on this actor; naming one that
-doesn't exist is [CE0011](/reference/errors/#ce0011):
+doesn't exist is [CE0011](../reference/errors.md#ce0011):
 
 <!-- spek-test: compile -->
 ```spek
@@ -453,7 +462,7 @@ declaration.
 `become` is legal inside `on` handlers, inside `init`, and inside the
 lifecycle hooks below. It is rejected inside plain helper methods, which are
 meant to stay free of control-flow side effects
-([CE0051](/reference/errors/#ce0051)).
+([CE0051](../reference/errors.md#ce0051)).
 
 ## Lifecycle hooks
 
@@ -525,7 +534,7 @@ actor Account
 Most actors don't need to write `on Restore` at all. Persistent actors **auto-restore** their fields, and you only supply the hook
 to do something custom. How `persist`, snapshots, passivation, and
 auto-restore fit together is the whole of
-[Persistence and passivation](/language/persistence/).
+[Persistence and passivation](persistence.md).
 
 ## Helper methods
 
@@ -560,11 +569,11 @@ actor Account
 Helpers may read and write fields freely, but they are *not* allowed to
 `become`, `persist`, or otherwise drive the actor's control flow: those
 belong in handlers and `init`. A `become` in a helper is
-[CE0051](/reference/errors/#ce0051).
+[CE0051](../reference/errors.md#ce0051).
 
 ## Inheritance: abstract base actors
 
-Actors follow the same inheritance model as [classes](/language/classes/#inheritance-abstract-base-classes):
+Actors follow the same inheritance model as [classes](classes.md#inheritance-abstract-base-classes):
 **reuse plus abstract methods, and nothing more.** An `abstract actor` is a base
 that shares `protected` fields and helper methods with the actors that extend it,
 and can declare `abstract` methods each derived actor must implement. There is no
@@ -593,13 +602,13 @@ actor Doubler : Worker
 
 `Doubler` reuses the base's `handled` field and `Bump` helper and supplies the
 abstract `Transform`. Only an `abstract actor` can be a base
-([CE0123](/reference/errors/#ce0123)); a concrete actor is sealed. Abstract
-methods are only allowed on an abstract actor ([CE0122](/reference/errors/#ce0122)).
+([CE0123](../reference/errors.md#ce0123)); a concrete actor is sealed. Abstract
+methods are only allowed on an abstract actor ([CE0122](../reference/errors.md#ce0122)).
 Shared state must be `protected` to be reachable from a derived actor; a private
 base field stays encapsulated.
 
 This is for **implementation reuse**, not for sharing a message protocol; that's
-what a [`channel`](/language/channels/) is for, and an actor can do both:
+what a [`channel`](channels.md) is for, and an actor can do both:
 `actor Doubler : Worker, JobApi`. A derived actor still declares its own
 behaviors and handlers; inheritance shares fields and methods, not the dispatch
 table.
@@ -617,11 +626,11 @@ runtime calls at the right moments. The mechanics of message delivery, what
 
 ## Next
 
-- [Messages](/language/messages/): the message record and why it must be
+- [Messages](messages.md): the message record and why it must be
   immutable, the rule that makes passing state between actors safe.
-- [Sending messages: Tell and Ask](/language/messaging/): `Tell`, `ask`,
+- [Sending messages: Tell and Ask](messaging.md): `Tell`, `ask`,
   `sender`, and the return-to-reply idiom in full.
-- [Isolation and ownership](/language/isolation/): *why* an actor's fields
+- [Isolation and ownership](isolation.md): *why* an actor's fields
   need no locks, the one principle the whole language falls out of.
-- [Supervision and failure](/language/supervision/): what happens when a
+- [Supervision and failure](supervision.md): what happens when a
   handler throws, and how a parent decides a child's fate.

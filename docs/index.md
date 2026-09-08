@@ -38,9 +38,9 @@ actor Echo
 ```
 
 {: .note }
-> **New to Spek? Start with [Understanding Spek](/understanding-spek/).** It's a
+> **New to Spek? Start with [Understanding Spek](understanding-spek.md).** It's a
 > few minutes on who the language is for, how it borrows from C#, and the handful
-> of places it deliberately differs. [Where Spek comes from](/heritage/) is the
+> of places it deliberately differs. [Where Spek comes from](heritage.md) is the
 > ancestry: Erlang, Akka, Orleans, Rust, and what Spek left behind.
 
 ## Who Spek is for
@@ -72,7 +72,7 @@ Most of this sits on a surface that reads like C#, with the same visibility
 defaults, namespace conventions, and type syntax. What isn't C# is the
 enforcement: the actor-model rules surface as compile-time diagnostics rather
 than runtime surprises. Every one of them carries a `CE####` code and a
-triggering example in the [CE code catalog](/reference/errors/).
+triggering example in the [CE code catalog](reference/errors.md).
 
 ## What Spek includes
 
@@ -88,27 +88,27 @@ and quick-fixes to any LSP-aware editor.
 
 ## Where to go next
 
-- [Understanding Spek](/understanding-spek/): read this first. Who Spek is for,
+- [Understanding Spek](understanding-spek.md): read this first. Who Spek is for,
   how it relates to C#, and where it deliberately differs.
-- [Where Spek comes from](/heritage/): Erlang, Akka, Orleans, Rust, and the
+- [Where Spek comes from](heritage.md): Erlang, Akka, Orleans, Rust, and the
   rest: which idea Spek borrowed and where it shows up.
-- [Getting started](/getting-started/): install the toolchain and walk through
+- [Getting started](getting-started.md): install the toolchain and walk through
   `HelloBank`, a runnable example.
-- [Build your first actor](/language/first-actor/): learn the language by
+- [Build your first actor](language/first-actor.md): learn the language by
   building a small program from scratch, one concept at a time.
-- [Isolation & ownership](/language/isolation/): the one idea the whole language
+- [Isolation & ownership](language/isolation.md): the one idea the whole language
   follows from. A value is either shared-and-immutable or owned-and-mutable,
   never both, checked by the compiler.
-- [Language overview](/language/): the full language surface, one page at a time.
-- [Runtime reference](/reference/runtime/): `ActorSystem`, `ActorRef`,
+- [Language overview](language/index.md): the full language surface, one page at a time.
+- [Runtime reference](reference/runtime.md): `ActorSystem`, `ActorRef`,
   supervision, and persistence primitives.
-- [Error codes](/reference/errors/): every compile-time diagnostic with a
+- [Error codes](reference/errors.md): every compile-time diagnostic with a
   triggering example.
-- [Samples](/samples/): the fixture files plus `HelloBank`.
-- [Demos](/demos/): three runnable systems, two of them paired with C#
+- [Samples](samples.md): the fixture files plus `HelloBank`.
+- [Demos](demos.md): three runnable systems, two of them paired with C#
   twins, plus the benchmark suite that measures them.
-- [Migration guides](/migration/): concept-by-concept maps if you're coming from
+- [Migration guides](migration/index.md): concept-by-concept maps if you're coming from
   Akka.NET, Erlang/OTP, Proto.Actor, or Orleans.
 
-The [formal grammar](/spek-v1-grammar/) is the source of truth for syntax; this
+The [formal grammar](spek-v1-grammar.md) is the source of truth for syntax; this
 site is derived from it.

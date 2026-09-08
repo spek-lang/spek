@@ -140,7 +140,7 @@ system.SlowHandlerThreshold = null;                      // detection off
 ## `ActorRef`
 
 A stable handle to an actor. `ActorRef` is untyped
-([CE0030](/reference/errors/#ce0030)).
+([CE0030](errors.md#ce0030)).
 
 ```csharp
 public sealed class ActorRef
@@ -178,8 +178,8 @@ watcher.Changed += actorRef.Forward<FileSystemEventArgs>();
 
 Each call returns a distinct delegate instance, so to unsubscribe later, keep
 the handler in a variable and `-=` that same instance. The payload arrives
-like any other message; pair it with a [`private`
-handler](/language/messaging/) when the event-args type isn't a declared
+like any other message; pair it with a [`private` handler](../language/messaging.md)
+when the event-args type isn't a declared
 `message`.
 
 ## `ISnapshotStore` {#isnapshotstore}
@@ -206,7 +206,7 @@ for both save and load; choose keys that are unique per logical actor.
 
 ## `FailureDirective` {#failuredirective}
 
-See [supervision](/language/supervision/) for the conceptual overview.
+See [supervision](../language/supervision.md) for the conceptual overview.
 
 ```csharp
 public enum FailureDirective
@@ -267,7 +267,7 @@ on Withdrawn w =>
 }
 ```
 
-Reserve exceptions (and [supervision](/language/supervision/)) for the
+Reserve exceptions (and [supervision](../language/supervision.md)) for the
 *unexpected*: bugs, I/O faults, violated invariants. Expected, in-protocol
 failure is data, and `Outcome` is its shape.
 
@@ -277,7 +277,7 @@ Building blocks for causal ordering in distributed or event-sourced designs.
 Both are immutable records in the `Spek` namespace, safe in `message` fields;
 neither is wired into the runtime's own delivery (which stays
 at-most-once with per-pair ordering; see
-[clustering](/language/clustering/)). They exist for *application-level*
+[clustering](../language/clustering.md)). They exist for *application-level*
 protocols that need happens-before reasoning.
 
 ```csharp
@@ -538,7 +538,7 @@ boundary: it journals the messages that enter the system from outside the
 actor world (host sends and channel adapters, recognized as enqueues that
 carry no actor sender). Ingress is enough because execution is
 deterministic: pure Spek code has no raw concurrency
-([CE0119](/reference/errors/#ce0119)), so re-executing the program against
+([CE0119](errors.md#ce0119)), so re-executing the program against
 the recorded inputs re-derives every internal message. Journaling
 actor-to-actor traffic would persist what replay can recompute, and that
 economy is what keeps the recorder cheap enough to stay attached in
@@ -714,7 +714,7 @@ assertion library alone, not the runner). Tests written in C# use xUnit's
 `[Fact]` and `Assert.*` as normal, plus the Testing types below for actor
 wiring. Tests written in Spek itself use the `…Tests` naming convention
 instead, where each public method of a `…Tests` module or class is a test
-under `dotnet test`. [Testing actors](/language/testing/) covers that
+under `dotnet test`. [Testing actors](../language/testing.md) covers that
 story end to end, and it rides on the same types documented here.
 
 ### `TestActorSystem`

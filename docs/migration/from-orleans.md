@@ -149,7 +149,7 @@ a key, which is exactly what the naming layer above would add.
 - **Reminders**: persistent scheduled callbacks. Spek has nothing like
   this; roll your own with a background timer actor.
 - **Streams**: no Orleans-style pub/sub stream provider. Spek's
-  [stream operators](/language/streams/) shape a single handler's
+  [stream operators](../language/streams.md) shape a single handler's
   input; they are not a cross-actor streaming system.
 - **Transactions across grains**: Orleans has distributed transactions;
   Spek doesn't.

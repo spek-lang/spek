@@ -74,12 +74,14 @@ gitignored and rebuilt from the `.g4` sources.
   coverage written in Spek itself. When you add a behavioral C# test, consider
   whether a native twin belongs there too. Never delete a C# test just
   because a native version exists.
-- **Docs are compile-tested.** Every fenced ```` ```spek ```` block in the
-  README is parse- or compile-checked by `DocSnippetTests`
+- **Docs are compile-tested.** Every fenced ```` ```spek ```` block in
+  `docs/` is parse- or compile-checked by `DocSnippetTests`
   (`dotnet test --filter DocSnippet`). If you add a snippet, make it valid, or
   mark it with a `<!-- spek-test: ignore -->` directive when it's an
   intentional fragment. If you change language syntax, stale snippets fail the
-  suite; fix the docs, not the test.
+  suite; fix the docs, not the test. Internal markdown links must be relative
+  `.md` paths (`python3 scripts/check-doc-links.py`); the docs workflow also
+  runs HTML-Proofer on the built site.
 - **Known flakes.** A few timing-sensitive runtime tests (passivation,
   persistence respawn) can fail under full-suite parallel load. Re-run them in
   isolation before treating a failure as a regression.

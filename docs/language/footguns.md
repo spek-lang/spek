@@ -50,14 +50,14 @@ There are four rungs, from invisible to fatal:
 | Rung | What you do | What Spek does | Example |
 |------|-------------|----------------|---------|
 | **Rewrite** | nothing | emits the correct, value-preserving form | `task.Result` → `(await task)`; `File.ReadAllText` → `await File.ReadAllTextAsync` |
-| **Suggest** | optionally accept | a faint editor hint + one-click fix; the build is unaffected | [CE0116](/reference/errors/#ce0116): sequential `await` in a loop |
-| **Warn** | decide | a compiler **Warning** (+ a quick-fix where one exists) | [CE0115](/reference/errors/#ce0115): sync `File.ReadAllText` (also rewritten) |
-| **Error** | must change it | refuses to compile | [CE0083](/reference/errors/#ce0083) blocking calls, [CE0084](/reference/errors/#ce0084) process escapes |
+| **Suggest** | optionally accept | a faint editor hint + one-click fix; the build is unaffected | [CE0116](../reference/errors.md#ce0116): sequential `await` in a loop |
+| **Warn** | decide | a compiler **Warning** (+ a quick-fix where one exists) | [CE0115](../reference/errors.md#ce0115): sync `File.ReadAllText` (also rewritten) |
+| **Error** | must change it | refuses to compile | [CE0083](../reference/errors.md#ce0083) blocking calls, [CE0084](../reference/errors.md#ce0084) process escapes |
 
 ### Rewrite: the pitfall disappears
 
 When there's an equivalent that preserves the observable result, Spek's
-[invisible-async](/language/async/) pass emits it and the program behaves as if you had
+[invisible-async](async.md) pass emits it and the program behaves as if you had
 written the await yourself. The usual cases are the sync-over-async blockers: `.Result`,
 `.Wait()`, and `.GetAwaiter().GetResult()`. You read a `Task<T>` as if it
 were a value and Spek emits the `await`:
@@ -73,7 +73,7 @@ on Lookup l =>
 
 You never have to think about them: reach for whichever reads naturally
 and the compiler makes it correct. You met this rewrite in
-[Async without await](/language/async/).
+[Async without await](async.md).
 
 A rewrite must preserve meaning *exactly*. That's why `Task.WaitAny`
 (which returns the **index** of the first completed task) is **not**
@@ -99,7 +99,7 @@ foreach (var id in ids)
 
 Under invisible async each `*Async` call is awaited before the next
 iteration, so the waits run back-to-back. If the iterations are
-independent, overlapping them is faster, but [CE0116](/reference/errors/#ce0116)
+independent, overlapping them is faster, but [CE0116](../reference/errors.md#ce0116)
 is a *hint with no auto-fix*, because parallelizing changes side-effect
 ordering and turns the first exception into an aggregate. The compiler
 can't prove a loop is independent, so it nudges and leaves the call to you.
@@ -132,14 +132,14 @@ there the sync call genuinely blocks and you must decide. Warn and rewrite.
 ### Error: never acceptable
 
 Some calls have no async form, or no place in an actor at all. Those are
-hard [compile errors](/reference/errors/):
+hard [compile errors](../reference/errors.md):
 
 - **Blocking the dispatcher with no value-preserving rewrite** (`Thread.Sleep`,
   `Console.ReadLine`, `Monitor.Wait`, a wait-handle `WaitOne`) is
-  [CE0083](/reference/errors/#ce0083).
+  [CE0083](../reference/errors.md#ce0083).
 - **Escaping the process** (`Environment.Exit`, `Environment.FailFast`,
   `Process.Kill`) bypasses supervision and severs every other actor
-  mid-message, so it's [CE0084](/reference/errors/#ce0084).
+  mid-message, so it's [CE0084](../reference/errors.md#ce0084).
 
 When you genuinely need to bring the node down on a critical, unrecoverable
 error, there's a verb that does it *gracefully* instead:
@@ -186,15 +186,15 @@ Triaging a pitfall follows the same four questions every time:
 
 The rest of this chapter walks the specific traps you're most likely to
 hit, grouped by the part of the language they touch. Each one names the
-chapter that introduced the concept and the `CE` code that guards it. The full catalog lives in the [error-code reference](/reference/errors/).
+chapter that introduced the concept and the `CE` code that guards it. The full catalog lives in the [error-code reference](../reference/errors.md).
 
 ### Mutable message payloads
 
-[Messages](/language/messages/) must be immutable, so the receiver can read
+[Messages](messages.md) must be immutable, so the receiver can read
 a payload concurrently with the sender holding the same reference. A
 `message` field whose type *isn't* on the immutability whitelist (a
 `List<T>`, a mutable array, an interface that hides a mutable
-implementation) is [CE0010](/reference/errors/#ce0010):
+implementation) is [CE0010](../reference/errors.md#ce0010):
 
 <!-- spek-test: ignore; demonstrates the CE0010 trigger -->
 ```spek
@@ -224,7 +224,7 @@ actor Cart
 A subtler version of the same hazard. The payload type is immutable, but
 *through one of its mutable fields* you reach in and write after handing it
 off. Once a value is in another actor's mailbox, mutating it from the
-sender races against the receiver, so [CE0085](/reference/errors/#ce0085)
+sender races against the receiver, so [CE0085](../reference/errors.md#ce0085)
 flags a field or index assignment that reaches a sent value, even through
 an alias:
 
@@ -245,7 +245,7 @@ actor Sender
 }
 ```
 
-This is the [isolation](/language/isolation/) guarantee in action: the
+This is the [isolation](isolation.md) guarantee in action: the
 share-XOR-mutate rule says once you've shared a value you may not mutate it.
 The fix is to mutate *before* the send, so there's exactly one hand-off:
 
@@ -272,7 +272,7 @@ actor Sender
 
 The whole point of the actor model is that state is private and the only
 way in is a message. So any member access on an `ActorRef` other than
-`Tell` or `ask` is [CE0012](/reference/errors/#ce0012). Reading a peer's field or calling its method directly would bypass the mailbox entirely:
+`Tell` or `ask` is [CE0012](../reference/errors.md#ce0012). Reading a peer's field or calling its method directly would bypass the mailbox entirely:
 
 <!-- spek-test: ignore; demonstrates the CE0012 trigger -->
 ```spek
@@ -290,16 +290,16 @@ actor Coordinator
 ```
 
 Send a message instead. If you need a value back, that's exactly what
-[`ask`](/language/messaging/) is for.
+[`ask`](messaging.md) is for.
 
 ### `ask`, `self`, `sender`, `persist` outside a handler
 
 A cluster of identifiers and statements only make sense *during message
-dispatch*. `ask` ([CE0042](/reference/errors/#ce0042)), `self` and
-`sender` ([CE0043](/reference/errors/#ce0043)), and `persist`
-([CE0050](/reference/errors/#ce0050)) all require an `on` handler. There's no "current message" inside `init`, a lifecycle hook, or a plain helper
+dispatch*. `ask` ([CE0042](../reference/errors.md#ce0042)), `self` and
+`sender` ([CE0043](../reference/errors.md#ce0043)), and `persist`
+([CE0050](../reference/errors.md#ce0050)) all require an `on` handler. There's no "current message" inside `init`, a lifecycle hook, or a plain helper
 method. Likewise `become` is rejected inside a plain helper method
-([CE0051](/reference/errors/#ce0051)), to keep behavior switches visible in
+([CE0051](../reference/errors.md#ce0051)), to keep behavior switches visible in
 the handler that drives them.
 
 The fix is almost always to move the line into the handler, or to pass
@@ -329,7 +329,7 @@ Every actor in a system shares a pool of dispatcher threads. A handler that
 *parks* its thread (`Thread.Sleep`, `Console.ReadLine`, a wait-handle
 `WaitOne`) starves every sibling assigned to that thread. There's no async
 equivalent that preserves the meaning, so this is the hard error
-[CE0083](/reference/errors/#ce0083):
+[CE0083](../reference/errors.md#ce0083):
 
 <!-- spek-test: ignore; demonstrates the CE0083 trigger -->
 ```spek
@@ -347,7 +347,7 @@ actor Beeper
 ```
 
 The fix is the async form. A timed wait is `Task.Delay`, and because
-[invisible async](/language/async/) supplies the `await`, you write it
+[invisible async](async.md) supplies the `await`, you write it
 without one. Durations are ordinary `System.TimeSpan` expressions, not
 bespoke literals:
 
@@ -378,7 +378,7 @@ the meantime.
 
 Sync `File.ReadAllText` and its siblings block the dispatcher too, but they
 have drop-in `*Async` versions, so this is the *warn-and-rewrite* case,
-[CE0115](/reference/errors/#ce0115). In a handler the emitted code is
+[CE0115](../reference/errors.md#ce0115). In a handler the emitted code is
 already the async form, but writing the async call yourself silences the
 warning and reads more honestly:
 
@@ -407,7 +407,7 @@ The C# reflex, when a handler has slow work, is to push it onto another thread:
 those runs a delegate *outside* the actor's turn, where it can read and write
 actor state concurrently with the actor's own handlers: the exact data race Spek
 exists to prevent. So all of them are rejected in Spek source,
-[CE0119](/reference/errors/#ce0119).
+[CE0119](../reference/errors.md#ce0119).
 
 Concurrency in Spek comes from actors. To move work off the current turn, spawn a
 child actor and `Tell` it the job. The child's mailbox serializes the work just
@@ -439,16 +439,16 @@ actor Coordinator
 ```
 
 Awaited async I/O is *not* affected: `await File.ReadAllTextAsync(...)` and other
-Task-returning BCL calls are resumed inside the turn by [invisible
-async](/language/async/). Only thread-*spawning* is forbidden.
+Task-returning BCL calls are resumed inside the turn by [invisible async](async.md).
+Only thread-*spawning* is forbidden.
 
 ### Mutating from a reader handler
 
-[Shared regions](/language/shared-regions/) let many actors read the same
+[Shared regions](shared-regions.md) let many actors read the same
 data concurrently, and `reader on` handlers run under a shared read lock.
 Mutating an actor field, a region field, or a confined
-[class](/language/classes/) from a reader would race against every other
-reader, so it's [CE0087](/reference/errors/#ce0087). Promote the handler
+[class](classes.md) from a reader would race against every other
+reader, so it's [CE0087](../reference/errors.md#ce0087). Promote the handler
 to `writer on` (which takes the exclusive lock) when it needs to write:
 
 <!-- spek-test: compile -->
@@ -470,7 +470,7 @@ actor Counter
 ### Copying region data into actor state
 
 Still in shared-region territory: assigning a region read *directly* into
-an actor field is [CE0100](/reference/errors/#ce0100). The actor would then
+an actor field is [CE0100](../reference/errors.md#ce0100). The actor would then
 hold a live reference to data the region still owns, and a later writer
 could mutate it mid-read. Route the value through a local. The local makes the borrow a deliberate, visible decision:
 
@@ -498,9 +498,9 @@ actor Worker
 
 ### Non-exhaustive enum switches
 
-Spek [enums](/language/enums/) are sealed: the variant set is closed. A
+Spek [enums](enums.md) are sealed: the variant set is closed. A
 `switch` over an enum value must cover every variant (or include a `_`
-discard), or it's [CE0103](/reference/errors/#ce0103). The main
+discard), or it's [CE0103](../reference/errors.md#ce0103). The main
 rationale is rolling deploys: when a new variant ships, the compiler flags
 every stale `switch` *before* an unhandled value reaches it in production:
 
@@ -528,19 +528,19 @@ actor Monitor
 
 ### Supervision and persistence traps
 
-Two more, from the chapters on [supervision](/language/supervision/) and
-[persistence](/language/persistence/):
+Two more, from the chapters on [supervision](supervision.md) and
+[persistence](persistence.md):
 
 - **A mis-spelled `supervise` option.** `maxRetries` and `withinTime` are
   ordinary named arguments, not keywords, so a typo parses cleanly and is
-  caught by [CE0117](/reference/errors/#ce0117) rather than surfacing as a
+  caught by [CE0117](../reference/errors.md#ce0117) rather than surfacing as a
   raw syntax error.
 - **Declaring `supervise` *and* an `OnChildFailure` override.** The
   `supervise` decl already generates `OnChildFailure`, so a hand-written
-  override would be silently dropped. [CE0118](/reference/errors/#ce0118)
+  override would be silently dropped. [CE0118](../reference/errors.md#ce0118)
   makes you pick one.
 - **Save-but-never-reload.** This *isn't* a pitfall: a
-  persistent actor [auto-restores](/language/persistence/)
+  persistent actor [auto-restores](persistence.md)
   every captured field, so `on Restore` is optional and you can't silently
   persist state you never read back.
 
@@ -560,7 +560,7 @@ cost you throughput. Spek watches for these too:
 ## What you experience in the editor
 
 None of these diagnostics are batch-only. Spek's
-[language server](/reference/cli/) surfaces them live, and the fixable ones
+[language server](../reference/cli.md) surfaces them live, and the fixable ones
 carry a **quick-fix** in the lightbulb / "fix this" menu, the same
 one-click experience you'd expect from ReSharper. Today that includes:
 
@@ -573,19 +573,19 @@ the result, so the fix is complete, not just a renamed call.
 
 ## Where to go next
 
-The [error-code reference](/reference/errors/) is the exhaustive
-catalog of every `CE` rule, and the [CLI reference](/reference/cli/)
+The [error-code reference](../reference/errors.md) is the exhaustive
+catalog of every `CE` rule, and the [CLI reference](../reference/cli.md)
 covers `spekc` and the language server. If you want to see how the pieces
 fit together at scale, the sample programs put a full actor system,
 persistence, supervision, and all, into one buildable project.
 
 ## Related
 
-- [Error codes](/reference/errors/): the full `CE`-code catalog, including
+- [Error codes](../reference/errors.md): the full `CE`-code catalog, including
   every code linked from this chapter.
-- [C# syntax](/language/csharp-syntax/): the inverse view, the C#
+- [C# syntax](csharp-syntax.md): the inverse view, the C#
   expression and statement syntax Spek passes straight through to Roslyn.
-- [Async & concurrency](/language/async/): the invisible-async machinery
+- [Async & concurrency](async.md): the invisible-async machinery
   that powers the rewrites.
-- [Isolation and ownership](/language/isolation/): the share-XOR-mutate
+- [Isolation and ownership](isolation.md): the share-XOR-mutate
   guarantee behind CE0085 and CE0087.

@@ -35,6 +35,24 @@ Open `http://127.0.0.1:4000/`. Edits to `.md` files hot-reload. The `Gemfile`
 uses the `github-pages` gem, so a local build runs the same Jekyll and Rouge
 versions as CI.
 
+## Links
+
+Point at other pages with a relative `.md` path (`heritage.md`,
+`language/actors.md`, `../reference/errors.md#ce0010`), not a site-root URL
+(`/heritage/`). Keep each link on one line. The site builder only rewrites a
+link it can see without a line break in the middle. GitHub and the editor
+resolve the file; `jekyll-relative-links` turns it into the pretty permalink
+when the site builds.
+
+```bash
+python3 scripts/check-doc-links.py
+bundle exec jekyll build
+bundle exec htmlproofer _site --disable-external
+```
+
+The first command is the source check (from the repo root). The other two run
+from this directory after `bundle install`. The `docs` workflow runs both.
+
 ## Snippets are compiled
 
 Every ` ```spek ` block in these docs is checked against the real compiler by the

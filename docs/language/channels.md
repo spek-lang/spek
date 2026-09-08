@@ -13,7 +13,7 @@ Up to now, the set of messages an actor handles has lived entirely
 inside the actor: you write an `on` handler, and that handler *is* the
 contract. Nothing outside the actor states which messages it is supposed
 to accept, and nothing checks that you covered them all. Forget a handler
-and the message just becomes a [dead letter](/language/messaging/) at
+and the message just becomes a [dead letter](messaging.md) at
 runtime, with no compile error.
 
 A **channel** lifts that contract out into a named declaration. It lists
@@ -25,7 +25,7 @@ ConsoleHost protocol"* and have the compiler hold you to it.
 This is the same idea as an interface in C#, a `Receive` type in Akka.NET,
 or a grain interface in Orleans, a structural promise checked at compile
 time. The difference is that a channel references the
-[message records](/language/messages/) you already declared rather than
+[message records](messages.md) you already declared rather than
 defining new types, and reply types stay inferred from your handlers
 rather than being restated.
 
@@ -41,7 +41,7 @@ that introduces a handler, but with no body. Each name must be a message
 that already exists; a channel never declares a payload of its own.
 
 An actor opts in with the colon syntax you already know from
-[base actors](/language/actors/): `actor Foo : MyChannel`. The compiler
+[base actors](actors.md): `actor Foo : MyChannel`. The compiler
 then checks that `Foo` handles every input the channel lists.
 
 <!-- spek-test: compile -->
@@ -115,7 +115,7 @@ If `Audited` and `Pingable` both declared `on Ping`, the single
 
 A channel says what an actor *accepts*, not what it *replies*. There is
 deliberately no `on Ping returns Pong;` in the grammar. The reply type is
-whatever a handler returns, inferred the same way [Ask](/language/messaging/)
+whatever a handler returns, inferred the same way [Ask](messaging.md)
 infers it from a `return` statement:
 
 <!-- spek-test: compile -->
@@ -139,7 +139,7 @@ actor Echo : Pingable
 neither knows nor needs to. Keeping replies on the handler avoids
 restating the reply type in two places and letting them drift apart.
 
-There is also no typed `ActorRef<Pingable>`. An [`ActorRef`](/language/messaging/)
+There is also no typed `ActorRef<Pingable>`. An [`ActorRef`](messaging.md)
 stays untyped. Channel verification is entirely actor-side, at the
 declaration.
 
@@ -323,7 +323,7 @@ A channel is worth writing when an actor's protocol spans several behaviors.
 Here a connection accepts `Open` and `Close` and may emit a `Disconnected`
 event, all stated once in the channel; the `Opened` reply stays on the
 handler's `return`, as replies always do. The actor
-[become](/language/actors/)s between states:
+[become](actors.md)s between states:
 
 <!-- spek-test: compile -->
 ```spek
@@ -378,29 +378,29 @@ names the exact gap.
 Channel diagnostics all fire per-violation, so a single build surfaces
 every gap at once:
 
-- **[CE0090](/reference/errors/#ce0090)**: a channel input has no handler
+- **[CE0090](../reference/errors.md#ce0090)**: a channel input has no handler
   on the implementing actor (walks the inheritance graph).
-- **[CE0091](/reference/errors/#ce0091)**: an unknown name in an actor's
+- **[CE0091](../reference/errors.md#ce0091)**: an unknown name in an actor's
   colon list, or a second *actor* where only one base actor is allowed.
-- **[CE0092](/reference/errors/#ce0092)**: `sender.Tell(X)` where `X` is
+- **[CE0092](../reference/errors.md#ce0092)**: `sender.Tell(X)` where `X` is
   neither the handler's reply type nor in any channel's `emits` list.
-- **[CE0093](/reference/errors/#ce0093)**: a channel inherits from an
+- **[CE0093](../reference/errors.md#ce0093)**: a channel inherits from an
   unknown name, or from a `message`/`actor`/`enum` that isn't a channel.
-- **[CE0094](/reference/errors/#ce0094)**: circular channel inheritance
+- **[CE0094](../reference/errors.md#ce0094)**: circular channel inheritance
   (reported once per channel in the cycle).
 
 ## Where channels go next
 
 A channel pins down *which* messages cross the boundary. The
-[next chapter, Streams](/language/streams/), is about *how* a flood of
+[next chapter, Streams](streams.md), is about *how* a flood of
 inbound events is shaped before a handler runs (debounce, throttle,
 distinct), turning a firehose of channel inputs into a manageable rate.
 
 ## Related reading
 
-- [Messages](/language/messages/): the immutable records a channel
+- [Messages](messages.md): the immutable records a channel
   references by name.
-- [Sending messages: Tell and Ask](/language/messaging/): where reply
+- [Sending messages: Tell and Ask](messaging.md): where reply
   types are inferred from handler returns.
-- [Actors and behaviors](/language/actors/): `become`, the colon-base
+- [Actors and behaviors](actors.md): `become`, the colon-base
   syntax channels reuse, and multi-behavior coverage.

@@ -17,6 +17,12 @@ color_scheme: dark
 # build that loads the custom Spek Rouge lexer in _plugins/).
 plugins:
   - jekyll-remote-theme
+  # Rewrites relative foo.md links to permalinks (and prepends baseurl) so the
+  # same href works on GitHub, in the editor, and on the published site.
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
 
 search_enabled: true
 search:
@@ -32,7 +38,7 @@ heading_anchors: true
 
 aux_links:
   "View on GitHub":
-    - "//github.com/spek-lang/spek"
+    - "https://github.com/spek-lang/spek"
 
 footer_content: >-
   Spek is pre-release software; APIs can change between 0.x releases. See

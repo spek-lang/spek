@@ -16,3 +16,9 @@ gem "github-pages", group: :jekyll_plugins
 
 # WEBrick left Ruby's standard library in 3.0; `jekyll serve` needs it.
 gem "webrick", "~> 1.8"
+
+# Built-site link checker. Not a Jekyll plugin; the docs workflow runs it
+# against _site after `jekyll build`.
+group :test do
+  gem "html-proofer", "~> 5.0"
+end

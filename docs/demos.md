@@ -107,10 +107,10 @@ doubles as an integration test of the public runtime surface.
 
 ## Where to go next
 
-- [Supervision](/language/supervision/): the `supervise` clause the fleet
+- [Supervision](language/supervision.md): the `supervise` clause the fleet
   and elevator demos are built on.
-- [Persistence](/language/persistence/): where `passivate after` lives.
-- [Samples](/samples/): smaller, single-feature programs to read before
+- [Persistence](language/persistence.md): where `passivate after` lives.
+- [Samples](samples.md): smaller, single-feature programs to read before
   the demos.
-- [Getting started](/getting-started/): install the toolchain if you have
+- [Getting started](getting-started.md): install the toolchain if you have
   not run any Spek yet.

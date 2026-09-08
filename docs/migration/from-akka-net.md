@@ -233,12 +233,12 @@ per-child override can declare its own arm list.
 
 - **Akka.Cluster's depth.** Spek has opt-in clustering (remote `Tell`,
   consistent-hash placement, located actors; see
-  [Clustering](/language/clustering/)), but Akka.Cluster's membership
+  [Clustering](../language/clustering.md)), but Akka.Cluster's membership
   protocols, cluster singletons, and distributed data are a far larger
   surface, and remote `Ask` is not supported in Spek.
 - **Akka.Streams**: reactive streams on top of actors. Spek's
-  [stream operators](/language/streams/) shape a single handler's
+  [stream operators](../language/streams.md) shape a single handler's
   input; there is no graph-based streaming DSL.
 - **Akka.FSM**: a dedicated finite-state-machine actor base class.
   Spek's `behavior` + `become` covers the core use-case; see
-  [03_become.spek](https://github.com/spek-lang/spek/blob/main/src/Spek.Tests/Fixtures/03_become.spek).
+  [03_become.spek](https://github.com/spek-lang/spek/blob/develop/src/Spek.Tests/Fixtures/03_become.spek).

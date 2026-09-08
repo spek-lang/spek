@@ -9,9 +9,9 @@ description: "The two ways to send a message: Tell (fire-and-forget) and Ask (re
 
 # Sending messages: Tell and Ask
 
-You now have an actor that owns some state ([Actors and
-behaviors](/language/actors/)) and a `message` type that can safely cross
-the boundary between two of them ([Messages](/language/messages/)). What
+You now have an actor that owns some state ([Actors and behaviors](actors.md))
+and a `message` type that can safely cross
+the boundary between two of them ([Messages](messages.md)). What
 you don't have yet is a way to actually *move* a message from one actor to
 another. That's this chapter.
 
@@ -94,7 +94,7 @@ program Main
 The three `Tell`s above don't block and don't interleave: each one appends
 to the account's mailbox, and the account processes them strictly in order,
 one at a time, on its own turn. That single-message-at-a-time guarantee is
-what makes `balance += d.amount` safe without a lock. The reason why is the subject of the next chapter, [Isolation and ownership](/language/isolation/).
+what makes `balance += d.amount` safe without a lock. The reason why is the subject of the next chapter, [Isolation and ownership](isolation.md).
 
 `Tell` is the idiomatic way to communicate in Spek. Reach for it for
 *everything* that doesn't strictly need a reply on the very next line.
@@ -105,9 +105,9 @@ Although `ActorRef` itself is untyped, the compiler type-checks a send
 whenever it can see where the ref came from. A local or field whose only
 origin is a `spawn<T>(...)` has a known concrete actor type, and a `Tell` or
 `.Ask` through it of a message that actor handles in **no behavior** is a
-compile error ([CE0126](/reference/errors/#ce0126)): that mail could only
+compile error ([CE0126](../reference/errors.md#ce0126)): that mail could only
 ever dead-letter. Messages handled in a *different* behavior than the current
-one are fine (that's the [`become`](/language/actors/#become) state machine),
+one are fine (that's the [`become`](actors.md#become) state machine),
 and refs whose origin the compiler can't see (`sender`, refs carried in
 message fields) are left to the runtime's dead-letter sink. A target with an
 `on any` catch-all accepts anything by construction.
@@ -195,7 +195,7 @@ stderr, so a lost reply is at least visible rather than silent.
 > `sender` is only meaningful while a message is being processed, so it is
 > valid **only inside an `on` handler body**. Using it in an `init` or a
 > plain method, where there is no "current message," is
-> [CE0043](/reference/errors/#ce0043).
+> [CE0043](../reference/errors.md#ce0043).
 
 ## `self`: a reference to the current actor
 
@@ -244,7 +244,7 @@ program Main
 ```
 
 Like `sender`, `self` is valid **only inside an `on` handler body**; using
-it elsewhere is also [CE0043](/reference/errors/#ce0043).
+it elsewhere is also [CE0043](../reference/errors.md#ce0043).
 
 ## `Ask`: request and reply as one expression
 
@@ -313,7 +313,7 @@ rewrites that into `await target.AskAsync<Balance>(new GetBalance())` and
 wraps the surrounding handler in `async` for you. You never write
 `Task<T>`, you never write `await`, and you never unwrap a result; that
 invisible-async machinery is its own chapter,
-[Async without await](/language/async/). The `Balance b = …` line *has*
+[Async without await](async.md). The `Balance b = …` line *has*
 the reply once it runs.
 
 ### `return`: the reply idiom
@@ -403,14 +403,14 @@ type out at the call site is never wrong. Inference is the default;
 
 - Inside an actor, `Ask` is valid **only in an `on` handler body**. Using
   it from an `init` or a plain method is
-  [CE0042](/reference/errors/#ce0042): there is no message turn to suspend
+  [CE0042](../reference/errors.md#ce0042): there is no message turn to suspend
   and resume against. At a program boundary you call the
   runtime's `AskAsync<T>` directly; see
   [Asking from outside an actor](#asking-from-outside-an-actor).
 - The target must be an `ActorRef`, and the argument is a `new` of a
   `message` type.
 - The payload must be a `message`-declared type, like any send. Handing
-  `Tell` or `Ask` a plain C# class is [CE0020](/reference/errors/#ce0020).
+  `Tell` or `Ask` a plain C# class is [CE0020](../reference/errors.md#ce0020).
 
 ### Don't reach for `Ask` by reflex
 
@@ -464,7 +464,7 @@ program Main
 
 Inside the program block the `Task<Balance>` is auto-awaited just like a
 handler's `ask`, so `reply` is the `Balance`, not a `Task`. See
-[Async without await](/language/async/) for why no `await` appears here.
+[Async without await](async.md) for why no `await` appears here.
 
 ## What compiles to what
 
@@ -479,7 +479,7 @@ handler's `ask`, so `reply` is the `Balance`, not a `Task`. See
 
 A `Tell` written inside an actor carries `_selfRef` as the sender argument;
 that's the mechanism behind the implicit sender. The
-[runtime reference](/reference/runtime/) documents the `ActorRef` API these
+[runtime reference](../reference/runtime.md) documents the `ActorRef` API these
 lower onto.
 
 ## Next
@@ -487,6 +487,6 @@ lower onto.
 You've now seen actors hold state, messages cross between them, and `Tell` /
 `Ask` move those messages around. The promise underneath all of it has been
 that `balance += d.amount` is safe with no lock in sight. The next chapter,
-[Isolation and ownership](/language/isolation/), is where that promise gets
+[Isolation and ownership](isolation.md), is where that promise gets
 cashed: how Spek's share-XOR-mutate rule and invisible ownership make data
 races a compile error rather than a 3am production incident.

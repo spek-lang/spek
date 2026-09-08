@@ -14,7 +14,7 @@ checked into compile errors. This page maps which idea, from
 where, and where you meet it in Spek.
 
 If you already write Akka.NET, Erlang, Orleans, or Proto.Actor, the
-[migration guides](/migration/) translate concept for concept. Use this
+[migration guides](migration/index.md) translate concept for concept. Use this
 page when you want the design ancestry rather than a rewrite of your
 existing code.
 
@@ -26,7 +26,7 @@ page puts them next to each other.
 
 Spek is aimed at C# developers. File-scoped namespaces,
 `using`, `private`-by-default visibility, generics, LINQ, and NuGet all
-work as they do in C#. Handler bodies are a [subset of C#](/language/csharp-syntax/),
+work as they do in C#. Handler bodies are a [subset of C#](language/csharp-syntax.md),
 and Roslyn type-checks the emitted code. A `message` lowers to a C#
 `record`. A `module` lowers to a `static class`. A `program` block
 lowers to `static async Task Main`.
@@ -38,18 +38,18 @@ the usual ways data races get into a C# program.
 
 ## Erlang / OTP: isolation and "let it crash"
 
-An Erlang process owns its heap. Spek's [actors](/language/actors/) own
-theirs. The compiler enforces the boundary ([isolation](/language/isolation/))
+An Erlang process owns its heap. Spek's [actors](language/actors.md) own
+theirs. The compiler enforces the boundary ([isolation](language/isolation.md))
 instead of relying on copy-everything immutability.
 
-[Supervision](/language/supervision/) is Erlang's "let it crash": a
+[Supervision](language/supervision.md) is Erlang's "let it crash": a
 handler throws, the parent chooses Resume, Restart, Stop, or Escalate.
 Retry budgets (`maxRetries`, `withinTime`) are the same idea as OTP
 supervisor intensity.
 
 Named `behavior` blocks are closer to `gen_statem` states (or to
 `gen_server` plus explicit state) than to OTP *behaviours* (the callback
-modules). [Modules](/language/modules/) are Erlang's namespacing habit
+modules). [Modules](language/modules.md) are Erlang's namespacing habit
 with C# static-class emission.
 
 The supervisor is not a separate process. The parent actor *is* the
@@ -58,7 +58,7 @@ supervisor. That is the main OTP-to-Spek adjustment.
 ## Akka and Akka.NET: the vocabulary
 
 `ActorRef`, `Tell`, `Ask`, `self`, `sender`, and `become` keep Akka's
-names. [Sending messages](/language/messaging/) is that API with two
+names. [Sending messages](language/messaging.md) is that API with two
 changes: `Ask` yields the reply value (invisible async supplies the
 await), and a handler can reply with `return` as well as with
 `sender.Tell(...)`. Both work; `return` is the one that reads like a
@@ -69,7 +69,7 @@ Persistence's snapshot save, without event sourcing: Spek writes a
 whole-actor snapshot and restores fields automatically. Supervision
 directives (`Restart`, `Resume`, `Stop`, `Escalate`) match Akka's.
 
-[Clustering](/language/clustering/) follows the Akka Cluster / Erlang
+[Clustering](language/clustering.md) follows the Akka Cluster / Erlang
 distribution shape: named roots, location transparency for `Tell`, and
 at-most-once delivery. Remote `Ask` is not supported.
 
@@ -91,7 +91,7 @@ the isolation rules are convention. In Spek they are `CE` diagnostics.
 
 ## Rust and Pony: share or mutate, not both
 
-[Isolation](/language/isolation/) is Rust's ownership intuition, moved
+[Isolation](language/isolation.md) is Rust's ownership intuition, moved
 from lexical borrows to the actor boundary. A value is shared-and-immutable
 or owned-and-mutable, never both. `message` fields are a compiler
 whitelist. After you `Tell` a value you may not mutate it (CE0085).
@@ -104,7 +104,7 @@ cross, or alias across, that boundary.
 
 ## Go and CSP: protocols, not pipes
 
-A Spek [`channel`](/language/channels/) is a named protocol: the messages
+A Spek [`channel`](language/channels.md) is a named protocol: the messages
 an actor must handle, checked at compile time (CE0090). That is closer
 to session types, Akka Typed `IReceive`, or an Orleans grain interface
 than to a Go `chan`. There is no `select`, no channel close, and no
@@ -114,14 +114,14 @@ story. They do not get CSP multiplexing.
 
 ## Swift: conversions you write down
 
-[`To` / `TryTo`](/language/conversions/) follow Swift's `as` / `as?`
+[`To` / `TryTo`](language/conversions.md) follow Swift's `as` / `as?`
 split: a conversion is either known to succeed or it returns an optional.
 C-style `(T)x` casts are rejected (CE0129). The spelling is Spek's. The
 discipline is Swift's.
 
 ## ReactiveX: stream operators on handlers
 
-[`debounce`, `throttle`, `distinct`](/language/streams/) are ReactiveX
+[`debounce`, `throttle`, `distinct`](language/streams.md) are ReactiveX
 operators attached to `on` handlers, not a separate observable type you
 subscribe to by hand. They sit on the mailbox path so backpressure and
 identity stay with the actor.
@@ -134,7 +134,7 @@ feel pleasant rather than academic. Spek did not take Gleam's syntax.
 F#'s `MailboxProcessor<'Msg>` is an actor-shaped mailbox with DU cases
 as messages. Spek splits those cases into separate `message` types and
 uses `on` handlers instead of a nested `match` loop. See
-[From F#](/migration/from-fsharp/).
+[From F#](migration/from-fsharp.md).
 
 Microsoft's experimental Axum explored actor isolation on .NET years
 ago. Spek is not Axum, but the same question (can the language stop
@@ -143,7 +143,7 @@ compile-time checks and a C# emission path.
 
 ## Testing and simulation
 
-[`TestProbe`, `ExpectMsg`](/language/testing/) come from Akka's testkit.
+[`TestProbe`, `ExpectMsg`](language/testing.md) come from Akka's testkit.
 Whole-system deterministic simulation (virtual time, single-step
 dispatch) is the same idea as Akka's `TestKit` / deterministic dispatcher
 and Erlang's Common Test plus `meck`-style control, aimed at making
@@ -166,9 +166,9 @@ looking:
 
 ## Related
 
-- [Understanding Spek](/understanding-spek/): who the language is for, and
+- [Understanding Spek](understanding-spek.md): who the language is for, and
   the five C# habits that do not carry over.
-- [Migration](/migration/): concept maps for Akka.NET, Erlang/OTP,
+- [Migration](migration/index.md): concept maps for Akka.NET, Erlang/OTP,
   Proto.Actor, Orleans, F#, and Go.
-- [Language guide](/language/): the book; look for the "Where this comes
+- [Language guide](language/index.md): the book; look for the "Where this comes
   from" notes at the top of individual chapters.

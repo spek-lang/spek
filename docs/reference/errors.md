@@ -147,7 +147,7 @@ reply check is by reachability, mirroring [CE0137](#ce0137): a fresh instance
 (`return new Registry();`) is the legal gift (the actor keeps nothing), and a
 private method returning its own class field internally is fine, because only a
 *handler* return is a reply. See
-[messages](/language/messages/#the-immutability-whitelist).
+[messages](../language/messages.md#the-immutability-whitelist).
 
 **Example (broken):**
 ```spek
@@ -161,7 +161,7 @@ message AddItems(ImmutableList<string> items);
 message Lookup(ImmutableArray<int> ids);
 ```
 
-[Spek `enum`](/language/enums/) types are also accepted, since enum
+[Spek `enum`](../language/enums.md) types are also accepted, since enum
 members are compile-time constants and pass by value: handy when you
 want a closed set of states on a message:
 
@@ -380,7 +380,7 @@ actor Wallet
 **Fix:** add `persist;` where state should be saved, or a `passivate after
 System.TimeSpan.FromMinutes(N);` declaration, or remove the dead `on Restore`.
 
-## CE0061 (retired)
+## CE0061 (retired) {#ce0061}
 
 **No longer an error.** This previously fired when an actor declared `passivate`
 (or `persist`) but had no `on Restore` handler. Proposal #6 made `on Restore`
@@ -403,7 +403,7 @@ actor Wallet
 ```
 
 Write an explicit `on Restore(Snapshot s) => ...` only for custom restore logic. It then
-takes over. See [persistence: auto-restore](/language/persistence/#auto-restore).
+takes over. See [persistence: auto-restore](../language/persistence.md#auto-restore).
 
 ## CE0070
 
@@ -671,9 +671,9 @@ other actors sharing it.
 **Fix:** Use the async form: `await Task.Delay(...)` for a timed wait,
 `await Task.WhenAll(...)` for fan-in, or model the wait as a delayed message.
 (The value-preserving sync-over-async forms `task.Result`, `task.Wait()`,
-and `x.GetAwaiter().GetResult()` are *not* CE0083: the [invisible-async](/language/async/)
+and `x.GetAwaiter().GetResult()` are *not* CE0083: the [invisible-async](../language/async.md)
 pass rewrites those to `await` for you. The editor also offers quick-fixes for
-`Thread.Sleep` and `Task.WaitAll`.) See [Footguns](/language/footguns/) for the
+`Thread.Sleep` and `Task.WaitAll`.) See [Footguns](../language/footguns.md) for the
 full policy.
 
 ## CE0084
@@ -871,7 +871,7 @@ public actor Watcher { private on FileSystemEventArgs e => { /* ... */ } }
 ```
 
 > The `on event` form is the cleaner path; see
-> [`language/actors.md`](/language/actors/). It
+> [`language/actors.md`](../language/actors.md). It
 > handles the bridge automatically and produces a public method-group
 > reference for `+=` wiring.
 
@@ -1117,7 +1117,7 @@ primitives outright (a hard error), capture or not.
 ## CE0107
 
 **Trigger:** A top-level local declared with an explicit `Task<T>`
-or `ValueTask<T>` type: the [invisible-async](/language/async/)
+or `ValueTask<T>` type: the [invisible-async](../language/async.md)
 escape hatch, that is never used *as a Task*.
 
 Under invisible async, naming the Task type opts a binding out of the
@@ -1357,7 +1357,7 @@ Null-conditional *reads* (`var n = u?.v;`, `xs?[0]`) are unaffected.
 > **`.Result` is not an error.** Reading `Task<T>.Result` would block
 > the dispatcher, but Spek's invisible-async pass **rewrites `task.Result` into
 > `(await task)`** (same value, no blocking), so it needs no diagnostic; see
-> [invisible async](/language/async/). The blocking *method* forms `.Wait()` /
+> [invisible async](../language/async.md). The blocking *method* forms `.Wait()` /
 > `.GetResult()` stay [CE0083](#ce0083) errors.
 
 ## CE0115
@@ -1372,7 +1372,7 @@ no async form), sync I/O is *occasionally* legitimate: a one-off config read
 in an `init` block, for instance.
 
 **What Spek does:** in a handler or method body, the
-[invisible-async](/language/async/) pass **already rewrites this for you**:
+[invisible-async](../language/async.md) pass **already rewrites this for you**:
 `File.ReadAllText(p)` is emitted as `await File.ReadAllTextAsync(p)`, the same
 value with no blocked dispatcher (type-checked against `System.IO.File`, so a
 look-alike `File` of your own is untouched). The warning still fires for two
@@ -1416,7 +1416,7 @@ code), the same conservative shape as CE0083's static blocklist.
 ## CE0116
 
 **Trigger:** A `foreach` loop whose body calls a method whose name ends in
-`Async`. Under [invisible async](/language/async/) each such call is awaited
+`Async`. Under [invisible async](../language/async.md) each such call is awaited
 before the next iteration, so the waits run back-to-back; if the iterations are
 independent, that's slower than overlapping them.
 
@@ -1489,7 +1489,7 @@ actor Parent
 ```
 
 **Fix:** pick one form. Use the declarative `supervise` (now including
-[`Resume`](/language/supervision/)), or remove the `supervise` decl and keep the
+[`Resume`](../language/supervision.md)), or remove the `supervise` decl and keep the
 imperative `OnChildFailure` override for conditional logic.
 
 ## CE0119
@@ -1533,7 +1533,7 @@ on StartJob job => { worker.Tell(job); }
 
 **Not flagged:** awaited Task-returning BCL calls: `File.ReadAllTextAsync(...)`,
 `Task.Delay(...)`, `HttpClient.GetAsync(...)`. Those are resumed *inside* the
-actor's turn by invisible async (see [Async without await](/language/async/)). Only thread-*spawning* is forbidden. A third-party library that spawns threads
+actor's turn by invisible async (see [Async without await](../language/async.md)). Only thread-*spawning* is forbidden. A third-party library that spawns threads
 internally is a trust boundary the compiler can't see into. Wrap its use behind
 an actor.
 
@@ -1660,7 +1660,7 @@ reserved for abstract bases that exist to be extended), and C# is
 single-inheritance. Keeping the rule strict means a hierarchy is always shallow
 and its base is always meant to be shared. For actors specifically, the
 message-protocol side of sharing already has a home: a
-[`channel`](/language/channels/).
+[`channel`](../language/channels.md).
 
 **Example (rejected):**
 ```spek
@@ -1733,7 +1733,7 @@ behavior**. Such a send is provably dead mail: no state the actor can `become`
 will ever process it, so at runtime it could only dead-letter.
 
 **Why:** `ActorRef` is untyped (typed `ActorRef<Channel>` is the reserved
-[CE0030](/reference/errors/#ce0030)), so a send is not type-checked against
+[CE0030](#ce0030)), so a send is not type-checked against
 its target in general. But when the compiler can *see* where the ref came
 from, "this actor can never process this message" is as provable as an
 unknown `become`
@@ -1750,7 +1750,7 @@ deliberately conservative in both directions:
 - **`on any` → handles everything.** A catch-all is precisely the declaration
   "I accept unchecked mail," so proxies and taps never flag.
 - **Private handlers count only for `self.Tell`**. They aren't part of the
-  external surface (the same split [CE0096](/reference/errors/#ce0096) makes).
+  external surface (the same split [CE0096](#ce0096) makes).
 
 **Example (rejected):**
 ```spek
@@ -2294,7 +2294,7 @@ arrived owned by nobody else, so relaying it straight through to a spawn is a
 legitimate gift chain (what the parent passed was checked at the parent's own
 spawn), but storing it *and* forwarding it is the two-owner case again. To
 share data rather than hand off an object, send an immutable
-[`message`](/language/messages/).
+[`message`](../language/messages.md).
 
 **Not flagged:** a fresh `new` passed inline, a gifted local or received
 parameter that never touches actor state (the pure relay), storing a received
@@ -2335,7 +2335,7 @@ returns `float?`, null when the value is not exactly representable;
 `TryTo<float>(MidpointRounding.ToEven)` rounds explicitly. Every genuinely
 lossless widening (`int` to `double`, `int` to `long`, `float` to `double`,
 `byte` or `short` to `float`, anything to `decimal`) passes `To<T>()`
-untouched. See [Conversions](/language/conversions/).
+untouched. See [Conversions](../language/conversions.md).
 
 ## CE0139
 
@@ -2378,8 +2378,8 @@ visibility, `private` included.
 
 ## Related reading
 
-- [Messages: the immutability whitelist](/language/messages/#the-immutability-whitelist)
-- [Messaging: Tell/ask scoping](/language/messaging/)
-- [Shared regions](/language/shared-regions/): the `shared` and `use` forms
-- [Actors](/language/actors/): the `on event` form
-- [Persistence: persist / passivate / Restore](/language/persistence/)
+- [Messages: the immutability whitelist](../language/messages.md#the-immutability-whitelist)
+- [Messaging: Tell/ask scoping](../language/messaging.md)
+- [Shared regions](../language/shared-regions.md): the `shared` and `use` forms
+- [Actors](../language/actors.md): the `on event` form
+- [Persistence: persist / passivate / Restore](../language/persistence.md)

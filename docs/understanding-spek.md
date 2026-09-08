@@ -32,7 +32,7 @@ part. Spek's contribution is taking the rules you normally hold in your head
 and turning them into compile errors, on top of .NET.
 
 Everyone else can still read on. The model isn't hard, and the
-[Language guide](/language/) fills in the .NET specifics as they come up.
+[Language guide](language/index.md) fills in the .NET specifics as they come up.
 
 ## Familiar on the surface, different underneath
 
@@ -65,16 +65,16 @@ Where you start depends on where you're coming from.
 If you write C# or Java, you already know roughly two-thirds of Spek: the
 body-level syntax and the type system. The third that's new is the actor model
 and the isolation rule, and the fastest way into it is to build something. Start
-with [Build your first actor](/language/first-actor/), then read the
-[Language guide](/language/) front to back. The one chapter not to skip is
-[Isolation and ownership](/language/isolation/), because everything else in the
+with [Build your first actor](language/first-actor.md), then read the
+[Language guide](language/index.md) front to back. The one chapter not to skip is
+[Isolation and ownership](language/isolation.md), because everything else in the
 language falls out of it.
 
 If you already know an actor framework, start instead with the migration guide
-for your background: [Akka.NET](/migration/from-akka-net/),
-[Orleans](/migration/from-orleans/), [Erlang/OTP](/migration/from-erlang-otp/),
-[Proto.Actor](/migration/from-proto-actor/), [Go](/migration/from-go/), or
-[F#](/migration/from-fsharp/). Each one maps concepts you already have onto Spek's
+for your background: [Akka.NET](migration/from-akka-net.md),
+[Orleans](migration/from-orleans.md), [Erlang/OTP](migration/from-erlang-otp.md),
+[Proto.Actor](migration/from-proto-actor.md), [Go](migration/from-go.md), or
+[F#](migration/from-fsharp.md). Each one maps concepts you already have onto Spek's
 surface, so you're reading translations instead of starting cold.
 
 One caution about those guides. They are bridges, not the real thing. An analogy
@@ -82,7 +82,7 @@ gets you oriented quickly, but Spek's compile-time guarantees have no exact
 counterpart in those frameworks: the immutability whitelist, invisible async, and
 share-XOR-mutate are new, not renamed versions of something you've seen.
 Once the analogy has done its job, come back and read the
-[Language guide](/language/) properly, because the details that bite are
+[Language guide](language/index.md) properly, because the details that bite are
 covered there and not in the bridges.
 
 ## Where the ideas came from
@@ -96,12 +96,12 @@ read.
 
 The full map (including Go/CSP, Swift conversions, ReactiveX streams,
 Proto.Actor, Gleam, F#, and Axum, plus the ideas Spek did *not* take) is
-[Where Spek comes from](/heritage/). Language-guide chapters that rest on
+[Where Spek comes from](heritage.md). Language-guide chapters that rest on
 a non-C# idea also open with a short "Where this comes from" note.
 
 ## Where to go next
 
-[Getting started](/getting-started/) installs the toolchain and runs a first
-program. [Build your first actor](/language/first-actor/) is the hands-on version
-of the same thing. The [Language guide](/language/) is the whole language, in
+[Getting started](getting-started.md) installs the toolchain and runs a first
+program. [Build your first actor](language/first-actor.md) is the hands-on version
+of the same thing. The [Language guide](language/index.md) is the whole language, in
 order, and it's meant to be read that way.

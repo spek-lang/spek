@@ -9,7 +9,7 @@ description: "Message records and the immutability whitelist: why every message 
 
 # Messages
 
-In [Actors and behaviors](/language/actors/) you saw that an actor processes
+In [Actors and behaviors](actors.md) you saw that an actor processes
 one message at a time and never exposes its fields. That isolation is the whole
 point, but it only holds if the *messages* themselves carry no hidden door
 back into shared mutable state. This chapter is about that door, and how Spek
@@ -37,7 +37,7 @@ makes a message *valid*, and why the compiler is so strict about it.
 > immutable by construction, so the language gets it for free. On .NET, Akka.NET,
 > Proto.Actor, and Orleans all *recommend* immutable messages but can't enforce
 > it: you can put a `List<string>` in a message and both actors end up sharing
-> the same list. Spek's `message` keyword plus the [CE0010](/reference/errors/#ce0010)
+> the same list. Spek's `message` keyword plus the [CE0010](../reference/errors.md#ce0010)
 > check is that discipline made mandatory by the compiler.
 
 ## Why messages must be immutable
@@ -51,7 +51,7 @@ time, which is exactly the data race the actor model exists to eliminate.
 So Spek makes `message` a dedicated keyword and polices it. Two rules follow:
 
 - Only a `message`-declared type may be sent with `Tell` or `ask` (the subject
-  of the [next chapter](/language/messaging/)).
+  of the [next chapter](messaging.md)).
 - Every field of a `message` must itself be immutable, checked transitively at
   the point of declaration.
 
@@ -72,7 +72,7 @@ A message field's declared type must be one of:
 - `ActorRef`, an opaque capability handle; passing one lets the receiver reply
   or delegate without exposing any state.
 - Another Spek `message` type (checked transitively, so its fields must pass too).
-- A Spek [`enum`](/language/enums/) type, immutable by construction.
+- A Spek [`enum`](enums.md) type, immutable by construction.
 - A type parameter of a generic message (see [below](#generic-messages)).
 - An immutable container from `System.Collections.Immutable`: `ImmutableArray<T>`,
   `ImmutableList<T>`, `ImmutableDictionary<K,V>`, `ImmutableHashSet<T>`, and the
@@ -95,7 +95,7 @@ message PlaceOrder(
     DateTimeOffset placedAt);
 ```
 
-Anything not on the list is rejected with [CE0010](/reference/errors/#ce0010).
+Anything not on the list is rejected with [CE0010](../reference/errors.md#ce0010).
 The most common offender is a mutable collection:
 
 <!-- spek-test: ignore -->
@@ -138,9 +138,9 @@ viewpoint.
 {: .note }
 > Arrays are mutable too (`int[]` elements can be reassigned in place), so a
 > plain array is never a valid message field. That's the same
-> [CE0010](/reference/errors/#ce0010) rule; reach for `ImmutableArray<T>`
+> [CE0010](../reference/errors.md#ce0010) rule; reach for `ImmutableArray<T>`
 > instead. Reflection-driven mutation is a separate concern, handled by the
-> hostile-import scanner; see [CE0080](/reference/errors/#ce0080).
+> hostile-import scanner; see [CE0080](../reference/errors.md#ce0080).
 
 ## Generic messages
 
@@ -156,9 +156,9 @@ The immutability check treats a type parameter as "unknown but opaque" and
 accepts it: the obligation to pass an immutable concrete type lands at the
 construction site, where the actual type is known. (Spek does no generic
 type-checking of its own; type parameters lower verbatim to C# and Roslyn checks
-them, as [Generics](/language/generics/) covers.) One restriction follows: a
+them, as [Generics](generics.md) covers.) One restriction follows: a
 handler cannot be keyed on a generic message
-([CE0139](/reference/errors/#ce0139)), so dispatch on a concrete wrapper and
+([CE0139](../reference/errors.md#ce0139)), so dispatch on a concrete wrapper and
 carry the payload inside it.
 
 ## Default values
@@ -228,21 +228,21 @@ actor Watcher
 
 An `abstract message` is a dispatch contract, not something you send: you can't
 `new` it, only handle it. This is the message-side parallel to a
-[`channel`](/language/channels/) and an [`interface`](/language/classes/#interfaces-the-class-contract):
+[`channel`](channels.md) and an [`interface`](classes.md#interfaces-the-class-contract):
 where those are contracts a provider *implements*, a message family is the
 contract a handler *receives*. See
-[contracts per type](/language/classes/#interfaces-the-class-contract) for how
+[contracts per type](classes.md#interfaces-the-class-contract) for how
 the three fit together.
 
 The base must be empty: the shared fields live on each variant
-([CE0125](/reference/errors/#ce0125)), and the base must be an `abstract message`
-([CE0124](/reference/errors/#ce0124)).
+([CE0125](../reference/errors.md#ce0125)), and the base must be an `abstract message`
+([CE0124](../reference/errors.md#ce0124)).
 
 
 ## Messages in context
 
 Messages don't live in a vacuum; they're the vocabulary an actor speaks.
-Here's the whole loop from [Actors and behaviors](/language/actors/), now with
+Here's the whole loop from [Actors and behaviors](actors.md), now with
 the message types it depends on declared alongside it:
 
 <!-- spek-test: compile -->
@@ -264,13 +264,13 @@ actor Account
 builds a fresh reply message. Because `Balance` is immutable, returning it can't
 leak a handle to the actor's state. The caller gets a frozen snapshot of
 `balance`, not a live view of it. That is the isolation guarantee from
-[Actors and behaviors](/language/actors/), now extended across the boundary.
+[Actors and behaviors](actors.md), now extended across the boundary.
 
 ## Only a message may be sent
 
 The flip side of the whitelist is the send check: the payload of `Tell` (and the
 target of `ask`) must be a declared `message`. Inside a handler, sending a bare
-primitive is caught with [CE0020](/reference/errors/#ce0020):
+primitive is caught with [CE0020](../reference/errors.md#ce0020):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -289,7 +289,7 @@ error[CE0020]: 'Tell' payload must be a declared 'message' type, not a primitive
 
 Wrap the value in a message instead, as in `peer.Tell(new Ping())`. The
 mechanics of `Tell`, `ask`, `sender`, and the return-to-reply idiom are the
-subject of the [next chapter](/language/messaging/).
+subject of the [next chapter](messaging.md).
 
 ## What compiles to what
 
@@ -305,6 +305,6 @@ subject of the [next chapter](/language/messaging/).
 ## Next
 
 You can now declare messages and trust that the compiler keeps them immutable.
-The next step is moving them between actors: [Sending messages: Tell and
-Ask](/language/messaging/) covers fire-and-forget `Tell`, request/reply `ask`,
+The next step is moving them between actors:
+[Sending messages: Tell and Ask](messaging.md) covers fire-and-forget `Tell`, request/reply `ask`,
 the `sender` reference, and returning a value to reply.

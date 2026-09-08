@@ -10,7 +10,7 @@ description: "Invisible async: Task-returning calls are auto-awaited; how async 
 # Async without await
 
 So far every handler you've written has run to completion synchronously:
-read a field, build a reply, [`return` it to the asker](/language/messages/).
+read a field, build a reply, [`return` it to the asker](messages.md).
 But real handlers reach for the outside world. They read a file, call an
 HTTP endpoint, query a store, and in .NET those operations are
 *asynchronous*: they hand back a `Task<T>`, not the value. In C# you'd
@@ -74,7 +74,7 @@ bind it.
 
 ## Async propagates through your own functions
 
-The same rule applies one level up. When a [module method](/language/modules/)
+The same rule applies one level up. When a [module method](modules.md)
 awaits a task, it itself becomes async, and any function that calls *it* in a
 value context is now calling something `Task`-returning, so its call is
 auto-awaited too. The async-ness propagates outward to a fixpoint, and you
@@ -164,7 +164,7 @@ you didn't. This is *structured concurrency*: the scope is the boundary, and
 nothing escapes it still running.
 
 In an actor this matters twice over. A handler runs under the actor's lock,
-one message at a time, exactly as [isolation](/language/isolation/)
+one message at a time, exactly as [isolation](isolation.md)
 promised. Because every task is joined before the handler returns, no
 background continuation can resume *after* the handler finishes and race the
 next message. **The concurrency scope and the isolation boundary are the
@@ -230,10 +230,10 @@ So you never need to think about it. Reach for `.Result` if it reads
 naturally and it just becomes an await. The same rewrite covers the blocking
 method forms: `task.Wait()` becomes `await task`, and
 `x.GetAwaiter().GetResult()` becomes `(await x)`. What cannot be rewritten is
-an error instead ([CE0083](/reference/errors/#ce0083)): `Thread.Sleep`, the
+an error instead ([CE0083](../reference/errors.md#ce0083)): `Thread.Sleep`, the
 static `Task.WaitAll`/`WaitAny`, `Console.ReadLine`, and the wait-handle
 family (`WaitOne`, `SignalAndWait`) would genuinely park a dispatcher thread.
-See [Common pitfalls](/language/footguns/) for the full triage of .NET's
+See [Common pitfalls](footguns.md) for the full triage of .NET's
 blocking hazards.
 
 ## Invisible cancellation
@@ -303,12 +303,12 @@ happy for it to overlap, and let the compiler carry the `async`/`await`.
 
 Several examples in this chapter leaned on actor-local helpers like
 `HttpClient` held in a field. The next chapter,
-[Classes](/language/classes/), covers Spek's own confined mutable classes:
+[Classes](classes.md), covers Spek's own confined mutable classes:
 the actor-local helper objects that keep share-XOR-mutate intact.
 
 ## Related
 
-- [Common pitfalls](/language/footguns/): how Spek triages the .NET
+- [Common pitfalls](footguns.md): how Spek triages the .NET
   async/blocking hazards (rewrite / suggest / warn / error).
-- [Modules](/language/modules/): where standalone methods live, and where
+- [Modules](modules.md): where standalone methods live, and where
   async propagation starts.

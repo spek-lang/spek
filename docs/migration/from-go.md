@@ -327,6 +327,6 @@ other at the top level of your system, and can internally use
 workloads. The actor boundary is where you want identity + supervision;
 everything else can stay plain.
 
-See the [language reference](/language/) for the full grammar,
-the [actors reference](/language/actors/) for lifecycle details, and
-the [runtime reference](/reference/runtime/) for the `ActorRef` API.
+See the [language reference](../language/index.md) for the full grammar,
+the [actors reference](../language/actors.md) for lifecycle details, and
+the [runtime reference](../reference/runtime.md) for the `ActorRef` API.

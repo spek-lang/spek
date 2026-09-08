@@ -15,8 +15,8 @@ C# source (`.g.cs`) that the normal .NET toolchain can pick up.
 This page documents `compile`, the verb you will use most. The CLI carries
 four others: `format` re-prints source canonically (see [Known
 limitations](#known-limitations)), `proto-import` and `proto-export` bridge
-channels to protobuf (covered with [gRPC hosting](/hosting/grpc/)), and
-[`observe`](/reference/observe/) attaches a live actor table to a running
+channels to protobuf (covered with [gRPC hosting](../hosting/grpc.md)), and
+[`observe`](observe.md) attaches a live actor table to a running
 Spek process.
 
 ## Installation
@@ -48,7 +48,7 @@ Everything passed in one invocation compiles as **one unit**: a type declared
 in one file resolves when referenced from another, so an enum can live in
 `State.spek` while the message that carries it is declared in `Messages.spek`. The
 same name declared twice across files (in the same namespace) is a
-[CE0013](/reference/errors/#ce0013). Files that only make sense together must
+[CE0013](errors.md#ce0013). Files that only make sense together must
 therefore be compiled together; one invocation, not one per file. (The
 MSBuild target already does this: it hands the whole project's `.spek` set to
 a single `spekc` call.)
@@ -130,7 +130,7 @@ resolve correctly in IDEs. Pass `--no-line-map` to emit without directives
 ### `--abs-line-map`
 
 Emit the `#line` paths as **absolute** paths instead of relative. This is for
-[debugging](/reference/debugging/): the generated `.g.cs` lives under `obj/`, so
+[debugging](debugging.md): the generated `.g.cs` lives under `obj/`, so
 a debugger resolves the `.spek` source from the PDB more reliably with an
 absolute path than a relative one. The `Spek.targets` integration passes this
 automatically on Debug builds, so you rarely type it by hand.
@@ -142,11 +142,11 @@ public method emits as a test the `Spek.Testing.Xunit` adapter discovers
 under `dotnet test`. The MSBuild integration passes this automatically for
 test projects (those that set `IsTestProject`), so you type it by hand only
 when compiling a test file directly. See
-[Testing actors](/language/testing/).
+[Testing actors](../language/testing.md).
 
 ## Building .spek inside `dotnet build`
 
-Instead of running `spekc` by hand, import [build/Spek.targets](https://github.com/spek-lang/spek/blob/main/build/Spek.targets)
+Instead of running `spekc` by hand, import [build/Spek.targets](https://github.com/spek-lang/spek/blob/develop/build/Spek.targets)
 in a csproj:
 
 ```xml
@@ -187,7 +187,7 @@ error[CE0011]: 'become Missing' targets an undeclared behavior.
 
 The locator line is the standard `file:line:col` form terminals and IDEs
 link on. The full catalog of `CEXXXX` codes is on the
-[errors page](/reference/errors/).
+[errors page](errors.md).
 
 ## Typical workflow
 

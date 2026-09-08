@@ -259,11 +259,11 @@ patterns (Akka Typed–style "I'll reply *eventually*, maybe from a
 different actor"). Pair that pattern with `Tell`, not `.Ask`: an ask
 whose handler returns without replying faults the asker immediately.
 
-See [messaging](/language/messaging/) for the runtime semantics of
+See [messaging](../language/messaging.md) for the runtime semantics of
 `ask`, and the individual migration pages
-([Akka.NET](/migration/from-akka-net/),
-[Erlang/OTP](/migration/from-erlang-otp/),
-[Proto.Actor](/migration/from-proto-actor/),
-[Orleans](/migration/from-orleans/),
-[F#](/migration/from-fsharp/),
-[Go](/migration/from-go/)) for framework-specific translations.
+([Akka.NET](from-akka-net.md),
+[Erlang/OTP](from-erlang-otp.md),
+[Proto.Actor](from-proto-actor.md),
+[Orleans](from-orleans.md),
+[F#](from-fsharp.md),
+[Go](from-go.md)) for framework-specific translations.

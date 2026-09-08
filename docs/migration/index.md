@@ -22,29 +22,30 @@ ceremony than Akka's props-and-factories pattern.
 Each of the pages below maps its source ecosystem onto Spek concept by concept.
 Start with the one that matches your background.
 
-The [Akka.NET guide](/migration/from-akka-net/) is for the highest-overlap
+The [Akka.NET guide](from-akka-net.md) is for the highest-overlap
 audience: most names survive unchanged (`ActorRef`, `Tell`, `become`,
 `Restart`), and the main change is that configuration moves into the language.
-[Erlang / OTP](/migration/from-erlang-otp/) developers will recognise almost
+[Erlang / OTP](from-erlang-otp.md) developers will recognise almost
 everything, with two adjustments worth knowing up front: the supervisor isn't a
 separate process, and behaviors are closer to `gen_server` states than to
-behaviours. [Proto.Actor](/migration/from-proto-actor/) is the closest cousin,
+behaviours. [Proto.Actor](from-proto-actor.md) is the closest cousin,
 where `Request` becomes `ask`, `Spawn` keeps its name, and `ReceiveTimeout`
 becomes `passivate after`.
 
-The remaining three cross a wider gap. [Orleans](/migration/from-orleans/) is a
+The remaining three cross a wider gap. [Orleans](from-orleans.md) is a
 different model (virtual actors) with an overlapping crowd; Spek does explicit
 supervision rather than auto-activation, with passivation as a comparable
-idle-unload story. For [F#](/migration/from-fsharp/), `MailboxProcessor<'Msg>`
+idle-unload story. For [F#](from-fsharp.md), `MailboxProcessor<'Msg>`
 is an actor-ish primitive whose DU cases map to individual `message`
 declarations and whose `AsyncReplyChannel<T>` maps to Spek's embedded-replyTo or
-its inferred reply. [Go](/migration/from-go/) is the farthest reach: goroutines
+its inferred reply. [Go](from-go.md) is the farthest reach: goroutines
 and channels aren't actors, but many Go teams have already converged on the
 pattern, so that page reads as much like a translation guide as a concept map,
 and it's honest about what `select` can't translate.
 
-One page cuts across all of these. [Request/reply patterns across actor
-ecosystems](/migration/ask-patterns-compared/) shows how Erlang, Akka classic,
+One page cuts across all of these.
+[Request/reply patterns across actor ecosystems](ask-patterns-compared.md)
+shows how Erlang, Akka classic,
 Akka Typed, Proto.Actor, Orleans, Pony, Go, F#, and Spek each model the
 reply-type link between request and response. It's useful framing before you
 decide how to model request-reply in your own Spek actors.
@@ -61,7 +62,7 @@ decide how to model request-reply in your own Spek actors.
 | Go (goroutines + channels)     | `actor` = goroutine + owned channel, but addressable & supervised  | No `select`, no channel close, no `context.Context` |
 
 The same ancestry, written as a design map rather than a rewrite guide, is
-[Where Spek comes from](/heritage/).
+[Where Spek comes from](../heritage.md).
 
 ## Design-heritage philosophy
 

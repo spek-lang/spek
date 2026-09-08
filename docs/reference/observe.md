@@ -15,7 +15,7 @@ actor in the system: the active behavior, how deep the mailbox is, how many
 times supervision has restarted it, and the type of the last message it
 dispatched. Nothing has to be enabled in the program and no package added. If it runs on `Spek.Runtime`, it can be observed.
 
-Run it the way the [CLI page](/reference/cli/) runs the other verbs:
+Run it the way the [CLI page](cli.md) runs the other verbs:
 
 ```bash
 dotnet run --project src/Spek.Cli -- observe <pid>
@@ -162,11 +162,11 @@ and exits 1; otherwise, end the wait with Ctrl-C.
 
 ## Related reading
 
-- [Observability](/hosting/observability/): metrics, traces, and structured
+- [Observability](../hosting/observability.md): metrics, traces, and structured
   logs for dashboards and history. `observe` answers "what is this process
   doing right now"; the OpenTelemetry pipeline answers the same questions
   with a time axis.
-- [Runtime](/reference/runtime/): the same data is available in-process as
+- [Runtime](runtime.md): the same data is available in-process as
   `ActorSystem.SnapshotActors()`, which returns the read-only
   `ActorSnapshot` records the table is rendered from.
-- [CLI](/reference/cli/): the `compile` verb and the MSBuild integration.
+- [CLI](cli.md): the `compile` verb and the MSBuild integration.

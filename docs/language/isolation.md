@@ -9,8 +9,8 @@ description: "Share-XOR-mutate and invisible ownership: why Spek needs no locks,
 
 # Isolation and ownership
 
-You have just seen how actors talk: [`Tell`](/language/messaging/) drops a
-message in a mailbox, [`ask`](/language/messaging/) waits for a reply, and
+You have just seen how actors talk: [`Tell`](messaging.md) drops a
+message in a mailbox, [`ask`](messaging.md) waits for a reply, and
 the runtime delivers each message to the receiver one at a time. That
 serialization is why handlers don't race. This chapter is about
 *why* it is safe, and why you don't write a `lock` in Spek.
@@ -101,15 +101,15 @@ Most of the time ownership is obvious from the kind of thing you wrote:
 | `shared` | — | yes, mutable + concurrent | a reader/writer lock the compiler manages |
 
 The first two are the *share-freely* kinds. A stateless
-[`module`](/language/modules/) has no state to corrupt, and an immutable
-[`message`](/language/messages/) can be aliased across any number of
+[`module`](modules.md) has no state to corrupt, and an immutable
+[`message`](messages.md) can be aliased across any number of
 actors with zero races because nobody can write to it. They flow through
 your program with no ownership rules and no locks.
 
 The last two are the *mutable* kinds, exactly where the danger would be
 in plain C#. An `actor` owns its fields privately, and the runtime
 serialises the handlers that touch them. A
-[`shared`](/language/shared-regions/) region is mutable state several
+[`shared`](shared-regions.md) region is mutable state several
 actors coordinate on; it has its own reader/writer lock that the
 compiler acquires and releases for you, so concurrent reads are free and
 writes are exclusive. (Shared regions get their own chapter later; for
@@ -122,7 +122,7 @@ data race, and Spek has no way to express it.
 
 ## Guarantee 1: shared values must be immutable (CE0010)
 
-You met this rule in the [messages chapter](/language/messages/); here is
+You met this rule in the [messages chapter](messages.md); here is
 where it fits the bigger picture. A `message` is the only thing that
 crosses an actor boundary. The instant you send one, it becomes reachable
 from two actors: the sender and the receiver. By the rule, anything
@@ -165,7 +165,7 @@ it is safe. The compiler already proved it is.
 ## Guarantee 2: owned values aren't reachable from outside (CE0012)
 
 The flip side of "shared things are immutable" is "mutable things have one
-owner." An [`ActorRef`](/language/messaging/) is a mailbox handle, not a
+owner." An [`ActorRef`](messaging.md) is a mailbox handle, not a
 window into the actor's state, so Spek forbids reading a member off one.
 The temptation looks reasonable: you hold a reference to a peer, you want
 its balance, you reach for `peer.balance`. That would let two actors read
@@ -273,8 +273,8 @@ every other handler on the same actor, so it may mutate fields freely (as
 `Counter.n` did at the top of the chapter). But Spek lets you mark a
 read-only handler `reader on X` to opt it into running *concurrently* with
 other readers, so many readers can answer queries at once, since none of
-them writes. (See [handler modes](/language/actors/#handler-modes) for the
-full story.)
+them writes. (See [handler modes](actors.md#handler-modes) for how
+that prefix is spelled on the actor.)
 
 That concurrency is only sound if a reader truly never writes. So the
 compiler enforces it: a `reader` handler that mutates actor state is
@@ -332,10 +332,10 @@ mutable, and tells you which half of the rule you crossed:
 
 | You wrote | The compiler says | Because |
 |---|---|---|
-| a mutable field type on a `message` | [CE0010](/reference/errors/#ce0010) | shared values must be immutable |
-| reading a member off an `ActorRef` | [CE0012](/reference/errors/#ce0012) | owned values aren't reachable from outside |
-| mutating a value after you sent it | [CE0085](/reference/errors/#ce0085) | the value now belongs to its receiver |
-| a `reader` handler mutating a field | [CE0087](/reference/errors/#ce0087) | concurrent readers can't write |
+| a mutable field type on a `message` | [CE0010](../reference/errors.md#ce0010) | shared values must be immutable |
+| reading a member off an `ActorRef` | [CE0012](../reference/errors.md#ce0012) | owned values aren't reachable from outside |
+| mutating a value after you sent it | [CE0085](../reference/errors.md#ce0085) | the value now belongs to its receiver |
+| a `reader` handler mutating a field | [CE0087](../reference/errors.md#ce0087) | concurrent readers can't write |
 
 The fix is always the same shape: push the value back onto one side of the
 line: make the data immutable, or confine it to a single owner.
@@ -369,17 +369,17 @@ actor can still fail *on its own*: a handler throws, an invariant breaks,
 a downstream call times out. Because each actor is isolated, that failure
 is contained to one actor, which is exactly what makes it safe to *manage*
 rather than crash the process. The next chapter,
-[supervision and failure](/language/supervision/), shows how a parent
+[supervision and failure](supervision.md), shows how a parent
 watches its children and decides whether a failed actor should restart,
 stop, or escalate.
 
 ## Related reading
 
-- [Messages](/language/messages/): the immutability whitelist and the
+- [Messages](messages.md): the immutability whitelist and the
   CE0010 check, in full.
-- [Actors and behaviors](/language/actors/): private fields, the
+- [Actors and behaviors](actors.md): private fields, the
   per-actor serialisation, and reader/writer handler modes.
-- [Sending messages](/language/messaging/): `Tell`, `ask`, `sender`, and
+- [Sending messages](messaging.md): `Tell`, `ask`, `sender`, and
   the `ActorRef` you send through.
-- [Shared regions](/language/shared-regions/): the one place mutable state
+- [Shared regions](shared-regions.md): the one place mutable state
   is reachable from several actors, behind a managed reader/writer lock.

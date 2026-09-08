@@ -93,7 +93,7 @@ generated C#:
 - **Locals and watches** show the emitted shapes: an actor's `state` fields, the
   message record's properties, and occasionally a compiler-generated temporary.
   These read naturally (they carry your names) but they are the C# view.
-- **Async handlers** (anything the [invisible async](/language/async/) pass
+- **Async handlers** (anything the [invisible async](../language/async.md) pass
   rewrote) step through the compiler's async state machine. Breakpoints on the
   `.spek` lines still land; stepping *over* an `await` the compiler inserted
   behaves like any C# `await`.
@@ -111,7 +111,7 @@ By default `spekc` writes **relative** `#line` paths, which keeps any
 checked-in generated file machine-neutral. For debugging, the path has to
 resolve from wherever the PDB is consulted, so:
 
-- **Under `dotnet build`**, the [`Spek.targets`](/reference/cli/) integration
+- **Under `dotnet build`**, the [`Spek.targets`](cli.md) integration
   passes `--abs-line-map` for you on **Debug** builds, emitting absolute paths.
   Release builds keep relative paths.
 - **Invoking `spekc` directly**, add `--abs-line-map` to emit absolute paths:
@@ -126,9 +126,9 @@ through the `.g.cs`.
 
 ## Related reading
 
-- [`spekc` CLI](/reference/cli/): the `--abs-line-map`, `--no-line-map`, and
+- [`spekc` CLI](cli.md): the `--abs-line-map`, `--no-line-map`, and
   `--out` options.
-- [Async without await](/language/async/): why async handlers step through a
+- [Async without await](../language/async.md): why async handlers step through a
   state machine.
-- [Testing actors](/language/testing/): the test kit, and running tests (which
+- [Testing actors](../language/testing.md): the test kit, and running tests (which
   you can also debug with the same `coreclr` setup pointed at the test host).

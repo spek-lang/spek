@@ -41,7 +41,7 @@ var narrowed = (byte)total;
 ```
 
 The hint tracks the target. Cast to a declared message or class and
-[CE0129](/reference/errors/#ce0129) suggests a type test instead ("Test the
+[CE0129](../reference/errors.md#ce0129) suggests a type test instead ("Test the
 type instead: 'x is Circle v' or 'x as Circle'."); cast to an enum and it
 suggests `TryTo<Severity>()`. In each case the diagnostic is teaching the
 spelling whose semantics match what the cast would have silently gambled on.
@@ -101,7 +101,7 @@ though a `float` cannot represent every `int` (its mantissa is narrower than
 the source's integer range, so `16777217` rounds to `16777216`). Spek rejects
 those pairs itself: `To<float>()` from any integer type, and `To<double>()`
 from `long` or `ulong`, fail with
-[CE0138](/reference/errors/#ce0138) and steer to `TryTo`, which returns null
+[CE0138](../reference/errors.md#ce0138) and steer to `TryTo`, which returns null
 when the value is not exactly representable. Every other implicit conversion
 passes through on C#'s proof alone.
 
@@ -228,9 +228,9 @@ module Decode
 }
 ```
 
-For a plain [enum](/language/enums/) the rule is membership: the value must
+For a plain [enum](enums.md) the rule is membership: the value must
 be a defined variant. For a
-[`flags enum`](/language/enums/#flags-enums) that rule would be wrong, because
+[`flags enum`](enums.md#flags-enums) that rule would be wrong, because
 `Access.Read | Access.Write` (`3`) is a perfectly valid value that no single
 variant defines. The flags-aware rule is that every set bit must correspond
 to a defined flag, so `3` parses while `8` (an undefined bit) is `null`.
@@ -296,7 +296,7 @@ module Untrusted
 The compiler routes each conversion by its target, so the target must be
 something it can reason about: a numeric primitive, or a declared enum,
 class, message, or interface. Anything else is
-[CE0127](/reference/errors/#ce0127):
+[CE0127](../reference/errors.md#ce0127):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -329,7 +329,7 @@ The static form is load-bearing: C# extension receivers accept only
 identity, reference, and boxing conversions, so an extension-method `To`
 would never see the numeric widening it exists to prove. Because the
 compiler rewrites these calls, the two names are reserved
-([CE0128](/reference/errors/#ce0128)) so the rewrite can never hijack a
+([CE0128](../reference/errors.md#ce0128)) so the rewrite can never hijack a
 method you wrote:
 
 <!-- spek-test: ignore -->
@@ -351,14 +351,14 @@ same exact-or-null semantics.
 
 Conversions complete the value-handling story: data changes type only along
 proven-lossless paths or through a visible `null`. Next,
-[Modules](/language/modules/) are where stateless conversion-heavy helper
+[Modules](modules.md) are where stateless conversion-heavy helper
 code like the examples above actually lives.
 
 ## Related reading
 
-- [Enums](/language/enums/): declaring enums and flags enums, and the
+- [Enums](enums.md): declaring enums and flags enums, and the
   exhaustive matching that pairs with `TryTo`'s defined-or-null parsing.
-- [Messages](/language/messages/): the immutable types whose fields wire
+- [Messages](messages.md): the immutable types whose fields wire
   values are usually converted into.
-- [CE0127](/reference/errors/#ce0127), [CE0128](/reference/errors/#ce0128),
-  [CE0129](/reference/errors/#ce0129): the conversion-family diagnostics.
+- [CE0127](../reference/errors.md#ce0127), [CE0128](../reference/errors.md#ce0128),
+  [CE0129](../reference/errors.md#ce0129): the conversion-family diagnostics.

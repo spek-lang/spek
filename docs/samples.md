@@ -22,7 +22,7 @@ account, sends a handful of operations, and prints the responses. Ends
 with `system.AwaitTermination();` so the process exits cleanly when all
 mailboxes drain.
 
-This is the sample walked through in [getting started](/getting-started/).
+This is the sample walked through in [getting started](getting-started.md).
 
 ## `AlertHub`: contracts and inheritance, across files
 
@@ -107,7 +107,7 @@ A `Wallet` actor that exercises every persistence construct:
 - `on PreStart`, `on PostStop`, and `on Restore(Snapshot s)` lifecycle
   hooks.
 
-See [persistence](/language/persistence/) for how these constructs behave at
+See [persistence](language/persistence.md) for how these constructs behave at
 runtime.
 
 ### `05_bank_account_full.spek`: the canonical integration test
@@ -128,11 +128,11 @@ language feature*:
 - `sender.Tell(...)` for replies.
 - `supervise OneForOne(on Failure: Restart, ...)` declaration wired
   end-to-end (default form, per-child overrides, exception-type arms;
-  see [supervision](/language/supervision/)).
+  see [supervision](language/supervision.md)).
 - A `program Main { ... }` entry block.
 
 If you want to see what a "real" Spek program feels like, this is the
-file to read. The [grammar](/spek-v1-grammar/) document's §16 ("Complete
+file to read. The [grammar](spek-v1-grammar.md) document's §16 ("Complete
 Example") is built around the same program.
 
 ### `06_shared_region.spek`: shared regions and implicit Default
@@ -167,7 +167,7 @@ capability marker so the region survives process restart. Adds:
   snapshot key.
 - A `program Main { ... }` block that registers the store via
   `system.RegisterPersistenceProvider<RequestMetrics>(store)`.
-  Without it, [CE0098](/reference/errors/#ce0098) fails the build.
+  Without it, [CE0098](reference/errors.md#ce0098) fails the build.
 
 This fixture is the smallest end-to-end example of the host-driven
 persistence model: the region declares the capability, the
@@ -189,10 +189,10 @@ handler body. Exercises the full lambda-shape surface:
 
 ## Where to go next
 
-- [Getting started](/getting-started/): compile and run `HelloBank`
+- [Getting started](getting-started.md): compile and run `HelloBank`
   yourself.
-- [Demos](/demos/): the full-size runnable systems, with C# twins and a
+- [Demos](demos.md): the full-size runnable systems, with C# twins and a
   benchmark suite.
-- [Language overview](/language/): the feature-by-feature breakdown.
-- [Runtime reference](/reference/runtime/): the C# surface these programs
+- [Language overview](language/index.md): the feature-by-feature breakdown.
+- [Runtime reference](reference/runtime.md): the C# surface these programs
   lower onto.

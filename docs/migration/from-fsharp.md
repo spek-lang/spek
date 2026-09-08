@@ -35,7 +35,7 @@ The conceptual shifts are:
 
 {: .note }
 > **Already using Akkling or FSharp.Akka?** Those are F# DSLs over
-> Akka.NET. The [Akka.NET migration page](/migration/from-akka-net/) is
+> Akka.NET. The [Akka.NET migration page](from-akka-net.md) is
 > the right starting point, and everything there applies to you.
 
 ## Concept mapping
@@ -232,9 +232,9 @@ on GetBalance => return new Balance(balance);
 Balance b = wallet.Ask(new GetBalance());
 ```
 
-See the [messaging reference](/language/messaging/) for the full
+See the [messaging reference](../language/messaging.md) for the full
 `ask` semantics, and the
-[request/reply patterns comparison](/migration/ask-patterns-compared/)
+[request/reply patterns comparison](ask-patterns-compared.md)
 for how this stacks up against Erlang, Akka, Orleans, Proto.Actor, etc.
 
 ## Exhaustive match → catch-all + dead-letter routing
@@ -301,6 +301,6 @@ messages, wire a custom `IDeadLetterSink` on the `ActorSystem`.
   no mailbox stash.
 
 
-See the [language reference](/language/) for the full grammar and the
-[runtime reference](/reference/runtime/) for the `ActorRef` API these
+See the [language reference](../language/index.md) for the full grammar and the
+[runtime reference](../reference/runtime.md) for the `ActorRef` API these
 lower onto.
