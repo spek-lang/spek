@@ -11,7 +11,7 @@ description: "Confined mutable classes: actor-local helper objects with fields, 
 
 So far every piece of mutable state you've written has lived directly on an
 actor: its fields, mutated one message at a time by the serialized mailbox. That
-keeps things safe (see [isolation and ownership](/language/isolation/)), but it
+keeps things safe (see [isolation and ownership](isolation.md)), but it
 pushes you toward one flat bag of fields per actor. Sometimes the natural unit is
 a small **object**, a buffer that accumulates lines, a running tally, a parser
 holding a cursor, that you'd like to give a name, a constructor, and a few
@@ -20,7 +20,7 @@ methods.
 That's what a `class` is for. A Spek `class` is a **mutable, single-owner helper
 object**: it holds fields, an optional `init` constructor, and methods, and it
 lowers to a plain C# instance class. The catch is the thing you already know from
-[isolation and ownership](/language/isolation/): share-XOR-mutate. A class is
+[isolation and ownership](isolation.md): share-XOR-mutate. A class is
 mutable, so to stay lock-free it must be **confined**: reachable from one actor
 at a time. You never write that confinement down; the compiler infers it and
 enforces it.
@@ -30,14 +30,14 @@ concurrency-safe *by construction*:
 
 | Kind | Holds state? | Stays race-free by |
 |------|--------------|--------------------|
-| `module` | none (stateless) | nothing to race on; see [modules](/language/modules/) |
-| `message` | immutable | immutability ([CE0010](/reference/errors/#ce0010)); see [messages](/language/messages/) |
+| `module` | none (stateless) | nothing to race on; see [modules](modules.md) |
+| `message` | immutable | immutability ([CE0010](../reference/errors.md#ce0010)); see [messages](messages.md) |
 | **`class`** | **mutable, single-owner** | **confinement (this page)** |
-| `actor` | mutable, concurrent | serialized mailbox; see [actors](/language/actors/) |
+| `actor` | mutable, concurrent | serialized mailbox; see [actors](actors.md) |
 
 There's no capability marker: a `class` is mutable by definition, and its
 ownership is *inferred*, not annotated, the same philosophy as
-[invisible async](/language/async/).
+[invisible async](async.md).
 
 ## Declaring a class
 
@@ -59,19 +59,18 @@ class ReportBuilder
 ```
 
 Fields and methods both default to `private`, exactly as in C#. A method
-that implements an interface member must be declared `public` explicitly;
-Roslyn enforces that on implicit implementations. Inside a method, a
+that implements an interface member must be declared `public` explicitly. Roslyn enforces that on implicit implementations. Inside a method, a
 field is referred to directly (`buffer = …`) or through `self`
 (`self.buffer = …`), which lowers to C#'s `this`. Method bodies are ordinary
-[handler-style bodies](/language/csharp-syntax/), so everything you can write in
-a handler works here too, including [invisible async](/language/async/): a
+[handler-style bodies](csharp-syntax.md), so everything you can write in
+a handler works here too, including [invisible async](async.md): a
 Task-returning call inside a method is auto-awaited and the method goes async for
 you.
 
 ### Construction with `init`
 
 A class takes constructor parameters through the same `init(params)` block
-[actors use](/language/actors/):
+[actors use](actors.md):
 
 <!-- spek-test: compile -->
 ```spek
@@ -136,7 +135,7 @@ class Account
 The most common home for a class is a **field on an actor**. The actor owns the
 instance; its handlers drive it across many messages, building up state the
 class encapsulates. Here an `Aggregator` keeps a small statistics object and
-answers an [Ask](/language/messaging/) with the running mean:
+answers an [Ask](messaging.md) with the running mean:
 
 <!-- spek-test: compile -->
 ```spek
@@ -209,10 +208,10 @@ write an annotation for either.
 
 **1. It can't escape to another actor.** A class is not immutable, so it can't
 ride in a `message` field or an Ask reply, it can't be a
-[shared-region](/language/shared-regions/) field, and it can't be handed to a
+[shared-region](shared-regions.md) field, and it can't be handed to a
 child at `spawn` while you keep a reference. The first is just the
-immutability whitelist from [messages](/language/messages/) at work: putting a
-class in a message field is [CE0010](/reference/errors/#ce0010):
+immutability whitelist from [messages](messages.md) at work: putting a
+class in a message field is [CE0010](../reference/errors.md#ce0010):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -223,7 +222,7 @@ message Submit(Counter c);   // error[CE0010]: 'Counter' is not a known immutabl
 
 The spawn route falls to the same reasoning. Spawning a child with one of your
 own class-typed fields would leave both actors holding the same mutable
-object, so it is [CE0137](/reference/errors/#ce0137):
+object, so it is [CE0137](../reference/errors.md#ce0137):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -254,14 +253,14 @@ The gift may pass through a local (`var c = new Counter();` and then
 `spawn<Recount>(c);`) so you can build the object up before handing it over,
 as long as that local is never also stored in one of the sender's fields.
 To share data with another actor rather than hand off an object, package it
-as an immutable [`message`](/language/messages/), not a class.
+as an immutable [`message`](messages.md), not a class.
 
 **2. It's only mutated where mutation is safe.** This is the share-XOR-mutate
-rule from [isolation and ownership](/language/isolation/), now reaching *inside*
+rule from [isolation and ownership](isolation.md), now reaching *inside*
 a helper object. Regular and writer handlers are serial, so they may mutate a
 confined class freely. Reader handlers run *concurrently*, so calling a method
 that mutates the object (or writing one of its fields) from a reader is
-[CE0087](/reference/errors/#ce0087). Reads and pure-method calls from a reader
+[CE0087](../reference/errors.md#ce0087). Reads and pure-method calls from a reader
 are fine.
 
 <!-- spek-test: compile -->
@@ -331,13 +330,13 @@ actor Worker
 }
 ```
 
-You never annotate `Add` or `AddTwice` as mutating; the compiler works it out
+You never annotate `Add` or `AddTwice` as mutating. The compiler works it out
 and only complains at the point where a concurrent reader would actually race.
 
 ## Interfaces: the class contract
 
 A class can implement an `interface`: the class-side implementation contract. It
-is the method-based sibling of a [`channel`](/language/channels/), the actor's
+is the method-based sibling of a [`channel`](channels.md), the actor's
 message-based contract, and both lower to a C# `interface`. Where a channel names
 the messages an actor accepts, an interface names the methods and properties a
 class provides:
@@ -363,13 +362,12 @@ fields. This is the one deliberate divergence from modern C#, which since C# 8
 allows default method bodies on an interface. Spek holds the interface to its
 pre-C#-8 meaning, so behavior always lives in the concrete class, never hidden
 inside the thing it implements. A body or a field inside an `interface` is
-[CE0120](/reference/errors/#ce0120).
+[CE0120](../reference/errors.md#ce0120).
 
 The payoff is polymorphism with confinement intact. An actor can hold an
 interface-typed field and call it through a single call site, swapping one
 implementation for another without touching the caller, and the instance is
-still owned by the one actor, so nothing about the [confinement](#confinement-how-a-class-stays-race-free)
-guarantee changes:
+still owned by the one actor, with the [confinement](#confinement-how-a-class-stays-race-free) guarantee intact:
 
 ```spek
 actor Gatekeeper
@@ -385,12 +383,12 @@ Interfaces may extend other interfaces (`interface Describable : Named`), exactl
 as in C#, and a class may implement several at once
 (`class Widget : Named, Sized`). Roslyn does the conformance check: a class that
 omits a member of an interface it names fails the build with C#'s own `CS0535`,
-not a Spek diagnostic: the same passthrough style [generics](/language/generics/)
+not a Spek diagnostic: the same passthrough style [generics](generics.md)
 use.
 
 One rule sets Spek apart from C#: **handlers dispatch on messages, never on
 interfaces.** An `on` handler is keyed on a `message` type, and `on SomeInterface`
-is [CE0121](/reference/errors/#ce0121). An interface is the *provider* side of a
+is [CE0121](../reference/errors.md#ce0121). An interface is the *provider* side of a
 contract; a message is the *received* side, and keeping the two separate is what
 keeps message flow single and local. To handle a family of messages, give them a
 shared `abstract message` base and dispatch on that instead.
@@ -429,14 +427,13 @@ class Circle : Shape
 Two things are worth calling out. The subclass's constructor chains to the base
 with `init(...) : base(...)`, the C# idiom. And `Circle.Area` needs no `override`
 keyword: Spek sees that it implements the base's abstract `Area` and emits the
-`override` for you. That is the whole point of leaving `virtual`/`override` out;
-the only methods a subclass can specialize are the abstract ones, so marking them
+`override` for you. That is the whole point of leaving `virtual`/`override` out. The only methods a subclass can specialize are the abstract ones, so marking them
 is redundant.
 
-Only an `abstract class` can be a base ([CE0123](/reference/errors/#ce0123)); a
+Only an `abstract class` can be a base ([CE0123](../reference/errors.md#ce0123)); a
 concrete class stays `sealed`, so it is always a leaf. An abstract method is only
 allowed inside an abstract class, and can't be `private`
-([CE0122](/reference/errors/#ce0122)). As with interfaces, Roslyn does the
+([CE0122](../reference/errors.md#ce0122)). As with interfaces, Roslyn does the
 conformance check: a subclass that forgets to implement an abstract method fails
 the build with C#'s own `CS0534`.
 
@@ -448,29 +445,29 @@ for an [interface](#interfaces-the-class-contract) instead.
 ## Limits
 
 - **No cross-actor transfer.** A class stays confined to its owning actor. To
-  move data between actors, send an immutable [`message`](/language/messages/).
+  move data between actors, send an immutable [`message`](messages.md).
   The one hand-off is the constructor gift at `spawn`: a fresh instance the
-  sender never holds ([CE0137](/reference/errors/#ce0137) rejects a spawn
+  sender never holds ([CE0137](../reference/errors.md#ce0137) rejects a spawn
   argument the sender still references).
 - **Abstract bases only.** A class may extend an `abstract class` and implement
   interfaces, but it cannot extend a concrete class, and there is no
   `virtual`/`override`: swappable polymorphism lives in an
   [interface](#interfaces-the-class-contract).
-- **No `immutable class`.** Use a [`message`](/language/messages/) for immutable
-  data; that's exactly what it's for.
+- **No `immutable class`.** Use a [`message`](messages.md) for immutable
+  data.
 
 ## Related reading
 
-- [Isolation and ownership](/language/isolation/): share-XOR-mutate and the
+- [Isolation and ownership](isolation.md): share-XOR-mutate and the
   invisible-ownership model confinement extends.
-- [CE0087](/reference/errors/#ce0087): reader handlers may not mutate confined
+- [CE0087](../reference/errors.md#ce0087): reader handlers may not mutate confined
   state (actor fields, regions, or a class via a mutating method).
-- [CE0010](/reference/errors/#ce0010): the immutability whitelist that keeps a
+- [CE0010](../reference/errors.md#ce0010): the immutability whitelist that keeps a
   class out of message fields.
-- [CE0137](/reference/errors/#ce0137): spawn arguments may not share a
+- [CE0137](../reference/errors.md#ce0137): spawn arguments may not share a
   confined class with the child; the constructor gift is the legal hand-off.
-- [Modules](/language/modules/): the stateless counterpart for pure helper
+- [Modules](modules.md): the stateless counterpart for pure helper
   functions.
 
-Next up are [enums](/language/enums/): fixed sets of named values and how
+Next up are [enums](enums.md): fixed sets of named values and how
 handlers match on them.

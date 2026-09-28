@@ -12,7 +12,7 @@ Tallies live in a `shared` region. The stream-shaped handlers are writers
 declared `reader on` and runs under the concurrent reader lock, and the
 compiler holds it to that: a reader that tried to mutate the board would be
 a CE0087 at build time, not a race at runtime. The region's `sinceBoot`
-field carries the `transient` marker, opting it out of persistence capture
+field has the `transient` marker, so it is left out of persistence capture
 if the region ever becomes `: Persisted`.
 
 ```

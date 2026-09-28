@@ -15,18 +15,18 @@ into the same IL it would have produced if you'd written the C# by hand.
 
 This chapter gets that pipeline working on your machine. By the end you'll
 have compiled and run a minimal one-actor program, and seen exactly what the
-compiler emits. The [next chapter](/language/first-actor/) builds a real
+compiler emits. The [next chapter](language/first-actor.md) builds a real
 program from scratch; this one is just the five-minute setup.
 
 ## Prerequisites
 
 - **The .NET 10 SDK.** Spek targets `net10.0`. Check with `dotnet --version`.
 - **Working knowledge of C#.** Spek is designed to feel familiar. Handler
-  bodies are a [subset of C#](/language/csharp-syntax/), and Roslyn does the
+  bodies are a [subset of C#](language/csharp-syntax.md), and Roslyn does the
   type-checking. If you can read C#, you can read Spek.
 - **A C# editor** (Rider, Visual Studio, or VS Code with the C# Dev Kit). Any of
-  them will pick up the generated C#; a Spek-aware [language
-  server](/reference/) adds live diagnostics on the `.spek` source itself.
+  them will pick up the generated C#. A Spek-aware [language server](reference/index.md)
+  adds live diagnostics on the `.spek` source itself.
 
 ## Installing the toolchain
 
@@ -48,8 +48,8 @@ That produces `spekc.dll`. You can invoke it directly, or through
 dotnet run --project src/Spek.Cli -- compile path/to/file.spek
 ```
 
-The rest of this page writes `spekc compile …` for brevity; the arguments
-are identical either way. See the [CLI reference](/reference/cli/) for the
+The rest of this page writes `spekc compile …` for brevity. The arguments
+are identical either way. See the [CLI reference](reference/cli.md) for the
 full flag surface (`--out`, `--check`, `--ref`).
 
 **2. Reference the runtime.** The generated C# uses types from
@@ -97,20 +97,20 @@ named just so the shape makes sense.
 
 `message Greet(string name);` declares the only kind of value allowed to cross
 an actor boundary. A `message` compiles to an immutable C# `record`, and sending
-anything else is a compile error (see [messages](/language/messages/)).
+anything else is a compile error (see [messages](language/messages.md)).
 
 `actor Greeter { … }` is an isolated unit of state and behavior. The
 `on Greet g => { … }` handler says "when a `Greet` arrives, run this." A
-single-handler actor needs no `behavior` wrapper; there's more on
-[actors and behaviors](/language/actors/) later.
+single-handler actor needs no `behavior` wrapper. There's more on
+[actors and behaviors](language/actors.md) later.
 
 `program Main { … }` is the entry point. It creates an `ActorSystem` (the
 runtime that hosts actors), `Spawn`s the `Greeter` to get an `ActorRef` (a
 handle you can send to), `Tell`s it a message (fire-and-forget), and
 `AwaitTermination()` blocks until the system shuts down.
 
-Don't worry about absorbing all of that now. The [next
-chapter](/language/first-actor/) introduces each piece one at a time. Right
+Don't worry about absorbing all of that now. The [next chapter](language/first-actor.md)
+introduces each piece one at a time. Right
 now the goal is just to make it run.
 
 ## Compiling and running
@@ -215,8 +215,8 @@ dotnet run
 
 The target is incremental (a `.spek` older than its `.g.cs` is skipped) and
 passes your project's references to the compiler, so framework `Task` APIs
-[auto-await](/language/async/) correctly. The `samples/HelloBank` project is
-wired exactly this way; copy its `.csproj` as a starting point.
+[auto-await](language/async.md) correctly. The `samples/HelloBank` project is
+wired exactly this way. Copy its `.csproj` as a starting point.
 
 If you ran `spekc compile` by hand earlier, delete the `.g.cs` it left beside
 your source first: the SDK would compile both it and the `obj/` copy and report
@@ -232,9 +232,9 @@ duplicate types. With the target in place you never run `spekc` yourself.
 
 You have a working pipeline. Now learn the language:
 
-- [Build your first actor](/language/first-actor/): the hands-on tour. A
+- [Build your first actor](language/first-actor.md): the hands-on tour. A
   counter grows into a bank account, one concept per step, with the compiler
   as your teacher.
-- [Language overview](/language/): the full syntax, one page at a time.
-- [Samples](/samples/): `HelloBank` and other runnable, real-world-shaped
+- [Language overview](language/index.md): the full syntax, one page at a time.
+- [Samples](samples.md): `HelloBank` and other runnable, real-world-shaped
   programs.

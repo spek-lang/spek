@@ -123,7 +123,6 @@ public sealed class EndToEndPersistenceTests : IDisposable
         // sender in our test code, but the *target* may live in a
         // different ActorSystem since AskAsync is local-only and the
         // testing pattern here uses Tell-with-explicit-sender.
-        // For simplicity we reuse the target's slot via Tell-with-self.
         // Build a minimal receiver via a captured TCS pattern.
         var captureSystem = new ActorSystem("capture");
         var capture       = captureSystem.Spawn<ReplyCapture>(tcs);

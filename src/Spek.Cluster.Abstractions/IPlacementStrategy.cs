@@ -11,9 +11,9 @@ namespace Spek.Cluster;
 ///         hashing across the cluster's <c>Up</c> members. Stable as
 ///         long as membership doesn't change; minimal disruption when
 ///         it does.</item>
-///   <item>Future: <c>LocalityAwarePlacement</c> - prefer same DC /
-///         zone / rack from node metadata. Custom user-defined
-///         strategies plug in via the same interface.</item>
+///   <item>Custom user-defined strategies (locality-aware placement
+///         from node metadata, say) plug in via the same
+///         interface.</item>
 /// </list>
 ///
 /// Determinism is required: the same <c>(actorType, key, members)</c>

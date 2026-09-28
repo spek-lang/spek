@@ -20,7 +20,7 @@ namespace Spek;
 /// </summary>
 /// <example>
 /// <code>
-/// // Handler returns the typed outcome with the typed outcome:
+/// // Handler replies with the typed outcome:
 /// on GetUser g =>
 /// {
 ///     var user = repo.Find(g.id);

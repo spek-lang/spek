@@ -10,7 +10,7 @@ description: "Let-it-crash failure handling: supervise strategies (OneForOne / A
 # Supervision and failure
 
 So far every actor in this book has been on its own. It receives a message,
-runs a handler, and updates its [private state](/language/isolation/). But
+runs a handler, and updates its [private state](isolation.md). But
 handlers throw. A download times out, a parse fails, a downstream service is
 down. What happens to an actor whose handler threw halfway through?
 
@@ -43,7 +43,7 @@ specific child, and how to branch on the exception type.
 The key rule, and the one thing to internalize before anything else: **a failing
 actor never decides its own fate. Its parent does.**
 
-In [the first-actor tutorial](/language/first-actor/) you spawned a child with
+In [the first-actor tutorial](first-actor.md) you spawned a child with
 `spawn<Account>()`. That call did two things: it created the child, and it made
 the spawning actor its *parent*. When a child's handler throws, the runtime
 catches the exception and asks the parent what to do. The child has no say. This
@@ -97,7 +97,7 @@ directly in `supervise` arms.
 
 | Directive  | What it does                                                                                   |
 |------------|------------------------------------------------------------------------------------------------|
-| `Restart`  | Discard the broken instance, build a fresh one, and let it process the next queued message. State resets (persistent actors reload from their latest snapshot; see [persistence](/language/persistence/)). |
+| `Restart`  | Discard the broken instance, build a fresh one, and let it process the next queued message. State resets (persistent actors reload from their latest snapshot; see [persistence](persistence.md)). |
 | `Stop`     | Shut the actor down for good: drain its mailbox to the dead-letter sink, run `on PostStop`, and reject further sends. |
 | `Escalate` | Pass the decision up to *this* supervisor's own parent. The failure climbs the tree until someone handles it. |
 | `Resume`   | Skip the message that threw and carry on. State is left exactly as it was. Use this for a failure that does not corrupt anything. |
@@ -167,7 +167,7 @@ message would restart in a tight loop. Two named options put a budget on it:
   Once exceeded, the directive degrades to `Stop`.
 - **`withinTime:`** is the length of that window, written as any
   `System.TimeSpan`-valued expression. Spek has no special duration literal;
-  you use the [BCL type](/language/csharp-syntax/) directly, e.g.
+  you use the [BCL type](csharp-syntax.md) directly, e.g.
   `System.TimeSpan.FromMinutes(1)`.
 
 <!-- spek-test: compile -->
@@ -199,7 +199,7 @@ actor Pipeline
 {: .note }
 > `maxRetries` and `withinTime` are ordinary named arguments, not reserved
 > words, so you can still use those names as plain identifiers elsewhere. Misspell
-> one (`maxRetres:`) and you get [CE0117](/reference/errors/#ce0117) naming the
+> one (`maxRetres:`) and you get [CE0117](../reference/errors.md#ce0117) naming the
 > expected options, rather than a cryptic parse error.
 
 ## Branching on the exception type
@@ -244,8 +244,8 @@ The last arm, the untyped `on Failure: Action`, is the catch-all. It matches any
 exception that no typed arm above it caught. Order matters: because matching
 stops at the first hit, a catch-all has to come *last*. Put a typed arm after a
 catch-all and the compiler flags it as unreachable with
-[CE0081](/reference/errors/#ce0081); write two catch-alls in one strategy and
-you get [CE0082](/reference/errors/#ce0082). These are the same dead-code checks
+[CE0081](../reference/errors.md#ce0081); write two catch-alls in one strategy and
+you get [CE0082](../reference/errors.md#ce0082). These are the same dead-code checks
 the C# compiler runs on `catch` order, surfaced at the Spek level.
 
 {: .note }
@@ -374,7 +374,7 @@ actor Manager
 > Pick **one** form per actor. A `supervise` declaration *generates* an
 > `OnChildFailure` override, so writing both on the same actor would silently
 > drop your hand-written one. The compiler refuses, with
-> [CE0118](/reference/errors/#ce0118). Use the declarative `supervise` for fixed
+> [CE0118](../reference/errors.md#ce0118). Use the declarative `supervise` for fixed
 > policies, the explicit `OnChildFailure` when the decision needs to compute.
 
 A **root** actor, one you spawned directly from the `ActorSystem` with no
@@ -408,7 +408,7 @@ Supervision handles handlers that *throw*. A related question is what happens to
 messages that have nowhere to go: sent to an actor that has already stopped, or
 arriving when the active behavior has no matching `on` handler. Spek does not
 drop these silently. Every such message is routed to the runtime's
-**dead-letter sink**, so a misrouted message is observable instead of vanishing.
+**dead-letter sink**.
 
 Three sinks ship with the runtime:
 
@@ -429,7 +429,7 @@ Assert.Contains(sink.Records, e => e.Reason == "target actor is stopped");
 ```
 
 You will lean on `RecordingDeadLetterSink` again when we get to
-[testing actors](/language/testing/), where asserting on dead letters is how you
+[testing actors](testing.md), where asserting on dead letters is how you
 prove a `Stop` directive actually fired.
 
 ## Where restart leads
@@ -439,16 +439,16 @@ a directive, and the system keeps running from a known-good state. The directive
 that does the most interesting work is `Restart`, and its "fresh instance from a
 known-good state" promise only fully pays off when that state can *survive* the
 restart. The next chapter,
-[Persistence and passivation](/language/persistence/), shows how a persistent
+[Persistence and passivation](persistence.md), shows how a persistent
 actor snapshots its state and auto-restores it after a restart, so a crashed
 account comes back with its balance intact, no `on Restore` boilerplate
 required.
 
 ## Related reading
 
-- [Runtime reference: `FailureDirective`](/reference/runtime/#failuredirective):
+- [Runtime reference: `FailureDirective`](../reference/runtime.md#failuredirective):
   the enum and the `ActorSlot`/`OnChildFailure` machinery behind these arms.
-- [Persistence](/language/persistence/): how `Restart` and snapshot restore
+- [Persistence](persistence.md): how `Restart` and snapshot restore
   interact.
-- [Error codes](/reference/errors/): `CE0081`, `CE0082`, `CE0117`, `CE0118`,
+- [Error codes](../reference/errors.md): `CE0081`, `CE0082`, `CE0117`, `CE0118`,
   the compile-time checks this chapter relies on.

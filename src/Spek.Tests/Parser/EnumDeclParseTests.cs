@@ -68,7 +68,7 @@ public class EnumDeclParseTests
     [Fact]
     public void EnumAsMessageFieldType_NoCE0010Diagnostic()
     {
-        // The whole point of the inferred-reply convention: a Spek enum can be a message field
+        // The whole point of the enum whitelist: a Spek enum can be a message field
         // type without tripping CE0010 (which rejects mutable types).
         const string src = """
             enum HostState { Running, Paused, Stopped }

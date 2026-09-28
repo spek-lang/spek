@@ -29,8 +29,7 @@ filename characters are percent-escaped.
 - Edge / appliance scenarios.
 
 For multi-node clusters, swap to a shared store
-(`Spek.Persistence.Sqlite` for single-node embedded, or a future
-managed-DB adapter).
+(`Spek.Persistence.Sqlite` for single-node embedded).
 
 ## Atomicity
 

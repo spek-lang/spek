@@ -68,7 +68,7 @@ public sealed class AstEmitCompletenessTests
             behavior Idle { on Ping p => { } }
 
             // NB: `.Resume` (not `.Stop`/`.Restart`/`.Escalate`) - those are keywords
-            // and won't parse in member-access position (see language proposals).
+            // and won't parse in member-access position.
             FailureDirective OnFailure(Exception ex, object msg) { return FailureDirective.Resume; }
         }
         """;

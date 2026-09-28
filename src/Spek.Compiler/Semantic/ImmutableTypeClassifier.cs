@@ -22,8 +22,8 @@ namespace Spek.Compiler.Semantic;
 /// a mutable collection; callers should use the concrete <c>Immutable*</c>
 /// types when a collection is required in a message.
 ///
-/// Reflection is explicitly NOT a concern of this classifier - that belongs to
-/// a future hostile-import rule (reserved as CE0080).
+/// Reflection is explicitly NOT a concern of this classifier - that belongs
+/// to the hostile-import rule, CE0080.
 /// </summary>
 public static class ImmutableTypeClassifier
 {
@@ -87,7 +87,7 @@ public static class ImmutableTypeClassifier
             return Classification.Disallowed;
 
         // Type parameter: allowed (actual type substituted at instantiation
-        // time; instantiation-site checks are future work).
+        // time; instantiation-site checks are not implemented).
         if (enclosingTypeParameters.Any(tp => tp.Name == simple))
             return Classification.Allowed;
 

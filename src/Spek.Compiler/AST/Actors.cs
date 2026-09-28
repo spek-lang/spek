@@ -173,8 +173,8 @@ public record BehaviorDecl(
 /// (same-assembly only), or <see cref="Visibility.Private"/> (reachable
 /// only via <c>self.Tell</c>; the runtime dead-letters anything else
 /// targeting it) - and an optional <see cref="HandlerMode"/>:
-/// <see cref="HandlerMode.Reader"/> (no field mutation; future
-/// runtime can run readers concurrently) or
+/// <see cref="HandlerMode.Reader"/> (no field mutation; the
+/// runtime runs readers concurrently) or
 /// <see cref="HandlerMode.Writer"/> (default; full mutation rights;
 /// serialized).
 /// </summary>

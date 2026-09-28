@@ -14,7 +14,6 @@ namespace Spek.LanguageServer;
 /// Local <c>var</c> binding tracking inside statement sequences is deferred;
 /// the current walker collects declarations but doesn't track positional
 /// order so bindings introduced after the cursor would leak into scope.
-/// Planned for a later iteration.
 /// </summary>
 internal sealed class SpekCompletionHandler : CompletionHandlerBase
 {

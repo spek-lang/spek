@@ -63,10 +63,8 @@ public sealed class SpekStatusCodeMap
     /// Internal: register a mapping by simple type name. Used by
     /// <see cref="WithBuiltInDefaults"/> for the convention names
     /// (`NotFound`, `BadRequest`, etc.) which the user defines as
-    /// regular Spek messages. The actual <see cref="Type"/> is
-    /// resolved lazily via reflection at first use, but for now
-    /// we register a placeholder mapping by name and
-    /// the resolver matches on type-name comparison.
+    /// regular Spek messages. Matching is by simple type name (see
+    /// <see cref="ResolveWithNameFallback"/>).
     /// </summary>
     private void AddByName(string typeName, int statusCode)
         => _byName[typeName] = statusCode;

@@ -18,7 +18,6 @@ implementations, etc.
 ```csharp
 using Spek;                          // ActorRef
 using Spek.Cluster;                  // Cluster.Bind
-using Spek.Cluster.Abstractions;     // NodeIdentity, ISpekTransport
 using Spek.Cluster.Memory;           // InMemoryClusterFabric
 using Spek.Runtime;                  // ActorSystem
 

@@ -9,23 +9,23 @@ description: "Mutable transport types for the request hot path: the confined cla
 
 # Transport types
 
-Immutable [`message`s](/language/messages/) are the right shape for data that
+Immutable [`message`s](messages.md) are the right shape for data that
 *crosses an actor boundary*: immutability is what makes them race-free to share.
 But a single request that flows through a multi-step pipeline (read headers,
 authenticate, route, write the response) shouldn't allocate a fresh object at
 every step. On a 10K-req/s server with a five-stage pipeline that's 50K+
-allocations a second of pure churn. That's the **hot path**, and forcing
-immutability there is a perf cliff Spek shouldn't impose.
+allocations a second. That is the hot path. Forcing immutability there
+is a performance cliff.
 
 > **There is no separate `transport` kind.** The mutable
-> [`class`](/language/classes/) you already have *is* the transport type. This
-> page is about the one pattern that makes it shine: a single mutable context
+> [`class`](classes.md) you already have *is* the transport type. This
+> page is about one pattern: a single mutable context
 > threaded through a synchronous pipeline.
 
 ## The pattern: one mutable context, many steps
 
 Declare the request context as a `class`, write each pipeline stage as a
-[module](/language/modules/) method that takes it and mutates it in place, and
+[module](modules.md) method that takes it and mutates it in place, and
 let one actor drive the chain. The context is allocated **once** per request:
 
 <!-- spek-test: compile -->
@@ -83,15 +83,14 @@ can't, and the compiler already guarantees it:
 
 - **It can't ride a message to another actor.** A `class` isn't immutable, so
   it's rejected as a `message` field or ask-reply
-  ([CE0010](/reference/errors/#ce0010)).
-- **It can't be shared state.** It can't be a [shared-region](/language/shared-regions/)
-  field ([CE0112](/reference/errors/#ce0112)).
+  ([CE0010](../reference/errors.md#ce0010)).
+- **It can't be shared state.** It can't be a [shared-region](shared-regions.md)
+  field ([CE0112](../reference/errors.md#ce0112)).
 
 So the context lives and dies inside one actor's handler (or as that actor's
 field), mutated by ordinary synchronous calls. The actor boundary plus immutable
-messages still do all the concurrency work; the mutable object **never
-escapes the one actor handling the request**. You write no ownership marker;
-the confinement is inferred, the same way [invisible async](/language/async/) is.
+messages still do all the concurrency work. The mutable object **never escapes the one actor handling the request**. You write no ownership marker;
+the confinement is inferred, the same way [invisible async](async.md) is.
 
 ## Crossing back to immutable at the boundary
 
@@ -122,12 +121,11 @@ module Egress
 
 This is the whole discipline: **mutate freely inside one actor, copy once at the
 edge.** The copy you were trying to avoid on every pipeline step happens exactly
-once, where it buys you cross-actor safety.
+once, where it gives you cross-actor safety.
 
 ## What's deliberately *not* here
 
-- **No `transport` keyword.** The mutable class already carries the capability;
-  a marker would lower to identical C# and add no guarantee, and Spek doesn't add
+- **No `transport` keyword.** The mutable class already has the capability. A marker would lower to identical C# and add no guarantee, and Spek doesn't add
   grammar that does no work. 
 - **No cross-actor zero-copy ("moved").** Handing a mutable object to another
   actor by *transferring ownership*, so no copy is needed at the boundary, is
@@ -138,8 +136,8 @@ once, where it buys you cross-actor safety.
 
 ## Related
 
-- [Classes](/language/classes/): the mutable, single-owner type and its
+- [Classes](classes.md): the mutable, single-owner type and its
   confinement rules (CE0010 / CE0087 / CE0112).
-- [Messages](/language/messages/): the immutable shape for anything that
+- [Messages](messages.md): the immutable shape for anything that
   crosses an actor boundary.
-- [Modules](/language/modules/): where the stateless pipeline stages live.
+- [Modules](modules.md): where the stateless pipeline stages live.

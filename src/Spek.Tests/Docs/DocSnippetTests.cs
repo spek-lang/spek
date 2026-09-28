@@ -19,8 +19,8 @@ namespace Spek.Tests.Docs;
 /// <list type="bullet">
 ///   <item><b>parse</b> (syntax-only) - the default for any block whose first
 ///     declaration is a top-level keyword (<c>program</c>/<c>module</c>/
-///     <c>actor</c>/<c>message</c>/<c>enum</c>/<c>shared</c>/<c>channel</c>/
-///     <c>using</c>/<c>namespace</c>). It must parse without a grammar error
+///     <c>actor</c>/<c>class</c>/<c>message</c>/<c>enum</c>/<c>shared</c>/
+///     <c>channel</c>/<c>interface</c>/<c>using</c>/<c>namespace</c>). It must parse without a grammar error
 ///     (<see cref="SpekCompiler.ParseToTree"/>, no semantic pass) - this
 ///     catches the common doc rot (renamed keywords, changed syntax) without
 ///     false positives from fragments that reference declarations defined
@@ -70,9 +70,9 @@ public sealed class DocSnippetTests(ITestOutputHelper output)
         return Path.Combine(dir, "docs");
     }
 
-    // The docs tree can live outside this repo (it was relocated during the
-    // public-release split). When it's absent, the extractor still guards the
-    // repo-root README's snippets and the coverage floor drops accordingly.
+    // The docs tree may be absent in some checkouts. When it's absent, the
+    // extractor still guards the repo-root README's snippets and the coverage
+    // floor drops accordingly.
     private static bool DocsPresent() => Directory.Exists(DocsRoot());
 
     private static Mode ParseMode(string s) => s.ToLowerInvariant() switch

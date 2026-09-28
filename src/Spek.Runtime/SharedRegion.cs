@@ -11,9 +11,7 @@ namespace Spek;
 /// Direct subclasses (default = transient) get just the RW lock + lazy
 /// init. Inheriting <see cref="PersistedRegion"/> instead adds restore-
 /// on-first-access and save-on-writer-exit via the system's snapshot
-/// store; future <c>EventSourcedRegion</c> / <c>ReplicatedRegion</c> /
-/// <c>ConflictFreeReplicatedRegion</c> markers will plug into the same
-/// extension points.
+/// store.
 /// </summary>
 public abstract class SharedRegion
 {
@@ -233,8 +231,7 @@ public abstract class SharedRegion
     /// TCS so blocked readers and other writers can proceed.
     ///
     /// Virtual so capability subclasses can hook in
-    /// (<see cref="PersistedRegion"/> kicks off a save here; future
-    /// event-sourced regions append events here).</summary>
+    /// (<see cref="PersistedRegion"/> kicks off a save here).</summary>
     public virtual void ExitWriter()
     {
         TaskCompletionSource toPulse;

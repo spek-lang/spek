@@ -16,7 +16,7 @@ namespace Spek.Tests.Runtime;
 /// <c>OnFailure</c> and the restart budget. The fix routes re-materialization
 /// through the same supervisor chain a handler failure uses (parented actor
 /// escalates, root actor stops), bounded by a materialization-retry cap and
-/// failing the asker's reply cell (V1). These fences pin that.
+/// failing the asker's reply cell. These fences pin that.
 /// </summary>
 public sealed class MaterializationFailureTests
 {
@@ -89,7 +89,7 @@ public sealed class MaterializationFailureTests
 
         actor.Tell(new Crash());   // → Restart → _current = null (FIFO: runs before the ask)
 
-        // The ask triggers the rebuild, which throws. Fail-fast (V1) must fault
+        // The ask triggers the rebuild, which throws. Fail-fast must fault
         // the asker rather than leaving the reply cell to hang forever. A
         // generous window proves the failure is immediate, not a timeout.
         var ex = await Assert.ThrowsAsync<AskException>(() =>

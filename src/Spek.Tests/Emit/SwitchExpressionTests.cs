@@ -8,8 +8,7 @@ namespace Spek.Tests.Emit;
 /// Coverage for the switch expression. Shipped patterns: constant,
 /// type with optional binding, discard, relational, property, and the
 /// logical combinators (`not`, `and`, `or`, parenthesisation), plus
-/// optional `when` guards. Tuple/list patterns are still deferred to
-/// a follow-up that needs the underlying language features first.
+/// optional `when` guards. Tuple/list patterns are not supported.
 /// </summary>
 public sealed class SwitchExpressionTests
 {

@@ -7,7 +7,7 @@ namespace Spek.Observability;
 /// user code reaches it through <c>self.Log</c>.
 ///
 /// <para>
-/// Deliberately tiny (six methods total) because Spek doesn't
+/// Deliberately tiny (two methods) because Spek doesn't
 /// need to reinvent logging. Real applications will register a
 /// logger that adapts to Microsoft.Extensions.Logging's <c>ILogger&lt;T&gt;</c>
 /// or whatever else they're using; the abstraction exists so the

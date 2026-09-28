@@ -9,8 +9,7 @@ namespace Spek.Observability;
 ///
 /// <para>
 /// The implementation rides on <see cref="System.Diagnostics.Activity"/>
-///: the primitive OpenTelemetry maps onto, and the one
-/// OpenTelemetry maps onto: but the Spek surface stays
+///: the primitive OpenTelemetry maps onto: but the Spek surface stays
 /// implementation-agnostic so a future runtime could swap in
 /// something else without breaking handler code.
 /// </para>

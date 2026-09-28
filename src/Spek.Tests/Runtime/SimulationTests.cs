@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Deterministic simulation (D1): execution is a pure function of
+/// Deterministic simulation: execution is a pure function of
 /// (program, inputs, seed). Same seed → identical interleaving, message
 /// for message; virtual time makes idle windows free; chaos faults become
 /// seeded decisions.

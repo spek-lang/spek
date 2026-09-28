@@ -7,8 +7,8 @@ permalink: /reference/errors/
 ---
 
 <!-- spek-test-default: ignore -->
-<!-- ^ Most snippets here are deliberately *invalid*; they demonstrate what
-     triggers each error; so the doc-snippet harness skips this file by
+<!-- ^ Most snippets here are deliberately *invalid*: they demonstrate what
+     triggers each error, so the doc-snippet harness skips this file by
      default. A genuine "fix" snippet can opt back in with a per-block
      `<!-- spek-test: compile -->` directive. -->
 
@@ -147,7 +147,7 @@ reply check is by reachability, mirroring [CE0137](#ce0137): a fresh instance
 (`return new Registry();`) is the legal gift (the actor keeps nothing), and a
 private method returning its own class field internally is fine, because only a
 *handler* return is a reply. See
-[messages](/language/messages/#the-immutability-whitelist).
+[messages](../language/messages.md#the-immutability-whitelist).
 
 **Example (broken):**
 ```spek
@@ -161,7 +161,7 @@ message AddItems(ImmutableList<string> items);
 message Lookup(ImmutableArray<int> ids);
 ```
 
-[Spek `enum`](/language/enums/) types are also accepted, since enum
+[Spek `enum`](../language/enums.md) types are also accepted, since enum
 members are compile-time constants and pass by value: handy when you
 want a closed set of states on a message:
 
@@ -205,7 +205,7 @@ on Poke =>
 }
 ```
 
-**Fix:** send a message instead. Actor state and methods are private; the
+**Fix:** send a message instead. Actor state and methods are private. The
 only legal things to do with an `ActorRef` are `Tell`, `ask`, and pass it
 around.
 
@@ -231,7 +231,7 @@ actor Worker
 ```
 
 **Fix:** rename one of the declarations, or delete the redundant one. The
-diagnostic points at the second occurrence; the first wins for resolution
+diagnostic points at the second occurrence. The first wins for resolution
 in the meantime.
 
 ## CE0014
@@ -338,7 +338,7 @@ handler that just mutated state.
 ## CE0051
 
 **Trigger:** `become` used inside a plain helper method. Helpers should
-stay pure; switching behavior from inside one obscures control flow.
+stay pure. Switching behavior from inside one obscures control flow.
 
 **Scope note:** `become` **is** accepted in `on` handlers, `init` blocks,
 and all lifecycle hooks (`PreStart`, `PostStop`, `Restore`). Only plain
@@ -380,7 +380,7 @@ actor Wallet
 **Fix:** add `persist;` where state should be saved, or a `passivate after
 System.TimeSpan.FromMinutes(N);` declaration, or remove the dead `on Restore`.
 
-## CE0061 (retired)
+## CE0061 (retired) {#ce0061}
 
 **No longer an error.** This previously fired when an actor declared `passivate`
 (or `persist`) but had no `on Restore` handler. Proposal #6 made `on Restore`
@@ -402,8 +402,8 @@ actor Wallet
 }
 ```
 
-Write an explicit `on Restore(Snapshot s) => ...` only for custom restore logic; it then
-takes over. See [persistence: auto-restore](/language/persistence/#auto-restore).
+Write an explicit `on Restore(Snapshot s) => ...` only for custom restore logic. It then
+takes over. See [persistence: auto-restore](../language/persistence.md#auto-restore).
 
 ## CE0070
 
@@ -540,7 +540,7 @@ input, matching C# explicit-interface-implementation semantics.
 
 **Trigger:** A name in an actor's colon list (`actor Foo : Bar, Baz`)
 is neither a declared channel nor a declared actor. Also fires when a
-second actor-typed name appears after the first; only one base actor
+second actor-typed name appears after the first. Only one base actor
 is permitted; remaining names must be channels.
 
 **Example (broken):**
@@ -648,7 +648,7 @@ channel A : B { on Ping; }
 channel B : A { }            // CE0094 fires on both A and B
 ```
 
-**Fix:** break the cycle. Channel inheritance is acyclic; if two
+**Fix:** break the cycle. Channel inheritance is acyclic. If two
 channels genuinely share a common subset, extract it into a third
 base channel and have both inherit from it:
 
@@ -671,9 +671,9 @@ other actors sharing it.
 **Fix:** Use the async form: `await Task.Delay(...)` for a timed wait,
 `await Task.WhenAll(...)` for fan-in, or model the wait as a delayed message.
 (The value-preserving sync-over-async forms `task.Result`, `task.Wait()`,
-and `x.GetAwaiter().GetResult()` are *not* CE0083; the [invisible-async](/language/async/)
+and `x.GetAwaiter().GetResult()` are *not* CE0083: the [invisible-async](../language/async.md)
 pass rewrites those to `await` for you. The editor also offers quick-fixes for
-`Thread.Sleep` and `Task.WaitAll`.) See [Footguns](/language/footguns/) for the
+`Thread.Sleep` and `Task.WaitAll`.) See [Footguns](../language/footguns.md) for the
 full policy.
 
 ## CE0084
@@ -686,11 +686,11 @@ teardown.
 
 **Severity:** Error.
 
-**Fix:** To bring the node down intentionally, call **`self.System.Shutdown()`**
+**Fix:** To bring the node down intentionally, call **`self.System.Shutdown()`**,
 a graceful, non-blocking node shutdown: the handler returns, then every actor
 drains, each `on Shutdown` and `term {}` runs, and the host exits cleanly. It's
 reached through the ambient `self.System` accessor (a sibling of `self.Log` /
-`self.Metrics`); nothing is injected into your actor.
+`self.Metrics`). Nothing is injected into your actor.
 
 <!-- spek-test: ignore; demonstrates the CE0084 fix -->
 ```spek
@@ -715,7 +715,7 @@ another actor's mailbox, mutating it from the sender races against the
 receiver.
 
 Reads are **not** flagged: the only sendable values are immutable
-`message`s, where sharing (reading) after a send is safe by design; only a
+`message`s, where sharing (reading) after a send is safe by design. Only a
 write is a race. Pure reassignment (`u = newValue`) re-binds the local
 and is fine.
 
@@ -755,7 +755,7 @@ on Update u =>
 **Trigger (warning):** A file uses `interop using NS;` to opt out of
 [CE0080](#ce0080)'s hostile-namespace block. The compiler accepts the
 import but emits CE0086 to make the safety trade-off visible. This
-is a warning, not an error; the file still compiles.
+is a warning, not an error. The file still compiles.
 
 **Example:**
 ```spek
@@ -764,7 +764,7 @@ interop using System.Reflection;   // CE0086 — interop bypasses safety
 
 **Fix:** prefer the safe alternative when one exists. Use `interop
 using` only when integrating with a library you trust and there's no
-safer equivalent. Suppress per-file with the modifier; there's no
+safer equivalent. Suppress per-file with the modifier. There's no
 project-wide opt-out.
 
 ## CE0087
@@ -774,10 +774,10 @@ project-wide opt-out.
 Four flavours:
 
 - **Actor field mutation.** Reader handlers run concurrently
-  with other readers on the same actor; mutating an actor field would
+  with other readers on the same actor. Mutating an actor field would
   race against them.
 - **Shared-region field mutation.** Reader handlers hold the
-  region's reader lock; mutating a region field would race against
+  region's reader lock. Mutating a region field would race against
   every other reader on that region across every actor that attaches
   it.
 - **`out` / `ref` arguments.** Passing an actor field or shared-region
@@ -829,10 +829,10 @@ actor Cache
 
 **Fix:** promote to `writer on ...`, or move the mutation into a
 separate writer handler. For an `out` argument, receive the result
-into a local (`int.TryParse(p.s, out var v)`) and use the local; the
+into a local (`int.TryParse(p.s, out var v)`) and use the local. The
 write then never touches actor state. Reader handlers are bound to
 read-only access to actor and region state so the runtime can run them
-concurrently; the read-only restriction is what permits that.
+concurrently.
 
 ## CE0096
 
@@ -843,7 +843,7 @@ dispatch). The pattern type must
 resolve to a Spek-declared message so cross-language and cross-process
 callers can reach it.
 
-Private handlers (`private on X`) escape this rule; they're
+Private handlers (`private on X`) escape this rule. They're
 reachable only via `self.Tell` from inside the actor and aren't part
 of the public surface, so they can bind to any CLR type. This is
 how actors take BCL event-args (`FileSystemEventArgs`, `Timer`
@@ -871,7 +871,7 @@ public actor Watcher { private on FileSystemEventArgs e => { /* ... */ } }
 ```
 
 > The `on event` form is the cleaner path; see
-> [`language/actors.md`](/language/actors/); it
+> [`language/actors.md`](../language/actors.md). It
 > handles the bridge automatically and produces a public method-group
 > reference for `+=` wiring.
 
@@ -988,7 +988,7 @@ and restored normally) but the warning surfaces so callers know
 to plan a move off the field before it is marked
 `retired`.
 
-**Severity:** Warning. The build continues; the diagnostic is
+**Severity:** Warning. The build continues. The diagnostic is
 informational.
 
 **Example (warns):**
@@ -1017,7 +1017,7 @@ deprecated field from new code.
 
 **Trigger:** A reference to a shared-region field marked
 `retired`. The field name is reserved (a future field may not
-reuse it) and the field is skipped from capture/restore; the
+reuse it) and the field is skipped from capture/restore. The
 persistence store sees the key disappear from new snapshots and
 drops it on the next save.
 
@@ -1103,7 +1103,7 @@ check when the initializer's type can be classified at the
 semantic layer.
 
 A `when` guard on an arm doesn't count as a definitive cover
-for that variant; the compiler can't prove the guard is
+for that variant. The compiler can't prove the guard is
 always true, so the variant still needs another unguarded arm
 or a `_` to satisfy exhaustiveness.
 
@@ -1112,13 +1112,12 @@ or a `_` to satisfy exhaustiveness.
 **Retired: folded into [CE0119](#ce0119).** CE0106 was a *warning*
 that fired only when a `Task.Run` lambda captured an actor field directly. It is
 superseded by [CE0119](#ce0119), which forbids the raw concurrency-spawning
-primitives outright (a hard error), capture or not; closing the escape instead
-of merely flagging it.
+primitives outright (a hard error), capture or not.
 
 ## CE0107
 
 **Trigger:** A top-level local declared with an explicit `Task<T>`
-or `ValueTask<T>` type: the [invisible-async](/language/async/)
+or `ValueTask<T>` type: the [invisible-async](../language/async.md)
 escape hatch, that is never used *as a Task*.
 
 Under invisible async, naming the Task type opts a binding out of the
@@ -1129,7 +1128,7 @@ value *as a Task*: to hand it to a Task-shaped API, forward it out of
 the method, or capture it. If you never do that, the annotation has no
 effect: `var` would produce identical behaviour.
 
-**Severity:** Warning. The code is correct either way; this is a
+**Severity:** Warning. The code is correct either way. This is a
 "you wrote more than you needed" nudge, not a soundness problem.
 
 **Example (warns):**
@@ -1141,8 +1140,7 @@ public int Plus()
 }
 ```
 
-**Fix:** Drop the explicit type and let `var` defer it (you keep the
-concurrency):
+**Fix:** Drop the explicit type and let `var` defer it:
 ```spek
 public int Plus()
 {
@@ -1171,7 +1169,7 @@ any use that *could* be a task context: a member access (it might be
 `.Result` / `.ConfigureAwait`), a call receiver, any argument, a
 `ref`/`out` argument, a bare `return t`, an assignment, or rebinding
 into another Task local. So it never suggests dropping a `Task<T>`
-that's doing real work; it may stay quiet on a redundant one it can't
+that's doing real work. It may stay quiet on a redundant one it can't
 prove (e.g. `t.SomeResultProperty`).
 
 ## CE0108
@@ -1198,7 +1196,7 @@ protection level") error in the generated C#.
 initializer, on an actor or shared region that doesn't have an
 `init { }` block to set the field at construction time.
 
-**Severity:** Warning. The build continues; the diagnostic
+**Severity:** Warning. The build continues. The diagnostic
 points at the missing initialization so authors can decide
 whether to add `= …`, mark the field nullable (`T?`), or move
 construction into an `init` block.
@@ -1246,7 +1244,7 @@ plus an explicit list of common disposables like `HttpClient`,
 
 **Severity:** Warning. The heuristic produces some false
 positives by design (the type *might* not actually implement
-`IDisposable`); the warning is a nudge, not a hard error.
+`IDisposable`). The warning is a nudge, not a hard error.
 
 **Example (warns):**
 ```spek
@@ -1283,9 +1281,8 @@ reachable from every actor that attaches it, so `Registry hits` **or**
 `ImmutableArray<Registry> hits` there would expose **mutable state shared across
 actors**: the immutable container does not save you, because the elements
 inside it are the same mutable `Registry` every attaching actor can reach. This
-mirrors the recursive element check [CE0010](#ce0010) applies to message fields;
-a region-native mutable collection of *primitives* (`ImmutableArray<int>`,
-`List<int>`) stays legal; the region provides its reader/writer discipline, and
+mirrors the recursive element check [CE0010](#ce0010) applies to message fields. A region-native mutable collection of *primitives* (`ImmutableArray<int>`,
+`List<int>`) stays legal: the region provides its reader/writer discipline, and
 there is no confined class inside to leak.
 
 **Severity:** Error.
@@ -1360,7 +1357,7 @@ Null-conditional *reads* (`var n = u?.v;`, `xs?[0]`) are unaffected.
 > **`.Result` is not an error.** Reading `Task<T>.Result` would block
 > the dispatcher, but Spek's invisible-async pass **rewrites `task.Result` into
 > `(await task)`** (same value, no blocking), so it needs no diagnostic; see
-> [invisible async](/language/async/). The blocking *method* forms `.Wait()` /
+> [invisible async](../language/async.md). The blocking *method* forms `.Wait()` /
 > `.GetResult()` stay [CE0083](#ce0083) errors.
 
 ## CE0115
@@ -1375,7 +1372,7 @@ no async form), sync I/O is *occasionally* legitimate: a one-off config read
 in an `init` block, for instance.
 
 **What Spek does:** in a handler or method body, the
-[invisible-async](/language/async/) pass **already rewrites this for you**:
+[invisible-async](../language/async.md) pass **already rewrites this for you**:
 `File.ReadAllText(p)` is emitted as `await File.ReadAllTextAsync(p)`, the same
 value with no blocked dispatcher (type-checked against `System.IO.File`, so a
 look-alike `File` of your own is untouched). The warning still fires for two
@@ -1419,7 +1416,7 @@ code), the same conservative shape as CE0083's static blocklist.
 ## CE0116
 
 **Trigger:** A `foreach` loop whose body calls a method whose name ends in
-`Async`. Under [invisible async](/language/async/) each such call is awaited
+`Async`. Under [invisible async](../language/async.md) each such call is awaited
 before the next iteration, so the waits run back-to-back; if the iterations are
 independent, that's slower than overlapping them.
 
@@ -1449,7 +1446,7 @@ actor Catalog
 together rather than one-at-a-time. CE0116 is conservative: it fires on
 `foreach` only (the canonical "process each item" shape), and only on the
 `*Async` naming convention, so a genuinely sequential loop that must run in
-order can leave it (it's a hint, not an error).
+order can leave it.
 
 ## CE0117
 
@@ -1474,7 +1471,7 @@ actor Parent
 
 **Trigger:** An actor declares both a `supervise` declaration and a hand-written
 `OnChildFailure` override. The `supervise` decl already generates `OnChildFailure`,
-so the explicit override would be silently dropped; the worst failure mode (it
+so the explicit override would be silently dropped: the worst failure mode (it
 parses, emits, and does nothing).
 
 **Example (broken):**
@@ -1492,7 +1489,7 @@ actor Parent
 ```
 
 **Fix:** pick one form. Use the declarative `supervise` (now including
-[`Resume`](/language/supervision/)), or remove the `supervise` decl and keep the
+[`Resume`](../language/supervision.md)), or remove the `supervise` decl and keep the
 imperative `OnChildFailure` override for conditional logic.
 
 ## CE0119
@@ -1511,11 +1508,11 @@ is the faster code anyway.
 
 **Why:** these bypass the serialization that makes Spek race-free. Work started
 on another thread can read and write actor state concurrently with the actor's
-own handlers; exactly the data race the language exists to prevent. Concurrency
-in Spek comes from actors; the actor (and the reader/writer shared region) is the
+own handlers: exactly the data race the language exists to prevent. Concurrency
+in Spek comes from actors. The actor (and the reader/writer shared region) is the
 only unit of concurrent execution the compiler can keep safe.
 
-**Severity:** Error. A warning wouldn't close the escape; the racy code would
+**Severity:** Error. A warning wouldn't close the escape. The racy code would
 still compile and run. Fires everywhere in Spek source: handlers, `init`, module
 and class methods, and `program`.
 
@@ -1536,9 +1533,8 @@ on StartJob job => { worker.Tell(job); }
 
 **Not flagged:** awaited Task-returning BCL calls: `File.ReadAllTextAsync(...)`,
 `Task.Delay(...)`, `HttpClient.GetAsync(...)`. Those are resumed *inside* the
-actor's turn by invisible async (see [Async without await](/language/async/));
-only thread-*spawning* is forbidden. A third-party library that spawns threads
-internally is a trust boundary the compiler can't see into; wrap its use behind
+actor's turn by invisible async (see [Async without await](../language/async.md)). Only thread-*spawning* is forbidden. A third-party library that spawns threads
+internally is a trust boundary the compiler can't see into. Wrap its use behind
 an actor.
 
 ## CE0120
@@ -1550,12 +1546,12 @@ the outward shape of a type, not the implementation.
 
 **Why:** this is the deliberate divergence from C# 8 and later, which allow
 default method bodies on an interface. Spek holds the interface to its pre-C#-8
-meaning: signatures only. Behavior always lives in the concrete type; a
+meaning: signatures only. Behavior always lives in the concrete type: a
 class's method bodies, an actor's `behavior` block, never smuggled into the
 thing it implements, so you can always see where work happens by reading the
 implementation. A field is state, which a contract likewise never carries.
 
-**Severity:** Error. The rule is the guarantee; a warning would let behavior
+**Severity:** Error. The rule is the guarantee. A warning would let behavior
 hide inside a contract anyway.
 
 **Example (rejected):**
@@ -1634,7 +1630,7 @@ actor A
 ever implement it).
 
 **Why:** an abstract method is a promise the subclass fulfills, so it only makes
-sense on an `abstract class` / `abstract actor`, and it has to be reachable; a
+sense on an `abstract class` / `abstract actor`, and it has to be reachable. A
 `private` abstract method is a contradiction. Spek's class and actor inheritance
 is reuse plus abstract methods, and nothing more: there is no `virtual`/
 `override`, because the only methods a subclass specializes are the abstract
@@ -1664,7 +1660,7 @@ reserved for abstract bases that exist to be extended), and C# is
 single-inheritance. Keeping the rule strict means a hierarchy is always shallow
 and its base is always meant to be shared. For actors specifically, the
 message-protocol side of sharing already has a home: a
-[`channel`](/language/channels/).
+[`channel`](../language/channels.md).
 
 **Example (rejected):**
 ```spek
@@ -1689,7 +1685,7 @@ variants share.
 
 **Why:** an `abstract message` is a family marker: you never send it, you handle
 it (`on Base` receives every variant). Requiring the base to be abstract keeps
-the model crisp; a base exists to be dispatched on, and a variant is one of a
+the model crisp: a base exists to be dispatched on, and a variant is one of a
 closed, deliberately-declared set.
 
 **Example (rejected):**
@@ -1737,10 +1733,11 @@ behavior**. Such a send is provably dead mail: no state the actor can `become`
 will ever process it, so at runtime it could only dead-letter.
 
 **Why:** `ActorRef` is untyped (typed `ActorRef<Channel>` is the reserved
-[CE0030](/reference/errors/#ce0030)), so a send is not type-checked against
+[CE0030](#ce0030)), so a send is not type-checked against
 its target in general. But when the compiler can *see* where the ref came
 from, "this actor can never process this message" is as provable as an
-unknown `become` target; and gets the same treatment. The check is
+unknown `become`
+target, and it gets the same treatment. The check is
 deliberately conservative in both directions:
 
 - **Handled in *another* behavior → legal.** The handled surface is the union
@@ -1752,8 +1749,8 @@ deliberately conservative in both directions:
 
 - **`on any` → handles everything.** A catch-all is precisely the declaration
   "I accept unchecked mail," so proxies and taps never flag.
-- **Private handlers count only for `self.Tell`**; they aren't part of the
-  external surface (the same split [CE0096](/reference/errors/#ce0096) makes).
+- **Private handlers count only for `self.Tell`**. They aren't part of the
+  external surface (the same split [CE0096](#ce0096) makes).
 
 **Example (rejected):**
 ```spek
@@ -1783,7 +1780,7 @@ or, for a deliberate pass-through, give the target an `on any` catch-all.
 **Trigger:** A `To<T>()` or `TryTo<T>()` call whose target type the conversion
 routing can't reason about. The target must be a numeric primitive (`int`,
 `double`, `decimal`, …) or a declared Spek `enum`, `class`, `message`, or
-`interface`; external types, generics, arrays, and nullable targets all fall
+`interface`. External types, generics, arrays, and nullable targets all fall
 outside the checked lowering, so the compiler refuses to guess.
 
 **Example (rejected):**
@@ -1821,7 +1818,7 @@ class Money
 
 ## CE0129
 
-**Trigger:** A C#-style cast, `(T)expr`. Spek has no cast operator; the parser
+**Trigger:** A C#-style cast, `(T)expr`. Spek has no cast operator. The parser
 recognizes the shape purely so this diagnostic can teach the replacement. A
 cast hides three different risk profiles (silent numeric wraparound, runtime
 downcast failure, intentional truncation), and the conversion family splits
@@ -1881,7 +1878,7 @@ enum S { A, B, AB = A | B }              // CE0130 — unions need 'flags enum'
 
 **Fix:** let the compiler assign the bits. Members without explicit values
 auto-assign the next free power of two, `None = 0` comes for free, and
-combinations are declared as unions of earlier members:
+declare combinations as unions of earlier members:
 
 ```spek
 flags enum Perm { Read, Write, Execute, ReadWrite = Read | Write }
@@ -1917,8 +1914,7 @@ module M
 
 **Fix:** declare the enum a `flags enum` if its members are meant to combine;
 keep plain enums to `==` comparisons and `switch`. The check fires only on
-literal `EnumName.Member` operands, the shape the footgun actually takes;
-general enum-typed expressions are not tracked.
+literal `EnumName.Member` operands, the shape the footgun actually takes. General enum-typed expressions are not tracked.
 
 ## CE0132
 
@@ -2065,7 +2061,7 @@ handler returns and invoke it whenever it likes, on a thread the actor does not
 own. The write then lands outside the actor's turn, concurrent with the actor's
 own handlers, with the mailbox nowhere in the path. That is the same race
 [CE0119](#ce0119) prevents, arriving through a lambda instead of a thread
-primitive, so it earns the same severity for the same reason. The other escape
+primitive, so it gets the same severity for the same reason. The other escape
 routes are already closed elsewhere: a lambda cannot travel in a message or
 come back as a reply, because message fields must be immutable
 ([CE0010](#ce0010)), and it cannot ride out inside a confined class either,
@@ -2098,7 +2094,7 @@ Capturing by value works too when the lambda only needs a snapshot: read the
 field into a local first and let the lambda close over the local.
 
 **Not flagged:** reading actor state. `items.Where(x => x.Id == filterId)` is
-the common case and stays unrestricted; a captured read cannot race, though a
+the common case and stays unrestricted. A captured read cannot race, though a
 read capture handed to *unknown* code draws the softer [CE0136](#ce0136)
 warning. Capturing locals, parameters, and messages is likewise unrestricted,
 and a state-writing lambda is free to exist, be named, and be invoked inside
@@ -2118,8 +2114,7 @@ nothing, so even a mutating comparator (`items.Sort((a, b) => { count = count +
 **Known over-approximation:** the one synchronous consumer deliberately left
 *out* of that carve-out is `ForEach`. The analysis still flags
 `List.ForEach(x => total = total + x)`, which is safe in fact, because Spek has
-`foreach` and the rewrite the diagnostic names is the better code regardless;
-nothing expressible is lost.
+`foreach` and the rewrite the diagnostic names is the better code regardless.
 ```spek
 foreach (var x in items) { total = total + x; }
 ```
@@ -2142,10 +2137,10 @@ check, so it tells you the hazard exists and lets you decide.
 
 **Severity:** Warning, the same posture as [CE0134](#ce0134). Erroring here
 would reject every legitimate synchronous callback the trusted set fails to
-name, and a read race corrupts a decision rather than the state itself; the
+name, and a read race corrupts a decision rather than the state itself. The
 author is the one who knows whether the callee retains the delegate.
 
-**Trusted (no warning):** two families, and the trust in each is *earned*, not
+**Trusted (no warning):** two families, and the trust in each is checked, not
 assumed. First, foreign callees named like a LINQ operator (`Where`, `Select`,
 `OrderBy`, `Aggregate`, and the rest of the standard operator set, plus the
 `List<T>` members with LINQ-identical synchronous semantics: `Find`, `FindAll`,
@@ -2170,7 +2165,7 @@ it may invoke the delegate directly, hand it to a LINQ-style synchronous
 consumer, or store it in its own field (the stored copy is reachable only
 through this object, and the object's own confinement (no message field
 [CE0010](#ce0010), no shared region [CE0112](#ce0112), no spawn argument
-[CE0137](#ce0137)) keeps it on this thread. What drops the trust is
+[CE0137](#ce0137)) keeps it on this thread). What drops the trust is
 *forwarding* the delegate somewhere Spek cannot see: as an argument to a foreign
 call or `new`, or as a return value. A method that does that
 (`void Take(Action a) { Acme.Global.Store(a); }`) is a sink, and its callers get
@@ -2223,8 +2218,7 @@ on-thread (which it must, so the ordinary "register a callback we never fire
 across threads" case keeps compiling) and the fact that a `reader` turn invokes
 the stored delegate concurrently with a writer is a whole-actor, reader/writer
 property that no single-method check models. It is the narrow sibling of the
-foreign-sink case this rule *does* close, and it is outside what the static
-analysis can prove.
+foreign-sink case this rule *does* close.
 
 ## CE0137
 
@@ -2252,8 +2246,7 @@ two actors hold one mutable object and every write on either side races the
 other. The sharpest version of the hazard involves no field write at all: a
 class may hold a *callback*, and [CE0136](#ce0136) deliberately trusts a
 confined-class receiver with a by-reference read capture of actor state. That
-trust is only sound if the class can never reach another actor's thread;
-this rule is what makes it sound.
+trust is only sound if the class can never reach another actor's thread. This rule is what makes it sound.
 
 **Severity:** Error, for the reason [CE0135](#ce0135) gives: a warning would
 leave two actors sharing mutable state, which is the exact condition the
@@ -2295,13 +2288,13 @@ on Go =>
 
 The gift may pass through a local (`var r = new Registry(); spawn<Child>(r);`)
 so the sender can build the object up first; what it may not do is *also*
-store that local in a field, before or after the spawn; that puts a second
+store that local in a field, before or after the spawn. That puts a second
 owner back. A class-typed parameter is the same gift one step earlier: it
 arrived owned by nobody else, so relaying it straight through to a spawn is a
 legitimate gift chain (what the parent passed was checked at the parent's own
 spawn), but storing it *and* forwarding it is the two-owner case again. To
 share data rather than hand off an object, send an immutable
-[`message`](/language/messages/).
+[`message`](../language/messages.md).
 
 **Not flagged:** a fresh `new` passed inline, a gifted local or received
 parameter that never touches actor state (the pure relay), storing a received
@@ -2310,8 +2303,7 @@ strings,
 messages, `ActorRef`s). A *foreign*-typed field argument is the documented
 residue, the same stance [CE0135](#ce0135) and [CE0136](#ce0136) take:
 whether a `StringBuilder` field is safe to hand over is unknowable without
-foreign type resolution, so the analysis stays silent rather than guess, and
-that remainder is outside what the static analysis can prove.
+foreign type resolution, so the analysis stays silent rather than guess.
 
 ## CE0138
 
@@ -2343,7 +2335,7 @@ returns `float?`, null when the value is not exactly representable;
 `TryTo<float>(MidpointRounding.ToEven)` rounds explicitly. Every genuinely
 lossless widening (`int` to `double`, `int` to `long`, `float` to `double`,
 `byte` or `short` to `float`, anything to `decimal`) passes `To<T>()`
-untouched. See [Conversions](/language/conversions/).
+untouched. See [Conversions](../language/conversions.md).
 
 ## CE0139
 
@@ -2373,7 +2365,7 @@ rejects the handler at the source.
 message IntEnvelope(int payload);
 ```
 
-Generic messages remain fine to *declare* and to *send*; the restriction is
+Generic messages remain fine to *declare* and to *send*. The restriction is
 on keying a handler's dispatch to one. This applies to every handler
 visibility, `private` included.
 
@@ -2386,8 +2378,8 @@ visibility, `private` included.
 
 ## Related reading
 
-- [Messages: the immutability whitelist](/language/messages/#the-immutability-whitelist)
-- [Messaging: Tell/ask scoping](/language/messaging/)
-- [Shared regions](/language/shared-regions/): the `shared` and `use` forms
-- [Actors](/language/actors/): the `on event` form
-- [Persistence: persist / passivate / Restore](/language/persistence/)
+- [Messages: the immutability whitelist](../language/messages.md#the-immutability-whitelist)
+- [Messaging: Tell/ask scoping](../language/messaging.md)
+- [Shared regions](../language/shared-regions.md): the `shared` and `use` forms
+- [Actors](../language/actors.md): the `on event` form
+- [Persistence: persist / passivate / Restore](../language/persistence.md)

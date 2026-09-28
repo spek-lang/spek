@@ -11,10 +11,9 @@ namespace Spek.Tests.Emit;
 /// constraint-solving, and inference. These tests prove the emitted generic
 /// C# actually compiles (not just that it contains the right substrings).
 ///
-/// Stage 1 covers the kinds that were already wired earlier - generic
-/// <c>message</c>, <c>class</c>, and <c>actor</c> - locking them with Roslyn
-/// round-trips. Generic methods/functions and `where` constraints are added in
-/// later stages (and tested there).
+/// Coverage spans generic <c>message</c>, <c>class</c>, and <c>actor</c>
+/// declarations, generic methods/functions, and `where` constraints, all
+/// locked with Roslyn round-trips.
 /// </summary>
 public sealed class GenericEmitTests(ITestOutputHelper output)
 {

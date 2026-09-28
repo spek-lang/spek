@@ -118,9 +118,10 @@ public record MethodSignature(
 //
 // A `shared X { ... }` declaration introduces per-`ActorSystem` state
 // with a reader/writer lock separate from any actor's own lock. Actors
-// attach a region with `use X foo;` inside their body. Phase 1 supports
-// only the field list: init blocks, persistence clauses, and
-// reader-only / writer-only modes are deferred to follow-up work.
+// attach a region with `use X foo;` inside their body. A region
+// declares fields, an optional init/term block, and an optional
+// capability marker (`: Persisted`); handlers access it in reader or
+// writer mode.
 
 public record SharedRegionDecl(
     SourceSpan Span,

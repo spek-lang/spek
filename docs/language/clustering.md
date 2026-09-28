@@ -10,7 +10,7 @@ description: "Distributed Spek: actors that span machines. Bedrock-aligned ISpek
 # Clustering
 
 Spek brings the actor model across the network. Everything below
-is opt-in; single-node Spek programs continue to work exactly as
+is opt-in. Single-node Spek programs continue to work exactly as
 before. Distributed Spek adds four projects on top:
 
 | Project | Purpose |
@@ -68,8 +68,7 @@ loginActor.Tell(new LoginRequest(username, password));
 ```
 
 That's it. From the message-sending code's perspective, `loginActor`
-is just an `ActorRef`. Whether it's local or remote is transparent;
-the only difference is the latency and the wire format the runtime
+is just an `ActorRef`. Whether it's local or remote is transparent. The only difference is the latency and the wire format the runtime
 uses underneath.
 
 ## Location transparency
@@ -108,8 +107,7 @@ systemB.Spawn<MyActor>();                    // local-only
 ```
 
 Named-root paths use forward slashes for hierarchy (`"workers/alice"`,
-`"services/auth/login"`). Paths are flat strings; the runtime
-treats them as opaque keys.
+`"services/auth/login"`). Paths are flat strings. The runtime treats them as opaque keys.
 
 ## Discovery and lifecycle
 
@@ -202,7 +200,7 @@ configuration change.
 
 **At-most-once with per-(sender, recipient) ordering.** Same model
 Akka, Erlang, and Orleans use. If you need stronger semantics, build
-them in your protocol; the runtime gives you the primitive.
+them in your protocol. The runtime gives you the primitive.
 
 | Guarantee | Local | Remote (TCP) |
 |---|---|---|
@@ -219,7 +217,7 @@ request-id plus ack plus retry, with the receiver deduping by
 request-id so processing stays idempotent. Every reliable distributed
 system builds that recipe on top of an at-most-once primitive.
 Timeouts come from `Ask`, which raises `TimeoutException` when no
-reply arrives inside the window; prefer it over `Tell` whenever the
+reply arrives inside the window. Prefer it over `Tell` whenever the
 caller needs to notice silence.
 
 ## Transports
@@ -242,7 +240,7 @@ sockets, no serialization. It exists so tests exercise the same code paths a
 real cluster uses without any setup overhead. Use it for unit tests, never in
 production.
 
-Both transports implement `ISpekTransport`; swapping one for the other
+Both transports implement `ISpekTransport`. Swapping one for the other
 touches only the `Cluster.Bind` call.
 
 ## Authentication and TLS

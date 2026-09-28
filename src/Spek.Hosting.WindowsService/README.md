@@ -1,8 +1,8 @@
 # Spek.Hosting.WindowsService
 
 Windows Service Control Manager adapter for [Spek](https://github.com/spek-lang/spek).
-Routes SCM lifecycle events into a Spek actor's `WindowsServiceHost`
-channel handlers.
+Routes SCM lifecycle events into a Spek actor's lifecycle message
+handlers.
 
 ## Quick start
 
@@ -11,7 +11,7 @@ channel handlers.
 // records exported by Spek.Hosting.Abstractions.
 namespace MyService;
 
-public actor Worker : WindowsServiceHost
+public actor Worker
 {
     behavior Running
     {
@@ -49,18 +49,19 @@ sc create MyService binPath= "C:\Path\To\MyService.exe"
 
 The adapter:
 
-- Hooks `ServiceBase.OnStart`, `OnStop`, `OnPause`, `OnContinue`,
-  `OnShutdown`, `OnPowerEvent`, `OnSessionChange`, and
-  `OnCustomCommand`.
+- Sends the Shutdown message on `IHostedService.StopAsync` (the SCM
+  stop path when hosted with `UseWindowsService()`).
+- Exposes public `Pause()`, `Continue()`, `PowerEvent()`,
+  `SessionChange()`, and `CustomCommand()` methods for a user-written
+  `ServiceBase` subclass to call.
 - Tells the corresponding factory-produced message to the actor.
-- Reports SCM state transitions back via `SetServiceStatus` when the
-  actor emits `StateChanged`.
 
 This package is `[SupportedOSPlatform("windows")]`, so referencing it in
 a non-Windows project is a CA1416 warning. Use `Spek.Hosting.Console`
 or your platform's adapter instead for cross-platform actors.
 
-## Channel coverage
+## Lifecycle messages
 
-This adapter satisfies the `WindowsServiceHost` channel from the
-hosting guide in the Spek documentation.
+The adapter speaks the shared lifecycle records from
+Spek.Hosting.Abstractions: `Shutdown`, `Pause`, `Continue`,
+`PowerEvent`, `SessionChange`, and `CustomCommand` in.

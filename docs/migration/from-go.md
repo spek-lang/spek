@@ -125,8 +125,7 @@ Observations from translating:
   instead of falling through a `switch` silently.
 - Go smuggles the reply address into the request struct
   (`Reply chan int`). Inside a handler, Spek's `target.Ask(new Get())`
-  with its inferred reply type handles this for you; the explicit Akka
-  Typed shape (`message Get(ActorRef replyTo)`) is also available if you
+  with its inferred reply type handles this for you. The explicit Akka Typed shape (`message Get(ActorRef replyTo)`) is also available if you
   prefer the Go-style explicit embedding.
 - Go's `for msg := range msgs` loop is implicit in Spek: the runtime
   dispatches, you write handlers.
@@ -229,7 +228,7 @@ actor Coordinator
 }
 ```
 
-This is more verbose than Go's fan-out, but it buys you supervision
+This is more verbose than Go's fan-out, but it comes with supervision
 over every worker for free. Go users reaching for goroutine pools
 often re-invent a chunk of what Spek's supervision tree already gives
 you.
@@ -238,8 +237,7 @@ you.
 
 Go's `select` is the feature with no clean Spek equivalent. `select`
 lets a goroutine wait on multiple channels at once and act on whichever
-is ready. Spek actors have exactly one mailbox; messages arrive there
-in FIFO order; `on MsgType` dispatches based on the message's type, not
+is ready. Spek actors have exactly one mailbox. Messages arrive there in FIFO order. `on MsgType` dispatches based on the message's type, not
 on "which channel it came from". There is no ready-or-else-timeout,
 no multi-channel synchronization, no priority-by-channel.
 
@@ -309,7 +307,7 @@ pieces that need identity, supervision, or persistence.
   job to model as messages.
 - **Bounded channels with backpressure.** `make(chan Msg, N)` with a
   full channel blocks the sender. Spek mailboxes are unbounded.
-- **The simplicity of plain functions + channels.** Actors buy you
+- **The simplicity of plain functions + channels.** Actors give you
   identity, supervision, and persistence; if you don't need those,
   `System.Threading.Channels` on top of `Task` is closer to the Go
   experience than spinning up an ActorSystem.
@@ -329,6 +327,6 @@ other at the top level of your system, and can internally use
 workloads. The actor boundary is where you want identity + supervision;
 everything else can stay plain.
 
-See the [language reference](/language/) for the full grammar,
-the [actors reference](/language/actors/) for lifecycle details, and
-the [runtime reference](/reference/runtime/) for the `ActorRef` API.
+See the [language reference](../language/index.md) for the full grammar,
+the [actors reference](../language/actors.md) for lifecycle details, and
+the [runtime reference](../reference/runtime.md) for the `ActorRef` API.

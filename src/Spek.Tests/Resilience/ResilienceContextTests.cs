@@ -7,7 +7,7 @@ namespace Spek.Tests.Resilience;
 
 /// <summary>
 /// Coverage for <see cref="ResilienceContext"/> - both its plain value
-/// semantics and, more importantly, the shape of the context the live
+/// semantics and the shape of the context the live
 /// dispatch loop actually hands to an <see cref="IngressPolicy"/>:
 /// actor identity, channel name derived from the message type, the
 /// message instance itself, and a sane wall-clock timestamp.

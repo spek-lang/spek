@@ -7,9 +7,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Phase 1: `shared X { fields... }` regions plus `use X foo;`
 /// attachment in actor bodies. Reader/writer handlers acquire the
-/// region's RW lock around their body. Init blocks, persistence
-/// clauses, and CE0087 extensions are out of scope here - covered by
-/// follow-up commits.
+/// region's RW lock around their body.
 /// </summary>
 public sealed class SharedRegionTests
 {

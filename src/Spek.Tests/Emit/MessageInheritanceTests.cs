@@ -10,9 +10,9 @@ namespace Spek.Tests.Emit;
 /// <c>abstract message</c> is a family base a handler keys on (<c>on Base</c>
 /// receives every variant); variants name it after the field list. Lowers to
 /// abstract/derived C# records, so <c>case Base</c> in the generated dispatch
-/// switch matches every variant by C# pattern matching. Base-carries-fields is
-/// deferred (CE0125); the base must be an empty abstract message (CE0124 guards
-/// the base itself).
+/// switch matches every variant by C# pattern matching. An abstract message
+/// base cannot carry fields (CE0125); the base must be an empty abstract
+/// message (CE0124 guards the base itself).
 /// </summary>
 public sealed class MessageInheritanceTests(ITestOutputHelper output)
 {

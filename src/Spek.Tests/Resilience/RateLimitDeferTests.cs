@@ -22,7 +22,7 @@ namespace Spek.Tests.Resilience;
 ///     disposes the lease at the end of <c>EvaluateAsync</c> (the
 ///     <c>using var lease</c> on line 47), releasing the permit
 ///     immediately rather than holding it across handler execution.
-///     Many parallel evaluations therefore all Allow.
+///     Repeated sequential evaluations therefore all Allow.
 /// </summary>
 public sealed class RateLimitDeferTests
 {
@@ -173,11 +173,11 @@ public sealed class RateLimitDeferTests
     /// acquisition, so it functions as a flat admission gate rather than
     /// a true concurrency limiter."
     ///
-    /// Therefore, even with far more than `permits` evaluations racing in
-    /// parallel, every call Allows: each one acquires, then releases
-    /// before the next observer can see it held. We fire a wave of
-    /// parallel evaluations and assert they are unanimously Allow,
-    /// pinning the documented flat-gate behavior.
+    /// Therefore, with far more than `permits` sequential evaluations,
+    /// every call Allows: each one acquires, then releases before the
+    /// next call begins. We run the evaluations one after another and
+    /// assert they are unanimously Allow, pinning the documented
+    /// flat-gate behavior.
     /// </summary>
     [Fact]
     public async Task Concurrency_ReleasesLeasePerCall_SoRepeatedEvaluationsNeverSaturateAsync()

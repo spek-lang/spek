@@ -13,5 +13,5 @@ Policy categories:
   circuit breakers, timeouts, hedging.
 
 Concrete policies ship in their own packages
-(`Spek.Resilience.RateLimiting`, `Spek.Resilience.Retries`, ...)
+(`Spek.Resilience.RateLimiting`, ...)
 and depend only on this assembly.

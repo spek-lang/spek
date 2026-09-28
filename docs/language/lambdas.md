@@ -9,7 +9,7 @@ description: "Lambda expressions and delegate-typed values inside handler and me
 
 # Lambdas
 
-[Modules](/language/modules/) gave you somewhere to put reusable
+[Modules](modules.md) gave you somewhere to put reusable
 helper functions, and most of those helpers reach for the .NET
 standard library: `List<T>`, LINQ, `Array.Sort`. Nearly every one of
 those APIs wants a *function* as an argument: a predicate to filter by,
@@ -22,7 +22,7 @@ the parenthesised list, optional parameter types, and expression-or-block
 bodies are exactly C#'s. At emit time each lambda lowers one-to-one to a
 C# lambda, so capture, type inference, and conversion to `Func<>` /
 `Action<>` are all Roslyn's job, the same "lean on the C# layer" stance
-you saw with [generics](/language/generics/).
+you saw with [generics](generics.md).
 
 {: .note }
 > **Why borrow C#'s syntax wholesale?** The dominant use of a lambda
@@ -60,7 +60,7 @@ returning the boolean `q < 10`. `Where` calls it once per element. The
 lambda's body and `q`'s type are never spelled out; Roslyn infers `q`
 is an `int` because `quantities` is a `List<int>`.
 
-The same lambda shape works just as well inside a [module](/language/modules/)
+The same lambda shape works just as well inside a [module](modules.md)
 method, away from any actor:
 
 <!-- spek-test: compile -->
@@ -131,7 +131,7 @@ A few rules fall out of these forms:
 A block body may contain any statement you could write in a normal Spek
 block (`var` declarations, `if`, `foreach`, nested calls), except the
 statements that only make sense inside an actor handler. `become`,
-`persist`, and the `sender` reference belong to the [handler](/language/actors/),
+`persist`, and the `sender` reference belong to the [handler](actors.md),
 not to an arbitrary function value, so they are out of scope inside a
 lambda.
 
@@ -212,7 +212,7 @@ module Adjustments
 > x => x + 1;`) but **not** on the right of a bare assignment to an
 > existing variable (`f = x => x + 1;` is a syntax error). When you need
 > a different function under the same name, declare a fresh
-> delegate-typed local (`Func<int, int> g = x => x + 1;`); there is no
+> delegate-typed local (`Func<int, int> g = x => x + 1;`). There is no
 > in-place reassignment form.
 
 ## Captures and closures
@@ -249,7 +249,7 @@ The first lambda captures the `threshold` field; the second captures the
 long-lived lambda stored in a field sees later mutations to what it
 captured, again exactly C#'s closure behaviour.
 
-This stays inside Spek's [isolation model](/language/isolation/): a
+This stays inside Spek's [isolation model](isolation.md): a
 lambda only ever captures state from *its own* actor's scope. There is
 no way to capture another actor's field, because no other actor's field
 is ever in scope. So long as the lambda runs where it was written,
@@ -284,7 +284,7 @@ actor Auditor
 What a writing lambda may not do is leave. Passing it to a call, storing
 it in an actor field, or returning it all hand the lambda to something
 that outlives the turn and can invoke it on a thread the actor does not
-own. Each of those is [CE0135](/reference/errors/#ce0135), and "writes"
+own. Each of those is [CE0135](../reference/errors.md#ce0135), and "writes"
 is judged the same way everywhere else in the language: a direct
 assignment to a field or property, a call to one of the actor's own
 mutating methods, a mutating method on a class-typed field, or an
@@ -301,9 +301,9 @@ on Up u =>
 Two neighbouring rules close the other doors, so the guarantee holds all
 the way round. A lambda cannot travel in a message or come back as a
 reply, because message fields must be immutable
-([CE0010](/reference/errors/#ce0010)), and Spek source cannot start a
+([CE0010](../reference/errors.md#ce0010)), and Spek source cannot start a
 thread or a timer of its own to run one
-([CE0119](/reference/errors/#ce0119)). Registration with a foreign API
+([CE0119](../reference/errors.md#ce0119)). Registration with a foreign API
 was the route left open, and CE0135 is what closes it.
 
 The two idioms that get you past the diagnostic are the ones you would
@@ -321,13 +321,13 @@ Handing such a lambda to LINQ or to the stream operators is fine and
 stays silent. So is handing it to a confined-class or module method that
 keeps the delegate on this thread: invokes it, hands it to a synchronous
 LINQ operator, or stores it in its own field, where the object's
-confinement ([CE0137](/reference/errors/#ce0137) with
-[CE0010](/reference/errors/#ce0010) and
-[CE0112](/reference/errors/#ce0112)) keeps the stored copy single-owner.
+confinement ([CE0137](../reference/errors.md#ce0137) with
+[CE0010](../reference/errors.md#ce0010) and
+[CE0112](../reference/errors.md#ce0112)) keeps the stored copy single-owner.
 What the compiler will not vouch for is a method that *forwards* the
 delegate somewhere it cannot see: a foreign call, a `new`, a return
 value. That method is a sink, and a read capture handed to it draws
-[CE0136](/reference/errors/#ce0136), the warning that names the captured
+[CE0136](../reference/errors.md#ce0136), the warning that names the captured
 field and spells out the copy idiom (`var n = name;` before the lambda,
 then close over `n`). It is a warning rather than an error because the
 capture is harmless whenever the callee only calls it synchronously, and
@@ -343,7 +343,7 @@ turn.
 
 Past both rules lie the residues neither can reach: a method call on a
 foreign-typed field the analysis cannot classify; a delegate laundered
-through reflection on the far side of `interop using`; and a confined
+through reflection after `interop using`; and a confined
 class that stores a read-capturing delegate and then fires it from a
 concurrent reader handler, where the storage looks on-thread and the
 race lives in reader/writer concurrency no per-method check models.
@@ -353,7 +353,7 @@ Those remainders are outside what the static analysis can prove.
 
 You never write `async` on a lambda; the modifier is not part of the
 grammar, the same way you never write `await` on a Task-returning call.
-[Invisible async](/language/async/) reaches *into* lambdas: when you pass
+[Invisible async](async.md) reaches *into* lambdas: when you pass
 a callback to an API whose delegate type returns a `Task`, and the
 callback makes a Task-returning call in statement position, Spek
 rewrites the lambda to `async` and awaits that call for you.
@@ -380,7 +380,7 @@ actor Middleware
 The gate is the delegate's return type: only a `Task`/`ValueTask`-returning
 delegate gets this treatment, so making a value-returning `Func<int, int>`
 "async" can never silently change its signature. See
-[Async without await](/language/async/) for the full propagation rules.
+[Async without await](async.md) for the full propagation rules.
 
 ## What Spek does not accept
 
@@ -399,8 +399,8 @@ Everything that *is* accepted lowers verbatim. Spek does not type-check
 a lambda body itself; if the emitted lambda does not type-check, the C#
 compiler reports a `CS####` against the generated code, pointing at the
 offending line, the same passthrough contract that governs
-[generics](/language/generics/) and the rest of the
-[C# syntax in bodies](/language/csharp-syntax/).
+[generics](generics.md) and the rest of the
+[C# syntax in bodies](csharp-syntax.md).
 
 ## How the `=>` token stays unambiguous
 
@@ -441,5 +441,5 @@ Lambdas are the last piece of Spek's expression syntax that needed its
 own chapter. The remaining everyday C# you reach for inside a body
 (tuples, object initializers, `using var`, switch *statements*, named
 arguments) all flows straight through to Roslyn the same way. The next
-chapter, [C# syntax in bodies](/language/csharp-syntax/), is the
+chapter, [C# syntax in bodies](csharp-syntax.md), is the
 catalogue of exactly which constructs are supported.

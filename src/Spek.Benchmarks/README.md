@@ -7,9 +7,7 @@ persistence, supervision, and ingress policies. Built on
 [BenchmarkDotNet](https://benchmarkdotnet.org/).
 
 This is the release performance gate. Run it before tagging a release, compare
-against the last baseline, and investigate regressions. The findings and what
-each number means are in
-the performance chapter of the Spek documentation (published separately).
+against the last baseline, and investigate regressions.
 
 ## Run
 
@@ -78,14 +76,14 @@ chain cost from that floor, and the token bucket (sized so nothing is ever
 rejected) shows what the shipped rate limiter's permit check adds per message.
 
 `ClusterBenchmarks` costs out the node boundary in three rungs. The baseline is
-a plain local ask; the in-memory transport arm sends the same request/reply
+a plain local ask. The in-memory transport arm sends the same request/reply
 between two `ActorSystem`s through a shared fabric (envelope construction,
 transport lookup, and a remote-sender ref rebuilt on the receiving side, but
 no bytes); the TCP arm runs it over `Spek.Cluster.Tcp` on 127.0.0.1, adding
 JSON serialization, binary framing, and a kernel loopback hop each way. Both
 nodes are stood up once in `GlobalSetup`, so the rows show the steady-state
-per-message tax rather than bootstrap cost. Remote asks aren't a runtime
-primitive yet (`AskAsync` on a remote ref throws), so the transport arms use
+per-message tax rather than bootstrap cost. Remote asks are not supported
+(`AskAsync` on a remote ref throws), so the transport arms use
 the wire request/reply idiom (Tell with a named-root sender, reply routed
 back across the transport), which carries one extra mailbox hop and a
 `TaskCompletionSource` per round trip that the baseline's pooled reply cell
@@ -117,7 +115,7 @@ continuous drain, and `PingPongLatency` bounces a message between two actors
 whose mailboxes go empty on every hop.
 
 `AskBenchmarks` covers the ask path beyond the plain round trip.
-`SequentialAsk` is the reference row; the timeout overload shows what
+`SequentialAsk` is the reference row. The timeout overload shows what
 `AsTask().WaitAsync` re-adds per call, and the Tell-with-probe row isolates the
 hand-rolled request/reply idiom (two mailbox hops plus a fresh
 `TaskCompletionSource` against ask's single hop and reply cell).
@@ -139,7 +137,7 @@ with deferral switched off; wall time includes the 1ms park, so read the
 Allocated column. The passivation pair pins down the claim that `passivate
 after` costs nothing per message: the timeout arms one periodic idle-check
 timer at materialization and nothing is re-armed per send. There is no
-arm/disarm row because no actor-facing timer surface exists; every runtime
+arm/disarm row because no actor-facing timer surface exists. Every runtime
 timer is internal.
 
 `ObservabilityCostBenchmarks` repeats the `TellThroughput` shape with each

@@ -13,9 +13,8 @@ namespace Spek.Tests.ClusterIntegration.Tcp;
 /// exchanging real TCP frames. Catches wire-format bugs, serialization
 /// bugs, handshake bugs, and the sender round-trip path.
 ///
-/// Cross-process verification (Layer 2) lives in a separate fixture
-/// that uses <c>Process.Start</c> to spawn child binaries - out of
-/// scope for these tests.
+/// Cross-process verification would need child processes and is out
+/// of scope for these tests.
 /// </summary>
 public class TcpClusterTransportTests
 {

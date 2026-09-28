@@ -5,13 +5,12 @@ namespace Spek.Cluster;
 /// <summary>
 /// Pluggable message serialization for wire transports. In-memory
 /// transports skip serialization entirely (passing objects through);
-/// wire transports (TCP, QUIC, gRPC) ask their configured serializer
-/// to convert each <see cref="RemoteEnvelope.Message"/> to bytes on
-/// send and back on receive.
+/// wire transports ask their configured serializer to convert each
+/// <see cref="RemoteEnvelope.Message"/> to bytes on send and back on
+/// receive.
 ///
 /// The default serializer is <c>JsonSpekSerializer</c>
-/// (shipped in <c>Spek.Cluster.Tcp</c>); cross-language clusters can
-/// opt into a compact binary serializer (MemoryPack/MessagePack) once shipped.
+/// (shipped in <c>Spek.Cluster.Tcp</c>).
 /// </summary>
 public interface ISpekSerializer
 {

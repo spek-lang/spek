@@ -1,16 +1,11 @@
 // UserServiceGrpcBridge.cs: hand-written bridge between protoc's
 // gRPC service base and Spek's actor.
 //
-// For now the bridge is hand-written. Each RPC override does
-// three things:
+// Each RPC override does three things:
 //   1. translate the protoc request → Spek message
 //   2. ask the actor system via SpekGrpcBridge.AskAsync
 //   3. translate the Spek reply → protoc response, mapping the
 //      reply *type* to a gRPC status code via SpekGrpcStatusMap
-//
-// This bridge is written by hand: the glue between the
-// protoc-generated service base and the Spek actor, and the
-// canonical example of the bridge shape.
 //
 // Type aliases disambiguate between Spek-side and protoc-side
 // message types: both have a `User` named type but they live

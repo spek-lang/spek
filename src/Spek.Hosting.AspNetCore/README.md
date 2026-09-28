@@ -11,7 +11,7 @@ Hosts a Spek actor as an `IHostedService` so it composes with the
 // from Spek.Hosting.Abstractions.
 namespace MyService;
 
-public actor Worker : AspNetCoreHost
+public actor Worker
 {
     behavior Running
     {
@@ -44,12 +44,12 @@ The adapter:
 - Spawns a single instance of the Spek actor at host startup.
 - On `IHostedService.StopAsync`, sends the user's `Shutdown` message
   to the actor with `Tell(..., sender: receiver)`; the actor's
-  Option-D return-value reply propagates back as the host's exit
-  code.
+  return-value reply is captured by the adapter's receiver and is not
+  surfaced as the process exit code (the Generic Host owns that
+  decision).
 - Disposes the underlying `ActorSystem` after the actor stops.
 
-## Channel coverage
+## Lifecycle messages
 
-This adapter satisfies the `AspNetCoreHost` channel from the
-hosting guide in the Spek documentation.
-The channel declares `on Shutdown;` and `emits Started;`.
+The adapter speaks the shared lifecycle records from
+Spek.Hosting.Abstractions: `Shutdown` in, `Started` out.

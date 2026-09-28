@@ -7,8 +7,8 @@ namespace Spek.Tests.Compiler;
 /// <summary>
 /// Module / method declaration parsing. Covers the
 /// grammar additions plus the AstBuilder visitors. Emit and
-/// semantic analysis land in follow-up commits; this commit's
-/// scope is: parse cleanly, produce well-shaped AST.
+/// semantic analysis are covered elsewhere; this suite covers
+/// parsing and AST shape.
 /// </summary>
 public sealed class ModuleParsingTests
 {

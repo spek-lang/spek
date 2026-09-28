@@ -38,10 +38,10 @@ actor Echo
 ```
 
 {: .note }
-> **New to Spek? Start with [Understanding Spek](/understanding-spek/).** It's a
+> **New to Spek? Start with [Understanding Spek](understanding-spek.md).** It's a
 > few minutes on who the language is for, how it borrows from C#, and the handful
-> of places it deliberately differs. That's the mental model that makes the rest
-> of the docs click.
+> of places it deliberately differs. [Where Spek comes from](heritage.md) is the
+> ancestry: Erlang, Akka, Orleans, Rust, and what Spek left behind.
 
 ## Who Spek is for
 
@@ -54,8 +54,8 @@ state, Spek does exactly that. If you've used Akka.NET or Proto.Actor, liked the
 model, and then got tired of inheriting from `ReceiveActor`, wiring up `Become`
 by hand, and finding out about mistakes only at runtime, Spek moves those checks
 to compile time. And if you want the "let it crash" discipline of Erlang/OTP but
-in a language that reads like modern C# and pulls NuGet packages natively, that's
-the language this is trying to be.
+in a language that reads like modern C# and pulls NuGet packages natively,
+that's Spek.
 
 ## Core philosophy
 
@@ -68,15 +68,15 @@ handlers with `become`, so its behavior changes as its state does. When
 something goes wrong, hierarchical supervision applies the "let it crash" model
 instead of defensive error handling.
 
-Most of this rests on a surface that reads like C#, with the same visibility
+Most of this sits on a surface that reads like C#, with the same visibility
 defaults, namespace conventions, and type syntax. What isn't C# is the
 enforcement: the actor-model rules surface as compile-time diagnostics rather
 than runtime surprises. Every one of them carries a `CE####` code and a
-triggering example in the [CE code catalog](/reference/errors/).
+triggering example in the [CE code catalog](reference/errors.md).
 
 ## What Spek includes
 
-Spek covers a full actor-model surface: messages, actors, behaviors with
+The language includes messages, actors, behaviors with
 `become`, `init` and lifecycle hooks, `persist` and `passivate`, `Ask` and
 `Tell`, `spawn`, and hierarchical supervision (`Resume`, `Restart`, `Escalate`,
 `Stop`, with retry budgets and parent supervision). Alongside the language sit
@@ -88,25 +88,27 @@ and quick-fixes to any LSP-aware editor.
 
 ## Where to go next
 
-- [Understanding Spek](/understanding-spek/): read this first. Who Spek is for,
+- [Understanding Spek](understanding-spek.md): read this first. Who Spek is for,
   how it relates to C#, and where it deliberately differs.
-- [Getting started](/getting-started/): install the toolchain and walk through
+- [Where Spek comes from](heritage.md): Erlang, Akka, Orleans, Rust, and the
+  rest: which idea Spek borrowed and where it shows up.
+- [Getting started](getting-started.md): install the toolchain and walk through
   `HelloBank`, a runnable example.
-- [Build your first actor](/language/first-actor/): learn the language by
+- [Build your first actor](language/first-actor.md): learn the language by
   building a small program from scratch, one concept at a time.
-- [Isolation & ownership](/language/isolation/): the one idea the whole language
+- [Isolation & ownership](language/isolation.md): the one idea the whole language
   follows from. A value is either shared-and-immutable or owned-and-mutable,
   never both, checked by the compiler.
-- [Language overview](/language/): the full language surface, one page at a time.
-- [Runtime reference](/reference/runtime/): `ActorSystem`, `ActorRef`,
+- [Language overview](language/index.md): the full language surface, one page at a time.
+- [Runtime reference](reference/runtime.md): `ActorSystem`, `ActorRef`,
   supervision, and persistence primitives.
-- [Error codes](/reference/errors/): every compile-time diagnostic with a
+- [Error codes](reference/errors.md): every compile-time diagnostic with a
   triggering example.
-- [Samples](/samples/): the fixture files plus `HelloBank`.
-- [Demos](/demos/): three runnable systems, two of them paired with C#
+- [Samples](samples.md): the fixture files plus `HelloBank`.
+- [Demos](demos.md): three runnable systems, two of them paired with C#
   twins, plus the benchmark suite that measures them.
-- [Migration guides](/migration/): concept-by-concept maps if you're coming from
+- [Migration guides](migration/index.md): concept-by-concept maps if you're coming from
   Akka.NET, Erlang/OTP, Proto.Actor, or Orleans.
 
-The [formal grammar](/spek-v1-grammar/) is the source of truth for syntax; this
+The [formal grammar](spek-v1-grammar.md) is the source of truth for syntax; this
 site is derived from it.

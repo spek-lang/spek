@@ -65,7 +65,7 @@ public class FileConventionsTests
     public void NestedType_DoesNotCount()
     {
         // One top-level module with a nested module - a single top-level type.
-        Assert.DoesNotContain("CE0120", Codes("module Outer { module Inner { } }", "Outer"));
+        Assert.DoesNotContain("one-type-per-file", Codes("module Outer { module Inner { } }", "Outer"));
     }
 
     [Fact]

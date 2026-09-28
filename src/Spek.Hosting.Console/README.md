@@ -53,13 +53,13 @@ use the canonical `new Shutdown()` and skip the redeclare.
 ## Exit code
 
 The handler's `return <int>;` is collected via `_currentSender.Tell`
-surfaced as the process exit code. If the
+and surfaced as the process exit code. If the
 handler has no return, the adapter defaults to `0`.
 
 ## Channel coverage
 
-This adapter satisfies the `ConsoleHost` channel from the
-hosting guide in the Spek documentation.
+This adapter satisfies the `ConsoleHost` channel shown in the
+channels chapter of the Spek documentation.
 Other host channels live in their own packages
 (`Spek.Hosting.WindowsService`, `Spek.Hosting.Systemd`,
 `Spek.Hosting.Launchd`, `Spek.Hosting.AspNetCore`).

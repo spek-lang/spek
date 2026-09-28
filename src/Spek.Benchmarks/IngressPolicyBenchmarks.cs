@@ -8,7 +8,7 @@ namespace Spek.Benchmarks;
 
 /// <summary>
 /// Per-message overhead of the ingress-policy chain. Policies run on the
-/// dispatch path for every message, so attaching one buys admission control
+/// dispatch path for every message, so attaching one adds admission control
 /// at the price measured here: a <c>ResilienceContext</c> per message plus
 /// one <c>EvaluateAsync</c> per attached policy. The token-bucket arm is
 /// sized so no message is ever rejected or deferred - it measures the

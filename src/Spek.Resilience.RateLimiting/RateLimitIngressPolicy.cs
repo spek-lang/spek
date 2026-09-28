@@ -128,9 +128,7 @@ public sealed class RateLimitIngressPolicy : IngressPolicy, IAsyncDisposable
     /// in-flight at any moment. Permits release when the lease is
     /// disposed: this policy releases immediately on acquisition,
     /// so it functions as a flat admission gate rather than a true
-    /// concurrency limiter. Use <c>ConcurrencyExecutionPolicy</c> in
-    /// <c>Spek.Resilience.Bulkheads</c> (when shipped) for leases
-    /// held across handler execution.
+    /// concurrency limiter.
     /// </summary>
     public static RateLimitIngressPolicy Concurrency(int permits)
     {

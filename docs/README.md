@@ -7,7 +7,7 @@ GitHub Pages.
 The theme gives us three things with no extra tooling: side navigation generated
 from each page's front matter (`parent` and `nav_order`), client-side full-text
 search (`search_enabled: true` in `_config.yml`), and styling built for technical
-documentation. Contributors edit Markdown; there is no Node toolchain or local
+documentation. Contributors edit Markdown. There is no Node toolchain or local
 build step required for a change to ship.
 
 ## Syntax highlighting
@@ -35,11 +35,29 @@ Open `http://127.0.0.1:4000/`. Edits to `.md` files hot-reload. The `Gemfile`
 uses the `github-pages` gem, so a local build runs the same Jekyll and Rouge
 versions as CI.
 
+## Links
+
+Point at other pages with a relative `.md` path (`heritage.md`,
+`language/actors.md`, `../reference/errors.md#ce0010`), not a site-root URL
+(`/heritage/`). Keep each link on one line. The site builder only rewrites a
+link it can see without a line break in the middle. GitHub and the editor
+resolve the file; `jekyll-relative-links` turns it into the pretty permalink
+when the site builds.
+
+```bash
+python3 scripts/check-doc-links.py
+bundle exec jekyll build
+bundle exec htmlproofer _site --disable-external
+```
+
+The first command is the source check (from the repo root). The other two run
+from this directory after `bundle install`. The `docs` workflow runs both.
+
 ## Snippets are compiled
 
 Every ` ```spek ` block in these docs is checked against the real compiler by the
 `DocSnippetTests` suite, so a published snippet cannot silently drift from the
-language. `dotnet test` runs it; there is no separate build step.
+language. `dotnet test` runs it. There is no separate build step.
 
 A block that opens with a top-level keyword (`program`, `module`, `actor`,
 `message`, `enum`, `shared`, `channel`, `using`, `namespace`) is syntax-checked.

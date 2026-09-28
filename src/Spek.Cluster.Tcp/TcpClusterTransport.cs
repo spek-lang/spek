@@ -22,7 +22,8 @@ namespace Spek.Cluster.Tcp;
 ///   <item>Length-prefixed binary framing.</item>
 ///   <item>JSON serialization of payloads (<see cref="JsonSpekSerializer"/>).</item>
 ///   <item>Mutual identity handshake at connection setup.</item>
-///   <item>Single connection per peer pair, lazy connection.</item>
+///   <item>Single connection per peer pair, opened explicitly via
+///         <c>ConnectToPeerAsync</c>.</item>
 /// </list>
 ///
 /// The transport has no TLS, no peer authentication, no reconnect on
@@ -84,7 +85,7 @@ public sealed class TcpClusterTransport : ISpekTransport
         if (!_outbound.TryGetValue(target.Id, out var conn))
         {
             DeliveryFailed?.Invoke(target, envelope, new InvalidOperationException(
-                $"No outbound connection registered for node {target}. Call ConnectToPeer() first."));
+                $"No outbound connection registered for node {target}. Call ConnectToPeerAsync() first."));
             return;
         }
 

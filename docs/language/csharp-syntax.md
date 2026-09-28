@@ -9,9 +9,9 @@ description: "The C# expression and statement subset Spek passes straight throug
 
 # C# syntax in bodies
 
-[Lambdas](/language/lambdas/) were the first piece of plain C# you wrote inside
+[Lambdas](lambdas.md) were the first piece of plain C# you wrote inside
 a handler, and they hinted at a larger rule. Spek compiles to C#, so the body
-of a handler and the body of a [module](/language/modules/) method are, for
+of a handler and the body of a [module](modules.md) method are, for
 the most part, *just C#*. The actor-shaped surface (`actor`, `on`, `become`,
 `persist`, `sender`) is Spek's. Everything between the braces is ordinary
 expression-and-statement code, written as-is and **emitted verbatim**.
@@ -27,14 +27,14 @@ error on the generated code, not a Spek-specific one.
 > shape, and lets the C# compiler validate it. There is no Spek-level type
 > system involved, so these compose with any BCL or third-party API exactly as
 > they would in C#. The Spek-specific `CE` rules from earlier chapters
-> ([CE0010](/reference/errors/#ce0010) on messages,
-> [CE0085](/reference/errors/#ce0085) on ownership) still apply *around* this
+> ([CE0010](../reference/errors.md#ce0010) on messages,
+> [CE0085](../reference/errors.md#ce0085) on ownership) still apply *around* this
 > code; they just don't reach *inside* an expression.
 
 ## Bodies are bodies
 
 The same C# flows through wherever a body is allowed: a handler body, a module
-function, a [class](/language/classes/) method. The only difference is what's in
+function, a [class](classes.md) method. The only difference is what's in
 scope. Inside a handler you can name fields, the bound message, and `sender`;
 inside a module method you can't, because there's no actor. The C# in between
 is identical.
@@ -42,7 +42,7 @@ is identical.
 Here's a handler body leaning on three constructs at once (a `var` local, a
 switch *expression*, and string interpolation) alongside the field and
 message-binding access you already know from
-[Sending messages](/language/messaging/):
+[Sending messages](messaging.md):
 
 <!-- spek-test: compile -->
 ```spek
@@ -87,7 +87,7 @@ module Geometry
 
 ## Tuples
 
-Tuple literals `(a, b)` build a `ValueTuple`; C# infers the element types. A
+Tuple literals `(a, b)` build a `ValueTuple`. C# infers the element types. A
 single parenthesized expression stays a grouping; a tuple needs at least one
 comma.
 
@@ -180,14 +180,14 @@ module Sums
 
 {: .note }
 > Arrays are **mutable**, so an array can't be a `message` field; that's a
-> [CE0010](/reference/errors/#ce0010) error (see
-> [Messages](/language/messages/)). Use an `ImmutableArray`/`ImmutableList` for
+> [CE0010](../reference/errors.md#ce0010) error (see
+> [Messages](messages.md)). Use an `ImmutableArray`/`ImmutableList` for
 > message payloads.
 
 ## Object & collection initializers
 
 `new T { … }` (object initializer with property assignments) and
-`new T(args) { … }` / collection initializers all work; Roslyn decides which
+`new T(args) { … }` / collection initializers all work. Roslyn decides which
 form is valid for the type:
 
 <!-- spek-test: compile -->
@@ -224,7 +224,7 @@ module Resources
 ## Switch statement
 
 Spek has both forms. The **switch *expression*** produces a value (one
-expression per arm; see [Enums](/language/enums/) for exhaustive matching); the
+expression per arm; see [Enums](enums.md) for exhaustive matching); the
 **switch *statement*** is the C-style value-less branch with `case`/`default`
 labels and full statement bodies, including shared-label fall-through and
 `when` guards on patterns:
@@ -272,7 +272,7 @@ module Describe
 
 {: .note }
 > The switch statement adds no capability over `if / else if` (which also takes
-> full statement blocks); it's there for familiarity. Reach for the switch
+> full statement blocks). It's there for familiarity. Reach for the switch
 > *expression* when each branch yields a value; the statement when each branch
 > *does* something.
 
@@ -315,7 +315,7 @@ The everyday operator and control-flow surface flows through the same way:
 `<< >>`; null-coalescing `??`; `is` (with capture) and `as`;
 null-conditional `?.` / `?[`; and compound assignment `+=`/`%=`/`??=`/etc.
 There is no cast operator; conversions go through `To<T>()` and `TryTo<T>()`
-(see [Conversions](/language/conversions/)).
+(see [Conversions](conversions.md)).
 
 ## Where passthrough stops
 
@@ -323,23 +323,23 @@ The line is drawn at *concurrency*, not syntax. A handler runs on a shared
 thread pool, so a blocking call (`Task.Wait()`, `.Result`, a synchronous
 `Thread.Sleep`) would stall a worker and starve sibling actors. Spek doesn't
 pass those through unchanged: it either auto-awaits them (see
-[Async without await](/language/async/)) or flags the blocking shape. That's the
+[Async without await](async.md)) or flags the blocking shape. That's the
 one place this chapter's "write it like C#" rule yields to the actor model, and
-[Common pitfalls](/language/footguns/) walks through each case.
+[Common pitfalls](footguns.md) walks through each case.
 
 ## Next
 
 You've now seen the full vocabulary a body can use. The
-[next chapter](/language/shared-regions/) steps back out to the actor surface:
+[next chapter](shared-regions.md) steps back out to the actor surface:
 **shared regions** let many actors *read* the same state concurrently while a
-single writer mutates it. That's share-XOR-mutate ([Isolation and
-ownership](/language/isolation/)) scaled up from one actor to a region.
+single writer mutates it. That's share-XOR-mutate
+([Isolation and ownership](isolation.md)) scaled up from one actor to a region.
 
 ## Related
 
-- [Common pitfalls](/language/footguns/): where Spek does *not* pass C# through
+- [Common pitfalls](footguns.md): where Spek does *not* pass C# through
   unchanged (blocking calls, sync I/O), and what it does instead.
-- [Async without await](/language/async/): invisible async over Task-returning
+- [Async without await](async.md): invisible async over Task-returning
   calls.
-- [Error codes](/reference/errors/): the Spek-specific `CE` rules layered on
+- [Error codes](../reference/errors.md): the Spek-specific `CE` rules layered on
   top of the C# passthrough.

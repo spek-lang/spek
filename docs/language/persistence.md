@@ -10,8 +10,8 @@ description: "Make an actor's state durable with persist + snapshots, restore it
 # Persistence and passivation
 
 So far your actors have lived entirely in memory. That is fine while the
-process is up, since [isolation](/language/isolation/) guarantees nobody else can
-corrupt their state, and [supervision](/language/supervision/) restarts them
+process is up, since [isolation](isolation.md) guarantees nobody else can
+corrupt their state, and [supervision](supervision.md) restarts them
 when a handler throws. But a restart under supervision starts the actor from
 its `init` block again: a freshly-restarted bank account is back to a zero
 balance. And when the *process* exits, every actor's state is gone.
@@ -69,7 +69,7 @@ actor Account
 ```
 
 `persist;` compiles to an `await` of the runtime's snapshot write, so it
-participates in [invisible async](/language/async/) like any other awaited
+participates in [invisible async](async.md) like any other awaited
 call: the handler suspends until the write completes and the actor
 processes no other message in the meantime. A snapshot taken mid-handler
 always reflects the field values *at that point*, so put `persist;` after the
@@ -77,17 +77,17 @@ mutations you want to durably record, as in the `Deposit` handler above.
 
 ### Where `persist;` is allowed
 
-`persist;` is a write; it commits the actor's state, so it belongs in code
+`persist;` is a write. It commits the actor's state, so it belongs in code
 that is allowed to mutate that state:
 
 - It must appear inside an `on` handler **body**. Using it in `init`, a plain
-  helper method, or a lifecycle hook is [CE0050](/reference/errors/#ce0050),
+  helper method, or a lifecycle hook is [CE0050](../reference/errors.md#ce0050),
   because those run outside message dispatch, where "save the current state" has
   no well-defined meaning.
 - It can't appear in a `reader` handler. Readers promise not to mutate state
   (that is what lets the runtime run them concurrently; see
-  [isolation](/language/isolation/)), and persisting is a writer-class
-  operation, so the compiler rejects it as [CE0087](/reference/errors/#ce0087).
+  [isolation](isolation.md)), and persisting is a writer-class
+  operation, so the compiler rejects it as [CE0087](../reference/errors.md#ce0087).
   Move the `persist;` into the writer arm that made the change.
 
 ## Durable vs. session-scoped: it's decided at spawn
@@ -108,10 +108,9 @@ ActorRef acc = system.SpawnPersistent<Account>("account-alice");
 `SpawnPersistent` binds the actor to a stable key. If the store already holds a
 snapshot for that key, because a previous process saved one, the actor is
 restored from it *before the first message is dispatched*. So the same actor
-type is free to run as a throwaway in a test and as a durable entity in
-production; only the spawn call differs. See the
-[runtime reference](/reference/runtime/#spawning) for the full spawning API and
-[`ISnapshotStore`](/reference/runtime/#isnapshotstore) for the bundled stores
+type is free to run as a throwaway in a test and as a durable entity in production. Only the spawn call differs. See the
+[runtime reference](../reference/runtime.md#spawning) for the full spawning API and
+[`ISnapshotStore`](../reference/runtime.md#isnapshotstore) for the bundled stores
 (in-memory, file, SQLite, and append-only log).
 
 {: .note }
@@ -119,7 +118,7 @@ production; only the spawn call differs. See the
 > session-scoped. Persistent identity does not propagate through child
 > spawns; each durable actor gets its key explicitly from host code.
 
-## Auto-restore: no `on Restore` needed
+## Auto-restore: no `on Restore` needed {#auto-restore}
 
 Here is the part that keeps simple persistence simple. When you write a
 persistent actor and *don't* provide a restore handler, the compiler generates
@@ -211,8 +210,7 @@ care about. A few things to know:
 - **`Snapshot.Get<T>(name)` is type-safe.** A wrong type throws, so a field
   rename or type change during a schema migration fails loudly instead of
   silently reading a default.
-- **`become` is allowed here** even though `on Restore` isn't a message
-  handler; the semantic analyzer permits `become` in lifecycle hooks. Without
+- **`become` is allowed here** even though `on Restore` isn't a message handler. The semantic analyzer permits `become` in lifecycle hooks. Without
   it, a multi-behavior actor would restore its data but resume in the wrong
   behavior.
 - The same handler serves both restore paths: a `SpawnPersistent` against a key
@@ -272,8 +270,7 @@ The actor reference stays valid the whole time. The *next* message rematerialize
 the actor from its snapshot, runs the restore (auto-generated or your
 `on Restore`), and then delivers the queued message. A passivated persistent
 actor therefore wakes with its state intact; a passivated session-scoped actor
-(no key) wakes fresh from `init`, having only released memory. Either way the
-sender never sees the round trip; it is invisible from the outside.
+(no key) wakes fresh from `init`, having only released memory. Either way the sender never sees the round trip.
 
 {: .note }
 > Passivation and persistence are orthogonal. You can `passivate` without ever
@@ -330,13 +327,13 @@ from a schema. `transient` excludes a field that should always be recomputed.
 `deprecated` then `retired` is the safe two-step retirement: deprecate it
 while readers migrate off (the data still survives), then retire it to evict it
 from the store. Both `transient` and `retired` fields are excluded from
-auto-restore, exactly as they are from capture, so the symmetry holds.
+auto-restore, exactly as they are from capture.
 
 {: .note }
 > The reference-level policing of these markers, a compile *warning*
-> ([CE0101](/reference/errors/#ce0101)) when you read a `deprecated` field and a
-> hard *error* ([CE0102](/reference/errors/#ce0102)) when you read a `retired`
-> one, applies to fields of [shared regions](/language/shared-regions/),
+> ([CE0101](../reference/errors.md#ce0101)) when you read a `deprecated` field and a
+> hard *error* ([CE0102](../reference/errors.md#ce0102)) when you read a `retired`
+> one, applies to fields of [shared regions](shared-regions.md),
 > accessed through a `use` local. On a plain actor field the markers govern
 > only what the snapshot stores; you can still read your own actor's
 > `deprecated` or `retired` fields freely.
@@ -351,7 +348,7 @@ auto-restore, exactly as they are from capture, so the symmetry holds.
 | `passivate after System.TimeSpan.FromMinutes(30)` | `protected override TimeSpan? PassivationTimeout => TimeSpan.FromMinutes(30);` |
 | `transient` / `retired` field                   | omitted from the generated `CaptureFields` and the restore           |
 
-See the [runtime reference](/reference/runtime/#isnapshotstore) for the
+See the [runtime reference](../reference/runtime.md#isnapshotstore) for the
 `ISnapshotStore` API and the bundled stores.
 
 ## Next
@@ -359,5 +356,5 @@ See the [runtime reference](/reference/runtime/#isnapshotstore) for the
 You've now seen `persist;` and the auto-generated restore lean on `await`
 without you writing a single `async` or `await` keyword. That
 "invisible async" is a feature in its own right, and it's where we go next:
-[Async without await](/language/async/) shows how Task-returning calls are
+[Async without await](async.md) shows how Task-returning calls are
 auto-awaited and how async propagates through your handlers.

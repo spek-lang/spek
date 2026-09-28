@@ -7,7 +7,7 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Channels emit as marker C# interfaces decorated with
 /// <c>[Spek.Hosting.SpekChannelMetadata]</c>. Hosting adapters
-/// (REST, future gRPC, queue, etc.) read the attribute via
+/// (REST, gRPC, etc.) read the attribute via
 /// reflection to recover the channel's input/emit message sets.
 /// Actors that implement a channel emit as <c>: ChannelName</c> on
 /// the C# class so the implementation relationship survives at

@@ -109,7 +109,7 @@ generated from it, is one step:
 spekc proto-export src/UserApi.spek UserApi --out protos/user_api.proto --package userapi
 ```
 
-Neither verb is wired into MSBuild; when you want the conversion to run
+Neither verb is wired into MSBuild. When you want the conversion to run
 as part of a build, invoke it from a target you write.
 
 ## What's manual, what's automated
@@ -167,10 +167,6 @@ builder.Services.AddGrpcReflection();
 app.MapGrpcReflectionService();
 ```
 
-Because Spek's bridge subclasses a standard protoc-generated
-service base, anything that works on a regular gRPC service
-works on the Spek-backed one.
-
 ## What's not supported
 
 - **Streaming RPCs** (server-streaming, client-streaming, bidi).
@@ -180,4 +176,4 @@ works on the Spek-backed one.
   multiple `emits` declarations use the first emit type as the
   proto response and emit a placeholder comment.
 - **MSBuild integration.** The `spekc proto-import`/`-export`
-  verbs run from a target you write; no packaged target ships.
+  verbs run from a target you write.

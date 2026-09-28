@@ -7,7 +7,8 @@ name: docs
 #
 # Every job is gated on a `guard` step that checks for docs/: on a branch
 # without the directory the workflow succeeds as a no-op instead of failing
-# at the Ruby/Jekyll steps.
+# at the Ruby/Jekyll steps. Pull requests that touch docs/ build and check
+# links but do not deploy.
 #
 # To use it, set the repository's Pages source to "GitHub Actions"
 # (Settings -> Pages -> Build and deployment -> Source).
@@ -18,6 +19,12 @@ on:
     paths:
       - "docs/**"
       - ".github/workflows/docs.yml"
+      - "scripts/check-doc-links.py"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+      - "scripts/check-doc-links.py"
   workflow_dispatch:
 
 permissions:
@@ -58,6 +65,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check markdown links
+        run: python3 scripts/check-doc-links.py
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -75,14 +85,26 @@ jobs:
         env:
           JEKYLL_ENV: production
 
+      - name: Check built HTML links
+        working-directory: "docs"
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          extra=()
+          if [ -n "$BASE_PATH" ]; then
+            extra+=(--swap-urls "^${BASE_PATH}/:/")
+          fi
+          bundle exec htmlproofer _site --disable-external --no-enforce-https "${extra[@]}"
+
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: "docs/_site"
 
   deploy:
     needs: [guard, build]
-    if: needs.guard.outputs.has_docs == 'true'
+    if: github.event_name != 'pull_request' && needs.guard.outputs.has_docs == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

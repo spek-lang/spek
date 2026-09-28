@@ -9,9 +9,7 @@ namespace Spek.Benchmarks;
 ///
 /// MemoryDiagnoser reports bytes allocated per operation - the figure to watch
 /// for per-message hot-path allocations (mailbox tuple, the observability tag
-/// array on every Enqueue, Activity.Current capture). ThreadingDiagnoser
-/// reports completed/queued work items and lock contentions - the figures that
-/// expose the thread-pool dispatch model.
+/// array on every Enqueue, Activity.Current capture).
 /// </summary>
 [MemoryDiagnoser]
 public class MessagingBenchmarks

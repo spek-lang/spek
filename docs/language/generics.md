@@ -9,7 +9,7 @@ description: "Type parameters on classes, actors, messages, methods, and functio
 
 # Generics
 
-The [classes](/language/classes/) and [modules](/language/modules/) you've
+The [classes](classes.md) and [modules](modules.md) you've
 written so far have all been *concrete*: a `class Box` that holds an `int`, a
 module method that takes a `string`. But a box that holds an `int` and a box
 that holds a `string` are the same code with one type swapped, and copying it
@@ -24,7 +24,7 @@ type arguments, and `where` constraints verbatim, and the C# compiler does the
 type-checking, inference, and constraint-solving. There is no second type
 system to learn: if it's valid C# generics, it's valid Spek generics. This is
 the same "C# idioms first, Roslyn type-checks them" rule you saw with
-[C# syntax in bodies](/language/csharp-syntax/), now applied to declarations.
+[C# syntax in bodies](csharp-syntax.md), now applied to declarations.
 
 ## Generic classes
 
@@ -47,7 +47,7 @@ class Box<T>
 At the use site you supply the type argument when you construct the value:
 `new Box<int>(0)` makes a box of `int`, `new Box<string>("hi")` a box of
 `string`: one declaration, every element type. Because a `class` is a
-[confined actor-local helper](/language/classes/), a `Box<int>` lives inside a
+[confined actor-local helper](classes.md), a `Box<int>` lives inside a
 single actor and obeys share-XOR-mutate exactly like a non-generic class:
 
 <!-- spek-test: compile -->
@@ -92,7 +92,7 @@ class Pair<TFirst, TSecond>
 
 A routine can have its own type parameters even when its enclosing type does
 not. The list goes right after the method or function name, C#-style. Module
-methods ([modules](/language/modules/) lower to C# static classes) are the
+methods ([modules](modules.md) lower to C# static classes) are the
 natural home for generic helpers:
 
 <!-- spek-test: compile -->
@@ -157,7 +157,7 @@ actor Cache<TKey, TValue>
 ```
 
 A type parameter used as a message field (the `T value` in `Cell<T>`) passes
-the [message immutability check](/language/messages/) (CE0010). A bare type
+the [message immutability check](messages.md) (CE0010). A bare type
 parameter carries no mutable state of its own, so it can't smuggle a mutable
 field into a message record.
 
@@ -229,7 +229,7 @@ actor Holder<T> where T : class
 
 Because generics are passthrough, a *grammar* mistake (a stray `<`, a
 constraint on a kind that can't take one) is still a Spek
-[CE](/reference/errors/); Spek's parser owns the syntax. But a *type* mistake
+[CE](../reference/errors.md). Spek's parser owns the syntax. But a *type* mistake
 is reported by **Roslyn**, on the generated C#:
 
 {: .note }
@@ -252,27 +252,26 @@ A few corners are intentionally out of scope:
 - **No variance markers.** `in` / `out` on a type parameter (declaration-site
   variance) isn't part of the grammar.
 - **`message` constraints aren't supported.** Type parameters on a `message`
-  work, but a `where` clause on a message is a parse error; constraints on
-  immutable data records are rare enough not to earn the grammar.
+  work, but a `where` clause on a message is a parse error. Constraints on immutable data records are rare enough that the grammar does not include them.
 - **Enums, channels, and shared regions aren't generic.** An
-  [enum](/language/enums/) is a closed set of concrete variants, a
+  [enum](enums.md) is a closed set of concrete variants, a
   channel is a concrete message contract, and a shared region holds concrete
   shared state, so a type parameter on any of them is a grammar error.
 - **A handler cannot be keyed on a generic message.** `on Envelope` where
-  `Envelope<T>` is generic is [CE0139](/reference/errors/#ce0139): the
+  `Envelope<T>` is generic is [CE0139](../reference/errors.md#ce0139): the
   pattern has no way to name the type argument. Dispatch on a concrete
   wrapper message instead.
 
 ## What's next
 
 Generics let you abstract over *types*. The next chapter,
-[Lambdas](/language/lambdas/), lets you abstract over *behavior*, passing a
+[Lambdas](lambdas.md), lets you abstract over *behavior*, passing a
 piece of code as a value, which pairs naturally with generic helpers like a
 `Map<T, U>` that takes a function from `T` to `U`.
 
 ## Related reading
 
-- [Classes](/language/classes/): the type kind generics most often parameterize.
-- [Modules](/language/modules/): where generic helper methods live.
-- [Messages](/language/messages/): generic payloads and the immutability rule.
-- [C# syntax in bodies](/language/csharp-syntax/): the broader "Roslyn type-checks it" passthrough story.
+- [Classes](classes.md): the type kind generics most often parameterize.
+- [Modules](modules.md): where generic helper methods live.
+- [Messages](messages.md): generic payloads and the immutability rule.
+- [C# syntax in bodies](csharp-syntax.md): the broader "Roslyn type-checks it" passthrough story.

@@ -1,7 +1,7 @@
 # AlertHub: contracts and inheritance, across files
 
 An ops alert router that exercises every contract and inheritance form in the
-language, and does it across ten files, because the compiler now resolves
+language, and does it across nine files, because the compiler now resolves
 types across a whole project, not file by file. Each type lives in its own
 file, named after the type, the way a C# project would lay it out.
 

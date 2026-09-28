@@ -138,8 +138,7 @@ a key, which is exactly what the naming layer above would add.
   guarantee that the arguments are immutable.
 - **Lightweight.** An `ActorRef` in Spek is a reference to a slot,
   local by default. A single-process program carries no silo and no
-  cluster plumbing, so small programs have no cold-start cost;
-  clustering is opt-in packages when you want it.
+  cluster plumbing, so small programs have no cold-start cost. Clustering is opt-in packages when you want it.
 
 ## Orleans features with no Spek equivalent
 
@@ -150,7 +149,7 @@ a key, which is exactly what the naming layer above would add.
 - **Reminders**: persistent scheduled callbacks. Spek has nothing like
   this; roll your own with a background timer actor.
 - **Streams**: no Orleans-style pub/sub stream provider. Spek's
-  [stream operators](/language/streams/) shape a single handler's
+  [stream operators](../language/streams.md) shape a single handler's
   input; they are not a cross-actor streaming system.
 - **Transactions across grains**: Orleans has distributed transactions;
   Spek doesn't.

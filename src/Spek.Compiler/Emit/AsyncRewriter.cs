@@ -21,9 +21,10 @@ namespace Spek.Compiler.Emit;
 ///     (statements, value-typed bindings, operands, member access, args).
 ///   * A Task-bound local *defers*: an explicit <c>Task&lt;T&gt;</c> local
 ///     always (the developer named the Task type), and a <c>var</c>-bound
-///     <c>Task</c> local when its method is *single-exit* (no early
-///     returns) - so deferral is only applied where provably safe; every
-///     other case falls back to eager await, which is always safe.
+///     <c>Task</c> local when it is declared at the method body's top
+///     level - so deferral is only applied where the join can see every
+///     exit; every other case falls back to eager await, which is
+///     always safe.
 ///   * Uses of a deferred Task local are awaited at the value-use
 ///     (generalized to Task-typed identifiers, not just invocations);
 ///     this is what makes lazy <c>var</c> concurrent and makes the
@@ -37,8 +38,8 @@ namespace Spek.Compiler.Emit;
 ///
 /// <c>ValueTask</c> stays eager (it can't be awaited twice). Constructors,
 /// lambdas, local functions and accessors are never auto-awaited.
-/// Not yet covered (eager fallback, safe): deferral across early returns /
-/// nested scopes, and excluding forwarded Tasks from the join.
+/// Not covered (eager fallback, safe): deferral for nested-scope locals,
+/// and excluding forwarded Tasks from the join.
 /// </summary>
 public static class AsyncRewriter
 {
@@ -454,8 +455,8 @@ public static class AsyncRewriter
             if (EnclosingCallableIsLambda(node) && node.Parent is not ExpressionStatementSyntax)
                 return false;
 
-            // Deferred bindings (explicit Task local, or var Task in a
-            // single-exit method) are not awaited here - the use / join is.
+            // Deferred bindings (explicit Task local, or top-level var
+            // Task) are not awaited here - the use / join is.
             if (IsDeferredBinding(node)) return false;
 
             return true;
@@ -509,8 +510,8 @@ public static class AsyncRewriter
         /// <summary>
         /// A Task-returning call bound to a local that should keep the Task
         /// (defer the await): an explicit Task/ValueTask-typed local always;
-        /// a <c>var</c>-bound <c>Task</c> only in a single-exit method (where
-        /// the join can guarantee completion). Everything else awaits eagerly.
+        /// a <c>var</c>-bound <c>Task</c> only when declared at the method
+        /// body's top level. Everything else awaits eagerly.
         /// </summary>
         private bool IsDeferredBinding(InvocationExpressionSyntax node)
         {
@@ -759,7 +760,7 @@ public static class AsyncRewriter
         // compilation doesn't reference Spek.Runtime (see BuildFrameworkReferences),
         // so `Spek.ActorBase` resolves as an error type and a symbol-based base-type
         // walk is unreliable. The emitter always writes `: Spek.ActorBase` on actor
-        // classes, so checking the enclosing class's base list is robust. (The callee
+        // classes, so checking the enclosing class's base list is reliable. (The callee
         // CancellationToken resolution stays semantic - BCL types DO resolve.)
         private bool InActorContext(SyntaxNode node)
         {

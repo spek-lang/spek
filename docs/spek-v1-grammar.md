@@ -1,7 +1,7 @@
 ﻿# Spek v1 grammar: PEG specification
 
 This document defines the formal Parsing Expression Grammar (PEG) for Spek
-v1.x. PEG grammars are deterministic and unambiguous by definition; the
+v1.x. PEG grammars are deterministic and unambiguous by definition. The
 `/` operator is ordered choice, not alternation. The first matching
 alternative wins.
 
@@ -50,7 +50,7 @@ This mirrors C# file-scoped namespace syntax exactly.
 
 The `interop` modifier on `using` opts out of CE0080 (hostile-namespace
 import block) and accepts CE0086 (interop bypasses safety guarantees) in
-exchange; see the errors reference for the full table.
+exchange. See the errors reference for the full table.
 
 
 ## 2. Message declarations
@@ -112,7 +112,7 @@ WhereClause     ← 'where' Spacing Identifier ':' Spacing Constraint (',' Spaci
 Visibility defaults to `private` (assembly-internal) when omitted, matching C# conventions.
 
 The colon list mixes one optional **base actor** with any number of
-implemented **channels**; semantic analysis classifies each name by its
+implemented **channels**. Semantic analysis classifies each name by its
 declared kind (a second actor-typed name is CE0091). Only an `abstract actor`
 can be a base (CE0123): concrete actors are sealed. `WhereClause` carries
 C# generic constraints verbatim (`where T : IComparable<T>`, `class`,
@@ -194,7 +194,7 @@ BaseInit        ← ':' Spacing 'base' '(' ArgList? ')' Spacing
 Runs once when the actor is spawned. Typically ends with a `become` statement
 to set the initial active behavior. Corresponds to the actor's constructor.
 `BaseInit` chains to an abstract base's parameterized constructor: the C#
-`: base(...)` idiom; it applies to classes extending an `abstract class` and
+`: base(...)` idiom. It applies to classes extending an `abstract class` and
 actors extending an `abstract actor`.
 
 The disposal counterpart is the `term` block:
@@ -243,7 +243,7 @@ The compiler verifies at compile time that every `become` target names a
 behavior that is declared on the same actor (CE0011).
 
 Unhandled messages (no matching `on` handler in the active behavior) are
-routed to the dead letter queue, never silently dropped.
+routed to the dead letter queue.
 
 #### Handler modes
 
@@ -1253,7 +1253,7 @@ When translating this PEG grammar to an ANTLR4 `.g4` file for the C# compiler:
 - `Spacing` disappears: ANTLR4 handles whitespace via a `-> skip` channel rule
 - The `Keyword` negative lookahead guard becomes ANTLR4's automatic keyword vs identifier priority (keywords listed before `IDENTIFIER` in the lexer)
 - Use the `Antlr4.Runtime.Standard` NuGet package for the C# runtime target
-- Visitor pattern (`AbstractParseTreeVisitor<T>`) is recommended over listener for AST construction
+- Prefer the visitor pattern (`AbstractParseTreeVisitor<T>`) over the listener for AST construction
 
 
 ## 18. Class declarations

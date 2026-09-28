@@ -9,7 +9,7 @@ description: "Modules: stateless containers of static methods; where shared, sid
 
 # Modules
 
-[Classes](/language/classes/) gave actors a place to keep mutable helpers
+[Classes](classes.md) gave actors a place to keep mutable helpers
 *inside* the isolation boundary. But not every helper needs state. A
 method that validates an email address, formats a name, or slugifies a
 string has no fields to protect. It takes values in and hands values back.
@@ -63,7 +63,7 @@ public static class Validators
 ## Calling a module from a handler
 
 A module method is called by its **qualified name**, `Module.Method(args)`,
-from anywhere, including inside a [message handler](/language/messages/).
+from anywhere, including inside a [message handler](messages.md).
 Because the call is just a static method invocation, there's no mailbox, no
 `Tell`, no `Ask`; the result comes straight back like any expression.
 
@@ -89,7 +89,7 @@ actor Greeter
 }
 ```
 
-The same call composes with the [return-to-reply idiom](/language/messaging/):
+The same call composes with the [return-to-reply idiom](messaging.md):
 build the reply message directly from the module's result.
 
 <!-- spek-test: compile -->
@@ -112,10 +112,9 @@ actor Normalizer
 ```
 
 Because a module holds no state, calling one from a handler is always safe:
-there is nothing for two actors to race over. The
-[isolation guarantees](/language/isolation/) you rely on between actors are
-never at risk, so a module is the natural place to factor out logic that
-several actors share.
+there is nothing for two actors to race over, which makes a module the
+natural place to factor out [isolation](isolation.md)-safe logic
+that several actors share.
 
 ## Modules are stateless
 
@@ -124,7 +123,7 @@ A module has **no instance fields, no mutable state, no `self`, no
 namespace for methods, like an Erlang module or a C# static class. The
 moment you need state or concurrency, that's an `actor` again; if you need
 per-`ActorSystem` shared state, that's a
-[shared region](/language/shared-regions/).
+[shared region](shared-regions.md).
 
 A module's methods are **static** (no instance to belong to); an actor's
 or class's methods are **instance** methods (they operate on that object's
@@ -198,7 +197,7 @@ Methods and nested modules occupy **independent namespaces** inside a
 module: a method and a nested module may share a name without
 conflict, the same separation C# draws between methods and nested types.
 Duplicate methods, or duplicate nested modules, within the same module
-are rejected as [CE0013](/reference/errors/#ce0013).
+are rejected as [CE0013](../reference/errors.md#ce0013).
 
 ## Parameter modifiers: `in` / `ref` / `out`
 
@@ -258,7 +257,7 @@ modifier matches the declaration. Inline `out var` declarations
 
 ## A note on async
 
-Module methods participate in Spek's [invisible async](/language/async/)
+Module methods participate in Spek's [invisible async](async.md)
 just like handlers do. When a module method calls something that returns a
 `Task<T>` (for example a framework I/O API), you work with `T` directly;
 the compiler inserts the `await` and marks the method `async`. That
@@ -282,27 +281,26 @@ module Io
 }
 ```
 
-Both methods emit as `async Task<int>`, and both call sites are awaited;
-you never annotate the chain. This is only a glance at the feature;
-[Async without await](/language/async/) is the full story (why it's safe,
+Both methods emit as `async Task<int>`, and both call sites are awaited. You never annotate the chain. This is only a glance at the feature;
+[Async without await](async.md) is the full story (why it's safe,
 the `var`-for-concurrency lever, and the explicit-`Task<T>` escape hatch).
 
 ## Limits
 
 Modules hold no mutable state, by design. If you reach for a field, you
-want an [actor](/language/actors/) or a
-[shared region](/language/shared-regions/).
+want an [actor](actors.md) or a
+[shared region](shared-regions.md).
 
 So far every method has been written with concrete types. The next
-chapter, [Generics](/language/generics/), adds type parameters to modules,
+chapter, [Generics](generics.md), adds type parameters to modules,
 actors, messages, and classes, letting one method serve many types,
 with Roslyn doing the type-checking on the emitted code.
 
 ## Related reading
 
-- [CE0013](/reference/errors/#ce0013): duplicate-declaration detection,
+- [CE0013](../reference/errors.md#ce0013): duplicate-declaration detection,
   including duplicate methods / nested modules inside a module.
-- [Sending messages: Tell and Ask](/language/messaging/): the return-to-reply
+- [Sending messages: Tell and Ask](messaging.md): the return-to-reply
   idiom a handler uses to hand a module's result back to the asker.
-- [Async without await](/language/async/): invisible async, which applies
+- [Async without await](async.md): invisible async, which applies
   inside module methods exactly as it does inside handlers.

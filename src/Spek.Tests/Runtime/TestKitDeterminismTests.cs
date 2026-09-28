@@ -13,7 +13,7 @@ public class TestKitDeterminismTests
 {
     public record Work(int msDelay);
 
-    // Observable completion via a static flag - ActorBase.Underlying is
+    // Observable completion via a static flag - ActorRef.Underlying is
     // runtime-internal, so the test can't reach the instance; a static is the
     // simplest cross-thread signal for a poll helper to watch.
     private static volatile bool _workDone;

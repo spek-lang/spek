@@ -272,8 +272,8 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
         // Append-side robustness: NextSequence has an explicit fallback for a
         // non-numeric file sorting to the end of the key directory - it walks
         // back to the highest *parseable* sequence and appends after it rather
-        // than colliding or resetting to 1. (Read-side tolerance is a separate,
-        // currently-broken concern: see the skipped bug test below.)
+        // than colliding or resetting to 1. (Read-side tolerance is covered by
+        // Log_Load_should_skip_a_garbage_segment_file below.)
         var store = new LogSnapshotStore(LogDir);
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 1 }));
         await store.SaveAsync("k", new Snapshot(new Dictionary<string, object?> { ["v"] = 2 }));
@@ -312,8 +312,8 @@ public sealed class SnapshotStoreEdgeTests : IDisposable
         var junk = Path.Combine(keyDir, "zzz-garbage.snapshot.json");
         await System.IO.File.WriteAllTextAsync(junk, "{ not valid sequence }");
 
-        // LoadAsync should ignore the unparseable, non-numbered file and return
-        // the real latest numbered segment. Today it throws instead.
+        // LoadAsync ignores the unparseable, non-numbered file and returns
+        // the real latest numbered segment.
         var latest = await store.LoadAsync("k");
         Assert.NotNull(latest);
         Assert.Equal(2, latest!.Get<int>("v"));

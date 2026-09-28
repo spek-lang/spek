@@ -1,6 +1,6 @@
-// Supervision assertions, in Spek. Converted from the C# SupervisionAssertionTests;
-// dogfoods sys.ExpectStop / ExpectRestart / RestartCountOf against Spek-defined
-// actors (a crashing child + a parent that restarts it).
+// Supervision assertions, in Spek. Dogfoods sys.ExpectStop / ExpectRestart /
+// RestartCountOf against Spek-defined actors (a crashing child + a parent
+// that restarts it).
 
 using Xunit;
 

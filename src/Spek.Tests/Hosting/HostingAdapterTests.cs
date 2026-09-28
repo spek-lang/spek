@@ -17,12 +17,14 @@ namespace Spek.Tests.Hosting;
 /// cover the happy-path exit-code round-trip. This class adds the
 /// <i>hard-deadline break</i> (an actor that refuses to stop must not
 /// hang the host), the <i>no-reply default</i> path (actor stops without
-/// surfacing an the inferred-reply convention code → host returns <c>defaultExitCode</c>), and
+/// surfacing an inferred-reply exit code → host returns <c>defaultExitCode</c>), and
 /// the null-argument guards on both <c>RunAsync</c> overloads.</para>
 ///
-/// <para><b>Windows / Systemd / Launchd hosted services</b>: these three
-/// adapter assemblies are NOT project-referenced by Spek.Tests (the
-/// WindowsService one even targets <c>net10.0-windows</c>), but each
+/// <para><b>Windows / Systemd / Launchd hosted services</b>: the
+/// WindowsService adapter targets <c>net10.0-windows</c> and is not
+/// project-referenced by Spek.Tests; Systemd and Launchd are
+/// project-referenced but are loaded via reflection here anyway, so all
+/// three go through the same harness. Each adapter
 /// declares <c>InternalsVisibleTo("Spek.Tests")</c> and its
 /// control-command routing is platform-agnostic - the
 /// <c>[SupportedOSPlatform]</c> attributes carry no runtime behavior, and
@@ -82,7 +84,7 @@ public class HostingAdapterTests
     }
 
     // ================================================================
-    //  Reflection harness for the three not-project-referenced adapters.
+    //  Reflection harness for the hosted-service adapters.
     // ================================================================
 
     private static string RepoRoot()
@@ -94,8 +96,9 @@ public class HostingAdapterTests
             ?? throw new InvalidOperationException("Could not locate src/Spek.slnx above the test output directory.");
     }
 
-    // The three adapter assemblies are loaded from their build output, not
-    // project-referenced, so their package-only dependencies (e.g.
+    // The three adapter assemblies are loaded here from their build output
+    // (WindowsService is not project-referenced; Systemd and Launchd are,
+    // but are loaded the same way), so their package-only dependencies (e.g.
     // Microsoft.Extensions.Hosting.Systemd, which the systemd adapter's
     // SdNotify references) aren't on the test runtime's probing path and
     // aren't copied into the adapter's bin (they're framework/package refs
@@ -209,7 +212,7 @@ public class HostingAdapterTests
     }
 
     // ----------------------------------------------------------------
-    //  Console host: actor stops with NO the inferred-reply convention reply → default code.
+    //  Console host: actor stops with NO inferred-reply reply → default code.
     // ----------------------------------------------------------------
 
     /// <summary>Entry actor that stops itself on Shutdown but never replies
@@ -221,7 +224,7 @@ public class HostingAdapterTests
         protected override Task DispatchAsync(object message, ActorRef sender)
         {
             if (message is Shutdown)
-                StopSelf();         // no _currentSender.Tell(code) → no the inferred-reply convention reply
+                StopSelf();         // no _currentSender.Tell(code) → no inferred-reply reply
             return Task.CompletedTask;
         }
     }
@@ -250,7 +253,7 @@ public class HostingAdapterTests
 
         Assert.True(entry.IsStopped,
             "Entry actor should have stopped after handling Shutdown.");
-        Assert.Equal(13, exitCode);   // no the inferred-reply convention reply → default, NOT the round-tripped 42
+        Assert.Equal(13, exitCode);   // no inferred-reply reply → default, NOT the round-tripped 42
     }
 
     // ----------------------------------------------------------------

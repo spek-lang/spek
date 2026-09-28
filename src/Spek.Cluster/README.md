@@ -28,14 +28,14 @@ parties can depend on the contracts without pulling in the bootstrap.
 
 ```csharp
 using Spek.Cluster;
-using Spek.Cluster.Abstractions;
 using Spek.Runtime;
 
 var system    = new ActorSystem("node-a");
 var transport = /* concrete transport, e.g. TcpClusterTransport */;
-var members   = new StaticSeedClusterMembership(seeds);
+var members   = new StaticSeedClusterMembership(transport.LocalNode);
 var cluster   = Cluster.Bind(system, transport, members);
 
+cluster.RegisterPeer("node-b", knownNodeBIdentity);
 var remote = cluster.ResolveRemote("node-b", "actor/path");
 remote.Tell(new MyMessage());
 ```

@@ -9,13 +9,13 @@ description: "Enum declarations: closed sets of named variants that match exhaus
 
 # Enums
 
-[Messages](/language/messages/) must be immutable, so a field that names
+[Messages](messages.md) must be immutable, so a field that names
 "which of a fixed set of things this is" wants a type that is closed and
 value-comparable by construction. A `string` would compile, but it gives
 the compiler nothing to check: a typo like `"hihg"` sails through and
 dead-letters at runtime. A Spek `enum` is the type for that job: a named,
 closed set of variants that passes the message immutability whitelist
-([CE0010](/reference/errors/#ce0010)) without further qualification, and
+([CE0010](../reference/errors.md#ce0010)) without further qualification, and
 that handlers can match on *exhaustively*.
 
 This chapter covers declaring an enum, giving variants explicit values,
@@ -43,7 +43,7 @@ message Alert(Severity level, string description);
 ```
 
 The trailing comma after the last variant is optional. Each variant is a
-bare name; an enum is *flat*, so a variant carries no payload of its own
+bare name. An enum is *flat*, so a variant carries no payload of its own
 (if you need data alongside the tag, that's what the message fields beside
 it are for, as `Alert` shows).
 
@@ -69,7 +69,7 @@ internal enum Phase { Warmup, Steady }       // hidden inside the assembly
 ### Explicit member values
 
 Variants are auto-numbered from `0` by default, and most enums should
-leave it that way; the numbers are an implementation detail. Sometimes the
+leave it that way. The numbers are an implementation detail. Sometimes the
 numbers *are* the point. A code that must match a wire protocol, a
 register layout, a vendor's status table: give those variants their values
 with `=`:
@@ -122,7 +122,7 @@ actor Smoke
 }
 ```
 
-Nothing new in the grammar made this work; Spek's expression syntax
+Nothing new in the grammar made this work. Spek's expression syntax
 already covers member access. Declaring the `enum` just adds another named
 scope for the parser to resolve `Severity.High` against.
 
@@ -132,7 +132,7 @@ The reason to reach for an enum over a `string` is what happens when a
 handler branches on it. A `switch` *expression* over an enum value is
 **checked for exhaustiveness**: every Spek enum is *sealed*, so
 the compiler knows the complete variant set and insists you handle all of
-them (or opt out explicitly). A missing arm is [CE0103](/reference/errors/#ce0103),
+them (or opt out explicitly). A missing arm is [CE0103](../reference/errors.md#ce0103),
 caught at compile time.
 
 The check applies when the compiler can see that the value being switched
@@ -232,7 +232,7 @@ actor Triage
 
 A `when` guard on an arm does **not** count as covering that variant. The
 compiler can't prove a guard is always true, so a guarded arm leaves the
-variant uncovered; you still need an unguarded arm for it, or a `_`.
+variant uncovered. You still need an unguarded arm for it, or a `_`.
 
 ### What "the compiler can see the enum" means
 
@@ -249,8 +249,8 @@ habit when you switch on an enum that arrived in a message.
 > The check is scoped to the switch **expression** (`value switch { … }`),
 > which is the form you reach for when each branch yields a result. The
 > C-style switch **statement** (`switch (value) { case … }`, covered in
-> [C# syntax](/language/csharp-syntax/#switch-statement)) is passthrough
-> and is *not* exhaustiveness-checked; prefer the expression when you're
+> [C# syntax](csharp-syntax.md#switch-statement)) is passthrough
+> and is *not* exhaustiveness-checked. Prefer the expression when you're
 > branching on an enum and want CE0103 watching your back.
 
 ## Flags enums
@@ -309,7 +309,7 @@ What you cannot do is declare `None` yourself. A zero-valued member is
 the classic flags trap: `value.HasFlag(Zero)` is true for every value, so
 a hand-rolled zero member turns every check it appears in into a
 tautology. Spek provides the member and rejects a user-declared zero,
-under any name ([CE0130](/reference/errors/#ce0130)):
+under any name ([CE0130](../reference/errors.md#ce0130)):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -343,13 +343,13 @@ flags enum Access
 `ReadWrite` is `3`, and the generated C# spells it symbolically
 (`ReadWrite = Read | Write`) so a reader of the emitted code sees the
 intent rather than a magic number. A union may only name members declared
-before it in the same enum; a forward reference is rejected at the
+before it in the same enum. A forward reference is rejected at the
 declaration.
 
 ### Gated operators
 
 Bitwise operators on an enum that is *not* declared `flags` don't compile
-([CE0131](/reference/errors/#ce0131)). `Severity.Low | Severity.High` is
+([CE0131](../reference/errors.md#ce0131)). `Severity.Low | Severity.High` is
 a meaningless value on an ordinary enum, and in C# it compiles anyway.
 When the members happen to be hand-assigned powers of two (the C#
 convention this feature replaces), the error recognizes the pattern and
@@ -375,7 +375,7 @@ keep their C# semantics, with `[Flags]` honored where it matters.
 Even on a genuine flags enum, one combination is provably wrong. Because
 the declaration check guarantees disjoint bits, `&` between two distinct
 single-bit members is always the empty set, and the compiler says so
-([CE0132](/reference/errors/#ce0132)):
+([CE0132](../reference/errors.md#ce0132)):
 
 <!-- spek-test: ignore -->
 ```spek
@@ -437,7 +437,7 @@ requested, nothing exceeded), but when you mean "non-empty *and* within
 bounds", say both halves, as the last line of the example does with
 `granted != Access.None && granted.HasOnlyFlags(…)`.
 
-The degenerate calls don't compile ([CE0133](/reference/errors/#ce0133)).
+The degenerate calls don't compile ([CE0133](../reference/errors.md#ce0133)).
 A literal `None` argument is either a constant or a disguised equality
 (`HasFlag(None)` is true for every value, `HasAnyFlags(None)` is false
 for every value, and `HasOnlyFlags(None)` is just `== None` in costume),
@@ -464,7 +464,7 @@ enums that name exactly one thing.
 
 Flags values tend to leave the process (a permission mask in a database
 column, option bits on the wire) and come back as integers. Restoring
-them goes through the same [`TryTo`](/language/conversions/) family as
+them goes through the same [`TryTo`](conversions.md) family as
 every other checked conversion. For a plain enum, `TryTo` accepts only
 defined members: `3` is not a `Priority`, so it converts to `null`. A
 flags enum defines *combinations*, not just members, so the flags-aware
@@ -472,7 +472,7 @@ rule is that every set bit must correspond to a defined flag.
 `raw.TryTo<Access>()` accepts `3` as `Read | Write` without a `ReadWrite`
 member existing, accepts `0` as `None`, and returns `null` for `8` or
 `9`, where an undefined bit is set. `Enum.IsDefined`, the test a C# hand
-would reach for, stops at named members and gets flags wrong; `TryTo` is
+would reach for, stops at named members and gets flags wrong. `TryTo` is
 the right spelling in both worlds.
 
 <!-- spek-test: compile -->
@@ -498,11 +498,10 @@ actor Loader
 
 The modifier changes member numbering, so retrofitting it is not always
 free. On an enum whose members already carry hand-assigned powers of two,
-adding `flags` is a no-op; explicit values are kept as written. On an
-enum that relied on auto-numbering, it renumbers every member;
-`Low, Medium, High` is `0, 1, 2` as a plain enum and becomes `1, 2, 4`
+adding `flags` is a no-op. Explicit values are kept as written. On an
+enum that relied on auto-numbering, it renumbers every member. `Low, Medium, High` is `0, 1, 2` as a plain enum and becomes `1, 2, 4`
 under `flags`, with the provided `None` taking `0`. If those numbers ever
-left the process (persisted [region state](/language/persistence/), wire
+left the process (persisted [region state](persistence.md), wire
 values, any integer you round-trip through `TryTo`), renumbering is a
 breaking change to stored data. Assign the values explicitly *before*
 adding the modifier, or migrate the stored values alongside the deploy.
@@ -542,9 +541,9 @@ public enum Access
 }
 ```
 
-The attribute is the interop footnote, not the feature. It makes
+The `[Flags]` attribute is for interop. It makes
 `ToString()` render a combined value as `"Read, Write"` and keeps
-`Enum.Parse` symmetrical, and that is all it ever did in C# too; the
+`Enum.Parse` symmetrical, and that is all it ever did in C# too. The
 guarantees live in the Spek compiler. Consumers of the generated assembly
 see a well-formed flags enum.
 
@@ -560,21 +559,21 @@ within the same compilation, the same as any other top-level declaration.
 ## Next
 
 Enums round out the data side of a message: a closed set of tags the
-compiler can check for you. Next, [Conversions](/language/conversions/)
+compiler can check for you. Next, [Conversions](conversions.md)
 stays with values for one more chapter: how a raw integer off the wire
 becomes (or refuses to become) one of these variants, and why Spek has no
 cast operator.
 
 ## Related reading
 
-- [Messages: the immutability whitelist](/language/messages/): why enums
+- [Messages: the immutability whitelist](messages.md): why enums
   are accepted as message field types without qualification.
-- [Conversions: `To` and `TryTo`](/language/conversions/): the checked
+- [Conversions: `To` and `TryTo`](conversions.md): the checked
   conversion family, including the flags-aware definedness rule.
-- [C# syntax: switch statement](/language/csharp-syntax/#switch-statement):
+- [C# syntax: switch statement](csharp-syntax.md#switch-statement):
   the passthrough switch *statement* (not exhaustiveness-checked).
-- [CE0103](/reference/errors/#ce0103): the non-exhaustive-switch
+- [CE0103](../reference/errors.md#ce0103): the non-exhaustive-switch
   diagnostic.
-- [CE0130](/reference/errors/#ce0130)–[CE0133](/reference/errors/#ce0133):
+- [CE0130](../reference/errors.md#ce0130)–[CE0133](../reference/errors.md#ce0133):
   the flags-enum declaration and usage diagnostics.
-- [CE0010](/reference/errors/#ce0010): the message-field type whitelist.
+- [CE0010](../reference/errors.md#ce0010): the message-field type whitelist.

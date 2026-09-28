@@ -6,7 +6,7 @@ using Xunit;
 namespace Spek.Tests.Runtime;
 
 /// <summary>
-/// Trace replay (D2): the flight recorder journals ingress only (bounded,
+/// Trace replay: the flight recorder journals ingress only (bounded,
 /// serializable, reported gaps), and a dumped trace re-executes under the
 /// deterministic simulator: production incident, local repro.
 /// </summary>

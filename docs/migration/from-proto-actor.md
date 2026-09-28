@@ -16,8 +16,7 @@ The main differences are:
 - **Spek is a language, Proto.Actor is a library.** Spek rules are
   compile-time errors; Proto.Actor relies on convention.
 - **Virtual actors aren't a Spek concept.** Spek has clustering, but
-  Proto's virtual-actor / "Cluster" grain model is closer to Orleans;
-  the nearest Spek analogue is persist + passivate.
+  Proto's virtual-actor / "Cluster" grain model is closer to Orleans. The nearest Spek analogue is persist + passivate.
 
 ## Concept mapping
 
@@ -148,7 +147,7 @@ actor Switch
   are narrower than Proto's.
 - **A gRPC wire transport between actors.** Spek's TCP transport
   speaks its own binary protocol; Spek's gRPC support
-  ([hosting](/hosting/grpc/)) exposes channels to external clients
+  ([hosting](../hosting/grpc.md)) exposes channels to external clients
   rather than carrying actor-to-actor traffic.
 
 ## A note on mailbox semantics

@@ -9,7 +9,7 @@ namespace Spek.Tests.Hosting;
 
 /// <summary>
 /// Unit coverage for <see cref="SpekGrpcBridge"/> - the runtime helper
-/// the compiler-generated gRPC bridges call. Rather than booting a
+/// the gRPC bridges call. Rather than booting a
 /// full Kestrel + gRPC endpoint, we drive <c>AskAsync</c> directly
 /// against a real <see cref="ActorSystem"/> through a hand-rolled
 /// <see cref="ServerCallContext"/> whose <c>UserState["__HttpContext"]</c>
@@ -24,7 +24,7 @@ public sealed class GrpcBridgeTests
     public sealed record NotFound(string Reason);
 
     /// <summary>
-    /// Stand-in for a channel actor behind a generated bridge: replies
+    /// Stand-in for a channel actor behind a gRPC bridge: replies
     /// to <see cref="GetUser"/> with a payload for known ids and a
     /// convention-named <see cref="NotFound"/> emit otherwise.
     /// </summary>
@@ -83,7 +83,7 @@ public sealed class GrpcBridgeTests
         var (status, payload) = await SpekGrpcBridge.AskAsync<UserApiActor>(
             context, new GetUser("missing"));
 
-        // The reply itself still comes back - the generated bridge decides
+        // The reply itself still comes back - the bridge decides
         // (via ThrowIfErrorStatus) whether to surface it or raise RpcException.
         Assert.Equal(StatusCode.NotFound, status);
         var notFound = Assert.IsType<NotFound>(payload);

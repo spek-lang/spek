@@ -20,7 +20,7 @@ under test. Under steady-state measurement (`demos/benchmarks`,
 BenchmarkDotNet) the two panes run at **CPU parity**: the supervision,
 tracing, and introspection the Spek pane carries cost roughly nothing in
 wall-clock terms; the twin's remaining edge is allocation, tracked
-release over release. The demo exits non-zero if either pane loses work; it doubles
+release over release. The demo exits non-zero if either pane loses work. It doubles
 as an integration test of the public runtime surface.
 
 What to read afterwards:
@@ -29,17 +29,16 @@ What to read afterwards:
   messages, a collector, a device, a hub, and the one `supervise` clause
   that is the entire recovery story.
 - [`Fleet.CSharp/ChannelFleet.cs`](Fleet.CSharp/ChannelFleet.cs): the twin,
-  written to be defended. Its recovery is a per-item try/catch whose
+  written as production C#. Its recovery is a per-item try/catch whose
   placement is load-bearing: catch around the loop instead and a fault
   silently kills the device, because nothing restarts a dead `Task`.
 - [`Fleet.Spek/SpekFleet.cs`](Fleet.Spek/SpekFleet.cs): the host adapter.
   Note where the recovery count comes from: `ActorSystem.SnapshotActors()`,
   the same introspection surface `spekc observe` renders. The fleet itself
-  carries no instrumentation.
+  has no extra counters.
 
-The twin-fairness rule is standing policy: the C# side is reviewed as
-production code and open to improvement. "Your C# is a strawman" always has
-"then improve it" as the answer.
+The C# side is reviewed as production code and is open to improvement.
+If it looks like a strawman, improve it.
 
 While a run is draining, `spekc observe <pid>` attaches to the harness
 process and shows the Spek pane's live actor table (device mailboxes,

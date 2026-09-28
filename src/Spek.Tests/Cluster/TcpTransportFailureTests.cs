@@ -40,10 +40,9 @@ public class TcpTransportFailureTests
         LoopbackOnly   = true,
     };
 
-    // Pins the documented security status: ClusterSharedKey is NOT yet
+    // Pins the documented security status: ClusterSharedKey is NOT
     // enforced: setting it must fail LOUD (a stderr warning), not silently imply
-    // peer authentication. When mTLS / shared-secret enforcement ships,
-    // this test flips to assert the key is actually validated at handshake.
+    // peer authentication.
     [Fact]
     public async Task ClusterSharedKey_IsNotYetEnforced_AndWarnsLoudlyWhenSetAsync()
     {

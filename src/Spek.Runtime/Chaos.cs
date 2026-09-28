@@ -39,8 +39,8 @@ internal readonly record struct ChaosDecision(ChaosFaultKind Kind, TimeSpan Dela
 /// throws <see cref="ChaosInjectedException"/> at the target's nth writer
 /// dispatch, unwinding through real supervision. Message reordering is the
 /// simulator's job (seeded mailbox selection explores schedules
-/// systematically); until then, <c>Delay</c> reorders one message past its
-/// successors.
+/// systematically); within a chaos plan, <c>Delay</c> reorders one message
+/// past its successors.
 /// </remarks>
 public sealed class ChaosPlan
 {

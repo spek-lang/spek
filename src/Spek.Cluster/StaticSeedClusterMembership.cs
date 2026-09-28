@@ -6,8 +6,8 @@ namespace Spek.Cluster;
 /// Minimum-viable <see cref="IClusterMembership"/>. Peers are
 /// registered upfront via <see cref="AddSeedMember"/>; this is enough
 /// to exercise the state-machine + cluster-view + leave-on-shutdown
-/// surface without a full SWIM gossip implementation. Real gossip
-/// drops in via a different impl behind the same interface later.
+/// surface without a full SWIM gossip implementation. Gossip-based
+/// implementations plug in behind the same interface.
 ///
 /// Behavior:
 /// <list type="bullet">
@@ -16,15 +16,15 @@ namespace Spek.Cluster;
 ///         <see cref="ClusterEvent.NodeJoining"/>.</item>
 ///   <item><see cref="MarkUp"/> transitions a peer to
 ///         <see cref="NodeState.Up"/> and raises
-///         <see cref="ClusterEvent.NodeUp"/>. Typically called by the
-///         transport layer once the handshake completes.</item>
+///         <see cref="ClusterEvent.NodeUp"/>. Call it once the
+///         transport handshake completes.</item>
 ///   <item><see cref="LeaveAsync"/> transitions the local node to
 ///         <see cref="NodeState.Leaving"/> → <see cref="NodeState.Exiting"/>,
 ///         emits the corresponding events, and completes the task it
 ///         returns so callers can sequence shutdown.</item>
 ///   <item><see cref="MarkUnreachable"/> / <see cref="MarkReachableAgain"/>
-///         simulate failure-detector signals; in the production SWIM
-///         impl these come from missed heartbeats.</item>
+///         are caller-driven; in a gossip-based implementation these
+///         signals would come from a failure detector.</item>
 /// </list>
 /// </summary>
 public sealed class StaticSeedClusterMembership : IClusterMembership
@@ -78,9 +78,9 @@ public sealed class StaticSeedClusterMembership : IClusterMembership
             Raise(new ClusterEvent.NodeUp(identity));
     }
 
-    /// <summary>Mark a peer <see cref="NodeState.Unreachable"/>. The
-    /// failure detector calls this in production; the static-seed
-    /// impl exposes it for tests.</summary>
+    /// <summary>Mark a peer <see cref="NodeState.Unreachable"/>.
+    /// Caller-driven; exposed so tests and operators can sequence the
+    /// state machine.</summary>
     public void MarkUnreachable(NodeIdentity identity)
     {
         if (Transition(identity, NodeState.Unreachable,
@@ -88,7 +88,7 @@ public sealed class StaticSeedClusterMembership : IClusterMembership
             Raise(new ClusterEvent.NodeUnreachable(identity));
     }
 
-    /// <summary>The previously-unreachable node has heartbeated again.</summary>
+    /// <summary>Mark a previously-unreachable node reachable again.</summary>
     public void MarkReachableAgain(NodeIdentity identity)
     {
         if (Transition(identity, NodeState.Up,

@@ -8,13 +8,13 @@ namespace Spek.Tests.Emit;
 /// <summary>
 /// Language-completeness: type operations: cast <c>(T)x</c>, type-test
 /// <c>x is T</c> (with optional capture <c>x is T name</c>), and safe cast
-/// <c>x as T</c>. All three share one AST node (<see cref="Spek.Compiler.AST.TypeOpExpr"/>)
-/// and lower verbatim to C#.
+/// <c>x as T</c>. All three share one AST node (<see cref="Spek.Compiler.AST.TypeOpExpr"/>);
+/// is/as lower verbatim to C#, and the cast form parses only so CE0129 can
+/// reject it.
 ///
 /// Cast parsing note: <c>(Identifier)</c> immediately before a <c>-</c>/<c>~</c>/<c>!</c>
-/// expression is read as a cast. If <c>Identifier</c> is a value, not a type, the
-/// emitted C# fails to compile (CS0118) - a loud failure, never silent
-/// misbehavior. The numeric-cast tests below pin the intended behavior.
+/// expression is read as a cast, and every cast is rejected at Spek compile
+/// time with CE0129. The numeric-cast tests below pin the intended behavior.
 /// </summary>
 public sealed class TypeOpTests(ITestOutputHelper output)
 {

@@ -21,8 +21,8 @@ and the `Allocated` column shows where that cost lives. For scale: at this
 era's runtime the fleet pane runs at **CPU parity with raw Channels**
 (ratio ~1.02) with a ~12x allocation ratio, and a full ask round-trip
 costs ~2 µs / ~420 B against a ~22 ns locked dictionary read. Track the
-ratios across releases; , and
-these benchmarks are how its progress gets measured.
+ratios across releases; these benchmarks are how the runtime's progress
+gets measured.
 
 CI: the `benchmarks` workflow runs this suite alongside `Spek.Benchmarks`
 on release tags and on manual dispatch (`--job short`), uploading the

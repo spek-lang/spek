@@ -208,7 +208,7 @@ public sealed class CompilerCoverageTests
         // This pins that behaviour: a non-exhaustive switch over a `var` local
         // produces NO CE0103. (The class docstring on CheckExhaustiveSwitchOverEnum
         // describes opportunistic var-local classification, but the implementation
-        // does not realize it: see couldNotTest in the run report. The contract
+        // does not realize it. The contract
         // the analyzer actually upholds is "no false positives", which this
         // verifies by asserting the source still parses cleanly.)
         const string src = """

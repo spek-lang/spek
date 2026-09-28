@@ -67,7 +67,7 @@ Sdk.CreateTracerProviderBuilder()
    .Build();
 ```
 
-That's the whole wiring. The Spek runtime emits to standard .NET
+That's the wiring. The Spek runtime emits to standard .NET
 telemetry primitives; the OTel SDK picks them up; exporters push
 them to your backend.
 
@@ -143,8 +143,7 @@ sender's `Activity` context alongside the message, and the
 recipient's handler span starts as a child of it, so a request
 that fans out across several actors renders as one stitched
 trace. Without a listener attached, no context is captured and
-the mailbox carries plain messages, so untraced systems pay
-nothing for the capture machinery.
+the mailbox carries plain messages.
 
 ## Structured logging (`self.Log`)
 

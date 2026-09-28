@@ -65,7 +65,8 @@ public class StreamOperatorBenchmarks
     }
 
     /// <summary>ThrottleOperator with a zero window - every message opens a
-    /// fresh window and passes: a UtcNow read plus two interlocked ops plus
+    /// fresh window and passes: a timestamp read (Clock.GetTimestamp) plus
+    /// two interlocked ops plus
     /// the dispatch, per offer. The all-pass bound of the throttle.</summary>
     [Benchmark]
     public async Task ThrottleZeroWindow()
@@ -77,8 +78,9 @@ public class StreamOperatorBenchmarks
     }
 
     /// <summary>ThrottleOperator with a window far longer than the run - the
-    /// first message passes, every other offer is the drop path: a UtcNow
-    /// read, an interlocked read, and a compare. The all-drop bound.</summary>
+    /// first message passes, every other offer is the drop path: a timestamp
+    /// read (Clock.GetTimestamp), an interlocked read, and a compare. The
+    /// all-drop bound.</summary>
     [Benchmark]
     public async Task ThrottleAllDrop()
     {

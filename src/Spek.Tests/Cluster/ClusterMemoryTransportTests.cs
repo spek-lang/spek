@@ -140,7 +140,7 @@ public class ClusterMemoryTransportTests
     [Fact]
     public void RepeatedEnvelopesFromSameSender_ReceiverSeesOneCachedRef()
     {
-        // Pins the perf-r16 receive-side contract: every inbound envelope
+        // Pins the receive-side caching contract: every inbound envelope
         // carrying the same (origin node, sender path) resolves to the SAME
         // ActorRef instance: reference identity, since ActorRef has no value
         // equality: instead of a fresh RemoteEndpoint + ref per message.

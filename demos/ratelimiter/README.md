@@ -20,10 +20,10 @@ small actor). Three things come for free that the C# twin builds by hand:
   or concurrent requests double-spend.
 - **Eviction.** The row to watch. The keyspace is unbounded, so per-key
   state has to be evicted.
-  The Spek pane's eviction mechanism is `passivate after 2s`: idle keys
+  The Spek pane's eviction mechanism is `passivate after TimeSpan.FromSeconds(2)`: idle keys
   leave memory on their own, and because the window equals the full-refill
   time, a passivated key that comes back with a fresh bucket is
-  indistinguishable from one that idled and refilled. The twin earns the
+  indistinguishable from one that idled and refilled. The twin gets the
   same table row with a sweeper timer, a scan over every bucket, and an
   evict-vs-refill race whose correctness argument takes a paragraph-long
   comment.
@@ -40,9 +40,8 @@ both panes must allow exactly the burst capacity plus measured refill. And
 `check throughput` favors the C# pane: a lock-protected dictionary read
 is nearly free, while every Spek check is a full request-reply through a
 mailbox: about two microseconds and ~420 bytes at the current runtime
-(steady-state, JIT-warmed; see `demos/benchmarks`). That margin has
-already been halved twice by runtime work. What the Spek pane buys for the price is the rest of the
-table.
+(steady-state, JIT-warmed; see `demos/benchmarks`). The rest of the table is
+what that extra cost is paying for.
 
 Related but distinct: `Spek.Resilience.RateLimiting` ships token-bucket
 *ingress policies* that protect an actor from its callers. This demo is the

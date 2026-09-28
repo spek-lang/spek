@@ -45,7 +45,7 @@ public sealed class ArrayCreationTests(ITestOutputHelper output)
     public void ImplicitArray_AsNamedArgValue_Composes()
     {
         // The shape the observability idiom needs: a named arg whose value is
-        // an implicit array. (Tuple elements arrive with the next parser gap.)
+        // an implicit array.
         // Emit-only: the exact call target is irrelevant; we're checking that
         // `name: new[] { ... }` parses and lowers, not BCL overload resolution.
         const string src = """
@@ -62,7 +62,7 @@ public sealed class ArrayCreationTests(ITestOutputHelper output)
     [Fact]
     public void ImplicitArray_TrailingComma_Parses()
     {
-        // `var` avoids an `int[]` return type (array types are a separate gap).
+        // `var` avoids an `int[]` return type.
         const string src = """
             module M
             {

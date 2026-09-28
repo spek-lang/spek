@@ -1,6 +1,6 @@
-// Probe + messaging mechanics, in Spek. Converted from the C# TestingSmokeTests;
-// dogfoods TestProbe end to end (Send / ExpectMsg / ExpectMsg-with-predicate /
-// ExpectNoMsg, plus the failure paths that must throw).
+// Probe + messaging mechanics, in Spek. Dogfoods TestProbe end to end
+// (Send / ExpectMsg / ExpectMsg-with-predicate / ExpectNoMsg, plus the
+// failure paths that must throw).
 
 using Xunit;
 

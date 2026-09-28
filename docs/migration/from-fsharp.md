@@ -35,7 +35,7 @@ The conceptual shifts are:
 
 {: .note }
 > **Already using Akkling or FSharp.Akka?** Those are F# DSLs over
-> Akka.NET. The [Akka.NET migration page](/migration/from-akka-net/) is
+> Akka.NET. The [Akka.NET migration page](from-akka-net.md) is
 > the right starting point, and everything there applies to you.
 
 ## Concept mapping
@@ -232,9 +232,9 @@ on GetBalance => return new Balance(balance);
 Balance b = wallet.Ask(new GetBalance());
 ```
 
-See the [messaging reference](/language/messaging/) for the full
+See the [messaging reference](../language/messaging.md) for the full
 `ask` semantics, and the
-[request/reply patterns comparison](/migration/ask-patterns-compared/)
+[request/reply patterns comparison](ask-patterns-compared.md)
 for how this stacks up against Erlang, Akka, Orleans, Proto.Actor, etc.
 
 ## Exhaustive match → catch-all + dead-letter routing
@@ -286,15 +286,14 @@ messages, wire a custom `IDeadLetterSink` on the `ActorSystem`.
 
 - **DU-native pattern matching on message payloads.** In F# you can
   `match msg with | Deposit amt when amt > 100m -> ...`. Spek's message
-  types are each their own type; discriminating on payload happens
+  types are each their own type. Discriminating on payload happens
   inside the C# body of the handler, with C# pattern-matching syntax.
 - **Computation-expression ergonomics.** F#'s `async { ... }` /
   `task { ... }` let you pipeline work inside a handler in a way that
   C# syntax (which is what Spek handler bodies use) can feel clumsier
   at. `ask` mitigates this for request-reply but doesn't give you the
   full CE story.
-- **Currying / partial-application style.** Spek handler bodies are
-  C# statements; there's no point-free chain-of-functions shape.
+- **Currying / partial-application style.** Spek handler bodies are C# statements. There's no point-free chain-of-functions shape.
 - **The DU itself as a type.** Spek has no sum type; each `message` is
   its own class. You can't pattern-match over "the whole message
   surface"; only over individual `on` handlers.
@@ -302,6 +301,6 @@ messages, wire a custom `IDeadLetterSink` on the `ActorSystem`.
   no mailbox stash.
 
 
-See the [language reference](/language/) for the full grammar and the
-[runtime reference](/reference/runtime/) for the `ActorRef` API these
+See the [language reference](../language/index.md) for the full grammar and the
+[runtime reference](../reference/runtime.md) for the `ActorRef` API these
 lower onto.

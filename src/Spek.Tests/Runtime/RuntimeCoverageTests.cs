@@ -310,8 +310,8 @@ public class RuntimeCoverageTests
 
         // A writer handler that throws now fails the asker fast with an
         // AskException, symmetric with the reader path - closing the old
-        // writer/reader asymmetry that left the asker to time out (adversarial
-        // V1, "fail fast on all"). The handler's own throw rides along as
+        // writer/reader asymmetry that left the asker to time out (the
+        // "fail fast on all" semantics). The handler's own throw rides along as
         // the inner exception. A generous timeout proves the failure is fast.
         var ex = await Assert.ThrowsAsync<AskException>(() =>
             actor.AskAsync<Pong>(new Ping(), TimeSpan.FromSeconds(5)).AsTask());
@@ -356,7 +356,7 @@ public class RuntimeCoverageTests
         var endpoint = new DeadEndpoint();
         var remote = new ActorRef(endpoint);
 
-        // Remote ask is deferred: must fail fast (the throw happens
+        // Remote ask is not supported: must fail fast (the throw happens
         // synchronously, before any Task is produced), not silently hang.
         Assert.Throws<NotSupportedException>(() =>
         {

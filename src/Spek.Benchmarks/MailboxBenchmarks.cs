@@ -9,8 +9,8 @@ namespace Spek.Benchmarks;
 /// compound in large systems. <see cref="MessagingBenchmarks.TellThroughput"/>
 /// races producer against consumer; the shapes here isolate the paths that
 /// blend together there: the cold wake out of a parked mailbox (the latency
-/// number for request-reply services, target of the perf-r10 second-chance
-/// round), one continuous drain of a deep pre-filled backlog, and the
+/// number for request-reply services, target of the drain loop's
+/// second-chance spin), one continuous drain of a deep pre-filled backlog, and the
 /// two-actor ping-pong where every hop wakes an idle peer.
 /// </summary>
 [MemoryDiagnoser]
@@ -75,7 +75,7 @@ public class MailboxBenchmarks
     /// Two actors exchanging one message back and forth, 10k round trips: the
     /// initiator Tells the echo, goes idle, and is woken by the reply - so
     /// every hop pays an idle peer's wake (or its second-chance catch; this
-    /// alternating shape is exactly what the perf-r10 spin targets).
+    /// alternating shape is exactly what the second-chance spin targets).
     /// Dominated by two wake-or-spin transitions plus two dispatches per
     /// round; divide the mean by 10k for the round-trip figure.
     /// </summary>

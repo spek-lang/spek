@@ -8,7 +8,7 @@ namespace Spek.Tests.Hosting;
 /// Coverage for the <see cref="SpekConsoleHost"/> paths the original
 /// integration tests leave dark: the system-initiated shutdown hook
 /// (<see cref="ActorSystem.RequestShutdown"/> - the same funnel Ctrl+C /
-/// SIGTERM feed), the the inferred-reply convention exit-code round trip through the host's
+/// SIGTERM feed), the inferred-reply exit-code round trip through the host's
 /// internal receiver, the bounded grace window when the entry actor
 /// refuses to stop, and the generic <c>RunAsync&lt;TActor&gt;</c>
 /// overload that owns its system. Real OS signals stay untested by
@@ -42,7 +42,7 @@ public sealed class ConsoleHostShutdownPathTests
     }
 
     [Fact]
-    public async Task RequestShutdown_TellsEntryActor_AndSurfacesOptionDExitCodeAsync()
+    public async Task RequestShutdown_TellsEntryActor_AndSurfacesInferredReplyExitCodeAsync()
     {
         using var system = new ActorSystem("console-request-shutdown");
         var entry = system.Spawn<GracefulActor>();

@@ -6,8 +6,8 @@ namespace Spek.Tests.Compiler;
 /// <summary>
 /// Semantic checks on module declarations. Symbol-table
 /// integration, CE0013 duplicate-name detection across modules
-/// and inside modules. Emit is a follow-up commit; this layer
-/// just validates the structural rules.
+/// and inside modules. Emit is covered by the emit suites; this
+/// layer just validates the structural rules.
 /// </summary>
 public sealed class ModuleSemanticTests
 {
@@ -81,12 +81,9 @@ public sealed class ModuleSemanticTests
     public void ModuleAndActor_SameName_ReportsCE0013()
     {
         // Modules share the top-level namespace with actors / messages
-        // / channels / regions. A module and an actor can't share a
-        // simple name within the same file.
-        // (Cross-kind duplicates are flagged inside their respective
-        // categories; same-name across kinds is caught by the cross-file
-        // collision rule. Here we test that a module duplicate triggers
-        // the module-specific CE0013, separate from the actor's.)
+        // / channels / regions, but CE0013 only flags same-kind
+        // duplicates at file scope. This test pins that a cross-kind
+        // module/actor name collision is not flagged today.
         const string src = """
             actor Counter
             {

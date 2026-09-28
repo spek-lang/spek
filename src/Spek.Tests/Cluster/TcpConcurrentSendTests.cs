@@ -7,7 +7,7 @@ using Xunit;
 namespace Spek.Tests.Cluster;
 
 /// <summary>
-/// Wire integrity under concurrent senders (the r15 gate). PipeWriter is
+/// Wire integrity under concurrent senders. PipeWriter is
 /// single-writer; before the per-connection send gate, two threads sending
 /// to the same peer could interleave GetSpan/Advance mid-frame and corrupt
 /// the stream: a bug no sequential test can see. This drives many senders

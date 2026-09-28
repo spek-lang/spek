@@ -1,9 +1,9 @@
 # Spek.Hosting.Systemd
 
 Linux systemd host adapter for [Spek](https://github.com/spek-lang/spek). Routes
-`SIGTERM` and `SIGHUP` into Spek messages, and emits `sd_notify`
-back-channel events (READY=1, STOPPING=1, RELOADING=1, WATCHDOG=1,
-STATUS=...) when the actor produces them.
+`SIGTERM` and `SIGHUP` into Spek messages, and notifies systemd via
+`sd_notify` (READY=1 once the host has started, STOPPING=1 on
+shutdown).
 
 ## Quick start
 
@@ -13,7 +13,7 @@ STATUS=...) when the actor produces them.
 // Spek.Hosting.Abstractions.
 namespace MyService;
 
-public actor Worker : LinuxServiceHost
+public actor Worker
 {
     behavior Running
     {
@@ -33,7 +33,8 @@ public actor Worker : LinuxServiceHost
 
     on PreStart =>
     {
-        // emit Started — translates to sd_notify READY=1 once the host is wired
+        // startup work; the adapter itself sends sd_notify READY=1
+        // once the whole host is up
     }
 }
 ```
@@ -57,12 +58,9 @@ The adapter:
 
 - Hooks `SIGTERM` (graceful stop) and `SIGHUP` (reload) via
   `PosixSignalRegistration`.
-- Sends `sd_notify(READY=1)` once the actor has spawned and any
-  `Started` emit fires.
-- Sends `sd_notify(STOPPING=1)` on shutdown, `RELOADING=1` on reload,
-  and `STATUS=<msg>` whenever a `HealthReport` is emitted.
-- Periodically pings `WATCHDOG=1` if the unit file declares
-  `WatchdogSec=`.
+- Sends `sd_notify(READY=1)` once the whole host has started
+  (`ApplicationStarted`).
+- Sends `sd_notify(STOPPING=1)` on shutdown.
 
 This package is `[SupportedOSPlatform("linux")]`, so referencing it from
 non-Linux targets is a CA1416 warning. The native `sd_notify` calls
@@ -70,7 +68,7 @@ P/Invoke `libsystemd.so.0` on Linux only; the assembly loads fine on
 other platforms but the systemd codepath short-circuits via
 `SystemdHelpers.IsSystemdService()`.
 
-## Channel coverage
+## Lifecycle messages
 
-This adapter satisfies the `LinuxServiceHost` channel from the
-hosting guide in the Spek documentation.
+The adapter speaks the shared lifecycle records from
+Spek.Hosting.Abstractions: `Shutdown` and `Reload` in.

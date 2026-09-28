@@ -156,7 +156,7 @@ public sealed class PassivatingCounterActor : ActorBase
 
 /// <summary>
 /// One-round-trip-at-a-time reply future for the cluster benchmarks.
-/// Remote asks aren't a runtime primitive yet (<c>AskAsync</c> on a remote
+/// Remote asks are not supported (<c>AskAsync</c> on a remote
 /// ref throws <see cref="NotSupportedException"/>), so the cross-node ask
 /// benchmarks use the wire request/reply idiom instead: Tell with a
 /// named-root sender, reply routed back over the transport. The benchmark

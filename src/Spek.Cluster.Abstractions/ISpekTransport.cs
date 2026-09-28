@@ -4,8 +4,8 @@ namespace Spek.Cluster;
 /// Pluggable wire adapter for distributed Spek clusters. Modeled
 /// after <c>Microsoft.AspNetCore.Connections.Abstractions</c>'s
 /// <c>IConnectionListenerFactory</c> + <c>IConnectionListener</c>
-/// pair so Bedrock-shaped transports (TCP / QUIC / named pipes /
-/// in-memory) can plug in via the same contract Orleans 3.0 uses.
+/// pair, so Bedrock-shaped transports plug in via the same contract
+/// Orleans 3.0 uses.
 ///
 /// A transport instance represents one cluster-edge: outbound
 /// connections to peer nodes plus an inbound listener on this node's
@@ -16,8 +16,6 @@ namespace Spek.Cluster;
 ///         the abstraction; ideal for tests.</item>
 ///   <item><c>Spek.Cluster.Tcp</c>: Spek-native binary protocol on
 ///         Kestrel's <c>SocketTransport</c>. Default for production.</item>
-///   <item><c>Spek.Cluster.Grpc</c>: opt-in adapter for HTTP/2-only
-///         environments.</item>
 /// </list>
 /// </summary>
 public interface ISpekTransport : IAsyncDisposable
@@ -28,7 +26,7 @@ public interface ISpekTransport : IAsyncDisposable
     /// <summary>
     /// Send <paramref name="envelope"/> to the actor system identified by
     /// <paramref name="target"/>. The transport handles routing - for
-    /// in-memory it's a direct dispatch, for TCP/QUIC it's a wire send.
+    /// in-memory it's a direct dispatch, for TCP it's a wire send.
     /// Fire-and-forget at the transport level: failures (unreachable
     /// node, serialization error) surface via the
     /// <see cref="DeliveryFailed"/> event rather than throwing.
@@ -47,9 +45,8 @@ public interface ISpekTransport : IAsyncDisposable
     /// <summary>
     /// Fires when a send fails irrecoverably (target node is gone,
     /// envelope serialization rejected, the transport itself is
-    /// disposing). The <see cref="Spek.Runtime.ActorSystem"/> uses this to
-    /// dead-letter the offending message and raise a
-    /// <c>RemoteNodeUnreachable</c> notification.
+    /// disposing). Raised for callers to observe; the offending
+    /// envelope rides along so it can be dead-lettered or logged.
     /// </summary>
     event Action<NodeIdentity, RemoteEnvelope, Exception>? DeliveryFailed;
 }

@@ -4,9 +4,7 @@ using BenchmarkDotNet.Configs;
 namespace Demo.Benchmarks;
 
 /// <summary>
-/// The reader-path pair (existing pairs untouched, so
-/// prior rounds stay comparable: this pair's first run is its own
-/// mini-baseline). One board actor, 10,000 concurrent lookups against a
+/// The reader-path pair. One board actor, 10,000 concurrent lookups against a
 /// seeded table: on the Spek side each lookup is an ask into a
 /// <c>reader on</c> handler (readers overlap by construction, serialized
 /// only against the writer); the C# twin is the honest hand-rolled

@@ -7,7 +7,7 @@ namespace Spek.Tests;
 ///
 /// The actor-runtime tests poll for asynchronous dispatch effects (message
 /// delivery, dead-letter routing, passivation, shutdown). Each actor dispatch is
-/// a <c>Task.Run</c>, and the polling loops <c>await Task.Delay</c> - both draw
+/// queued to the shared thread pool, and the polling loops <c>await Task.Delay</c> - both draw
 /// from the same thread pool. Under xUnit's fully-parallel run the pool can be
 /// saturated by dozens of concurrent test threads, starving those dispatches so
 /// they don't execute for seconds, which surfaced as intermittent timeout flakes

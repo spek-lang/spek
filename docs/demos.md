@@ -12,10 +12,8 @@ The `demos/` directory of the repository holds three small systems and the
 benchmark suite that measures two of them. Wherever a comparison is claimed,
 it runs as a pair: a Spek implementation and a C# implementation of the same
 system, under one load driver and one fault schedule, with both columns of
-the results table computed by the same code path. The twin is the argument.
-None of these demos asks you to take the language's word for what
-supervision or passivation buys; the C# pane shows what the same behavior
-costs to build by hand.
+the results table computed by the same code path. You don't have to take our word for what supervision or passivation is
+worth: the C# pane shows what the same behavior costs to build by hand.
 
 One standing rule keeps the pairing honest: the C# side is written and
 reviewed as production code, and it is open to pull requests like anything
@@ -45,7 +43,7 @@ including a firmware fault (a NaN reading that crashes device processing)
 injected every N readings, and the harness prints them side by side:
 readings sent, faults injected, work lost, recoveries, throughput.
 
-The claim the demo makes is specific. The Spek pane loses zero work under
+The demo's claim is specific. The Spek pane loses zero work under
 the injected faults, and under steady-state measurement (the benchmark
 suite below) it runs at CPU parity with the raw-Channels twin, a ratio of
 about 1.02. The supervision, tracing, and introspection it carries cost
@@ -64,14 +62,12 @@ the controller with clean state; the dispatcher notices the amnesia,
 redistributes the car's stranded stops to healthy cars, and hands the
 reborn controller its last known position. On screen the car turns red,
 reads out of service, runs express down the shaft to the lobby, and rejoins
-the rotation when its doors open at floor 1. The final tally is the proof:
-every hall call served, none lost, and no try/catch anywhere in the
-building.
+the rotation when its doors open at floor 1. The tally at the end shows every
+hall call served. The demo source contains no try/catch.
 
-There is no C# twin here, and that is deliberate. Elevators is reliability
-theater at a scale a person can read, not a benchmark. The fleet demo
-carries the scale claim and the comparison; this one carries the moment
-where you watch the system heal.
+There is no C# twin here. Elevators is a reliability demo at a scale a
+person can read, not a benchmark. The measured numbers are in the fleet demo. This one is for watching the
+recovery happen on screen.
 
 ## Rate limiter: actor-per-key infrastructure
 
@@ -80,7 +76,7 @@ bucket implemented twice and driven by traffic shaped the way API traffic
 actually arrives, a hot working set of keys over a long cold tail. On the
 Spek pane every key is an actor holding its own bucket, and eviction, the
 demo's centerpiece: a two-second `passivate after` declaration. Idle
-keys leave memory on their own. The C# twin earns the same table row with a
+keys leave memory on their own. The C# twin fills the same table row with a
 sweeper timer, a scan over every bucket, and an evict-versus-refill race
 whose correctness argument takes a paragraph-long comment.
 
@@ -89,12 +85,11 @@ lock-protected dictionary read costs about 22 nanoseconds; a Spek check is
 a full request-reply through a mailbox, about 2 µs and roughly 420 bytes at
 the current runtime. That is the price of per-key serialization,
 passivation, and testable time, and it has already been halved twice by
-runtime work. What it buys is the rest of the table, plus everything you
-did not have to write.
+runtime work. The rest of the table is the other side of that cost.
 
 ## The benchmark suite
 
-The demo harnesses are the correctness gate; their wall-clock throughput is
+The demo harnesses are the correctness gate. Their wall-clock throughput is
 a cold single shot with JIT warmup inside the measurement. The numbers
 worth quoting come from `demos/benchmarks`, which runs the same paired
 panes under BenchmarkDotNet: JIT-warmed steady state, outlier-managed
@@ -105,17 +100,17 @@ column shows where that cost lives. Run it with `./demos/run.sh benchmarks`
 (the runner builds Release, as BenchmarkDotNet requires) and pass
 BenchmarkDotNet arguments through, such as `--filter '*Fleet*'`.
 
-The demos also earn their keep in CI. Each exits non-zero when its contract
+The demos also run in CI, where each exits non-zero when its contract
 breaks (the fleet or the elevators lose work, the rate limiter fails its
 bucket arithmetic or retains keys past the idle window), so every demo
 doubles as an integration test of the public runtime surface.
 
 ## Where to go next
 
-- [Supervision](/language/supervision/): the `supervise` clause the fleet
+- [Supervision](language/supervision.md): the `supervise` clause the fleet
   and elevator demos are built on.
-- [Persistence](/language/persistence/): where `passivate after` lives.
-- [Samples](/samples/): smaller, single-feature programs to read before
+- [Persistence](language/persistence.md): where `passivate after` lives.
+- [Samples](samples.md): smaller, single-feature programs to read before
   the demos.
-- [Getting started](/getting-started/): install the toolchain if you have
+- [Getting started](getting-started.md): install the toolchain if you have
   not run any Spek yet.

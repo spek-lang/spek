@@ -36,8 +36,7 @@ public sealed class TestActorSystem : IDisposable
     /// runtime's semantic clocks (passivation idleness, restart windows,
     /// <c>self.Clock</c>) stand still until <see cref="AdvanceClock"/> moves
     /// them: a passivation timeout of minutes becomes one call. Real-time
-    /// tests are unaffected by default; opting the default over to virtual
-    /// time is deliberately deferred until the wait helpers pump the clock.
+    /// tests are unaffected by default.
     /// </summary>
     public ManualTimeProvider? Clock { get; }
 

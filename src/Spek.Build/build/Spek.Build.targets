@@ -7,8 +7,7 @@
 
   `spekc` comes from the Spek.Cli.Tool package; install it globally
   (`dotnet tool install -g Spek.Cli.Tool`) or, preferably, as a local tool via a
-  `.config/dotnet-tools.json` manifest (the `spek-test` / `spek-console` templates
-  scaffold one). This targets file restores local tools automatically if a
+  `.config/dotnet-tools.json` manifest (the `spek-test` template scaffolds one). This targets file restores local tools automatically if a
   manifest is present.
 
   In a test project (Microsoft.NET.Test.Sdk sets IsTestProject=true), `*Tests`

@@ -2,7 +2,7 @@
 
 A Spek test project. Tests are written **in Spek**: every public method of a
 `*Tests` class (or module) is an xUnit test, discovered by `dotnet test`, IDE test
-explorers, and CI. There is no test keyword and no attributes; the `Tests` suffix
+explorers, and CI. There is no test keyword and no attributes. The `Tests` suffix
 is the signal.
 
 ## Run the tests
@@ -18,7 +18,7 @@ integration calling `spekc`) and runs the emitted tests.
 ## How it fits together
 
 - **`CalculatorTests.spek`**: an actor and a `CalculatorTests` class. `init` runs
-  before each test on a fresh instance, so state resets automatically; the
+  before each test on a fresh instance, so state resets automatically. The
   `TestActorSystem` field is disposed after each test.
 - **`.config/dotnet-tools.json`**: pins `Spek.Cli.Tool` (`spekc`) as a local
   tool, so the build is reproducible. `dotnet tool restore` fetches it.
